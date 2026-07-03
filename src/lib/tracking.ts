@@ -1,4 +1,4 @@
-import { getDb, normalizePlate } from "./db";
+import { one, many, normalizePlate } from "./db";
 import { STATUS_FLOW, type OrderStatus } from "./status";
 
 export type PublicEvent = {
@@ -43,51 +43,48 @@ export type TrackingResult = {
   history?: { folio: string; status: OrderStatus; description: string; created_at: string }[];
 };
 
-export function getTracking(rawPlate: string, code?: string | null): TrackingResult {
-  const db = getDb();
+export async function getTracking(rawPlate: string, code?: string | null): Promise<TrackingResult> {
   const plate = normalizePlate(rawPlate);
   if (!plate) return { found: false, plate };
 
-  const vehicle = db
-    .prepare("SELECT id, type, brand, model, year, color FROM vehicles WHERE plate = ?")
-    .get(plate) as
-    | { id: number; type: string; brand: string | null; model: string | null; year: string | null; color: string | null }
-    | undefined;
+  const vehicle = await one<
+    { id: number; type: string; brand: string | null; model: string | null; year: string | null; color: string | null }
+  >("SELECT id, type, brand, model, year, color FROM vehicles WHERE plate = ?", [plate]);
   if (!vehicle) return { found: false, plate };
 
+  type OrderRow = {
+    id: number;
+    folio: string;
+    tracking_code: string;
+    status: OrderStatus;
+    description: string;
+    diagnosis: string | null;
+    estimated_delivery: string | null;
+    created_at: string;
+    updated_at: string;
+  };
+
   // Orden activa = la más reciente no entregada/cancelada; si no hay, la última.
-  const order = (db
-    .prepare(
+  const order =
+    (await one<OrderRow>(
       `SELECT * FROM orders WHERE vehicle_id = ? AND status NOT IN ('entregado','cancelado')
-       ORDER BY created_at DESC LIMIT 1`
-    )
-    .get(vehicle.id) ??
-    db
-      .prepare("SELECT * FROM orders WHERE vehicle_id = ? ORDER BY created_at DESC LIMIT 1")
-      .get(vehicle.id)) as
-    | {
-        id: number;
-        folio: string;
-        tracking_code: string;
-        status: OrderStatus;
-        description: string;
-        diagnosis: string | null;
-        estimated_delivery: string | null;
-        created_at: string;
-        updated_at: string;
-      }
-    | undefined;
+       ORDER BY created_at DESC LIMIT 1`,
+      [vehicle.id]
+    )) ??
+    (await one<OrderRow>(
+      "SELECT * FROM orders WHERE vehicle_id = ? ORDER BY created_at DESC LIMIT 1",
+      [vehicle.id]
+    ));
 
   if (!order) return { found: false, plate };
 
   const detailed = !!code && code.trim().toUpperCase() === order.tracking_code;
 
-  const events = db
-    .prepare(
-      `SELECT id, type, title, detail, created_at FROM order_events
-       WHERE order_id = ? AND is_public = 1 ORDER BY created_at DESC, id DESC`
-    )
-    .all(order.id) as PublicEvent[];
+  const events = await many<PublicEvent>(
+    `SELECT id, type, title, detail, created_at FROM order_events
+       WHERE order_id = ? AND is_public = 1 ORDER BY created_at DESC, id DESC`,
+    [order.id]
+  );
 
   const result: TrackingResult = {
     found: true,
@@ -114,19 +111,17 @@ export function getTracking(rawPlate: string, code?: string | null): TrackingRes
   };
 
   if (detailed) {
-    const items = db
-      .prepare(
-        "SELECT kind, description, qty, unit_price FROM order_items WHERE order_id = ? ORDER BY id"
-      )
-      .all(order.id) as PublicItem[];
+    const items = await many<PublicItem>(
+      "SELECT kind, description, qty, unit_price FROM order_items WHERE order_id = ? ORDER BY id",
+      [order.id]
+    );
     result.items = items;
     result.total = items.reduce((sum, i) => sum + i.qty * i.unit_price, 0);
-    result.history = db
-      .prepare(
-        `SELECT folio, status, description, created_at FROM orders
-         WHERE vehicle_id = ? AND id != ? ORDER BY created_at DESC LIMIT 10`
-      )
-      .all(vehicle.id, order.id) as TrackingResult["history"];
+    result.history = await many<NonNullable<TrackingResult["history"]>[number]>(
+      `SELECT folio, status, description, created_at FROM orders
+         WHERE vehicle_id = ? AND id != ? ORDER BY created_at DESC LIMIT 10`,
+      [vehicle.id, order.id]
+    );
   }
 
   return result;

@@ -1,5 +1,5 @@
 import webpush from "web-push";
-import { getDb, normalizePlate } from "./db";
+import { many, run, normalizePlate } from "./db";
 
 let configured = false;
 function ensureConfigured(): boolean {
@@ -17,11 +17,11 @@ export async function sendPushToPlate(
   payload: { title: string; body: string; url?: string }
 ) {
   if (!ensureConfigured()) return;
-  const db = getDb();
   const normalized = normalizePlate(plate);
-  const subs = db
-    .prepare("SELECT id, subscription FROM push_subs WHERE plate = ?")
-    .all(normalized) as { id: number; subscription: string }[];
+  const subs = await many<{ id: number; subscription: string }>(
+    "SELECT id, subscription FROM push_subs WHERE plate = ?",
+    [normalized]
+  );
 
   const data = JSON.stringify({
     title: payload.title,
@@ -36,7 +36,7 @@ export async function sendPushToPlate(
       } catch (err: unknown) {
         const status = (err as { statusCode?: number }).statusCode;
         if (status === 404 || status === 410) {
-          db.prepare("DELETE FROM push_subs WHERE id = ?").run(s.id);
+          await run("DELETE FROM push_subs WHERE id = ?", [s.id]);
         }
       }
     })

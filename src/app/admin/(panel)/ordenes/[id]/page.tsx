@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import {
   ArrowLeft, MessageSquareText, Wrench, Eye, EyeOff, Trash2, Phone, KeyRound, ExternalLink,
 } from "lucide-react";
-import { getDb } from "@/lib/db";
+import { one, many } from "@/lib/db";
 import {
   STATUS_META, STATUS_FLOW, ROLES, formatMoney, formatDate, formatDateShort, type OrderStatus,
 } from "@/lib/status";
@@ -20,51 +20,44 @@ export const metadata = { title: "Detalle de orden" };
 
 export default async function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const db = getDb();
 
-  const order = db
-    .prepare(
-      `SELECT o.*, v.plate, v.type, v.brand, v.model, v.year, v.color,
+  const order = await one<{
+    id: number; folio: string; tracking_code: string; status: OrderStatus; description: string;
+    diagnosis: string | null; km: string | null; fuel_level: string | null;
+    assigned_to: number | null; estimated_delivery: string | null; created_at: string;
+    updated_at: string; plate: string; type: string; brand: string | null; model: string | null;
+    year: string | null; color: string | null; client_id: number; client_name: string;
+    client_phone: string | null;
+  }>(
+    `SELECT o.*, v.plate, v.type, v.brand, v.model, v.year, v.color,
               c.id AS client_id, c.name AS client_name, c.phone AS client_phone
        FROM orders o
        JOIN vehicles v ON v.id = o.vehicle_id
        JOIN clients c ON c.id = v.client_id
-       WHERE o.id = ?`
-    )
-    .get(Number(id)) as
-    | {
-        id: number; folio: string; tracking_code: string; status: OrderStatus; description: string;
-        diagnosis: string | null; km: string | null; fuel_level: string | null;
-        assigned_to: number | null; estimated_delivery: string | null; created_at: string;
-        updated_at: string; plate: string; type: string; brand: string | null; model: string | null;
-        year: string | null; color: string | null; client_id: number; client_name: string;
-        client_phone: string | null;
-      }
-    | undefined;
+       WHERE o.id = ?`,
+    [Number(id)]
+  );
 
   if (!order) notFound();
 
-  const items = db
-    .prepare("SELECT * FROM order_items WHERE order_id = ? ORDER BY id")
-    .all(order.id) as {
+  const items = await many<{
     id: number; kind: string; description: string; qty: number; unit_price: number;
-  }[];
+  }>("SELECT * FROM order_items WHERE order_id = ? ORDER BY id", [order.id]);
   const total = items.reduce((s, i) => s + i.qty * i.unit_price, 0);
 
-  const events = db
-    .prepare(
-      `SELECT e.*, u.name AS author FROM order_events e
-       LEFT JOIN users u ON u.id = e.created_by
-       WHERE e.order_id = ? ORDER BY e.created_at DESC, e.id DESC`
-    )
-    .all(order.id) as {
+  const events = await many<{
     id: number; type: string; title: string; detail: string | null; is_public: number;
     created_at: string; author: string | null;
-  }[];
+  }>(
+    `SELECT e.*, u.name AS author FROM order_events e
+       LEFT JOIN users u ON u.id = e.created_by
+       WHERE e.order_id = ? ORDER BY e.created_at DESC, e.id DESC`,
+    [order.id]
+  );
 
-  const team = db
-    .prepare("SELECT id, name, role FROM users WHERE active = 1 ORDER BY name")
-    .all() as { id: number; name: string; role: string }[];
+  const team = await many<{ id: number; name: string; role: string }>(
+    "SELECT id, name, role FROM users WHERE active = 1 ORDER BY name"
+  );
 
   const meta = STATUS_META[order.status];
   const nextStatuses = STATUS_FLOW.filter((s) => s !== order.status);

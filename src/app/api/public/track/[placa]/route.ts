@@ -9,7 +9,7 @@ export async function GET(
 ) {
   const { placa } = await params;
   const code = req.nextUrl.searchParams.get("code");
-  const result = getTracking(placa, code);
+  const result = await getTracking(placa, code);
   return NextResponse.json(result, {
     status: result.found ? 200 : 404,
     headers: { "Cache-Control": "no-store" },

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Search, ChevronRight, UserPlus, Phone } from "lucide-react";
-import { getDb } from "@/lib/db";
+import { many } from "@/lib/db";
 import { createClientAction } from "@/app/admin/actions";
 import { PageTitle, card, btnPrimary, inputCls, labelCls } from "@/components/admin/ui";
 
@@ -13,16 +13,14 @@ export default async function ClientsPage({
   searchParams: Promise<{ q?: string }>;
 }) {
   const { q = "" } = await searchParams;
-  const db = getDb();
   const like = `%${q.trim()}%`;
-  const clients = db
-    .prepare(
-      `SELECT c.id, c.name, c.phone, COUNT(v.id) AS vehicles
+  const clients = await many<{ id: number; name: string; phone: string | null; vehicles: number }>(
+    `SELECT c.id, c.name, c.phone, COUNT(v.id)::int AS vehicles
        FROM clients c LEFT JOIN vehicles v ON v.client_id = c.id
        WHERE c.name LIKE ? OR c.phone LIKE ?
-       GROUP BY c.id ORDER BY c.name LIMIT 300`
-    )
-    .all(like, like) as { id: number; name: string; phone: string | null; vehicles: number }[];
+       GROUP BY c.id ORDER BY c.name LIMIT 300`,
+    [like, like]
+  );
 
   return (
     <div className="space-y-5">

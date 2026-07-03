@@ -94,9 +94,9 @@ export const ROLES: Record<string, string> = {
 };
 
 export function formatMoney(n: number): string {
-  return new Intl.NumberFormat("es-MX", {
+  return new Intl.NumberFormat("es-GT", {
     style: "currency",
-    currency: "MXN",
+    currency: "GTQ",
     minimumFractionDigits: 2,
   }).format(n);
 }
@@ -104,23 +104,23 @@ export function formatMoney(n: number): string {
 export function formatDate(iso: string | null | undefined): string {
   if (!iso) return "—";
   const d = new Date(iso.includes("T") ? iso : iso.replace(" ", "T") + "Z");
-  return new Intl.DateTimeFormat("es-MX", {
+  return new Intl.DateTimeFormat("es-GT", {
     day: "2-digit",
     month: "short",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-    timeZone: "America/Mexico_City",
+    timeZone: "America/Guatemala",
   }).format(d);
 }
 
 export function formatDateShort(iso: string | null | undefined): string {
   if (!iso) return "—";
   const d = new Date(iso.includes("T") ? iso : iso.replace(" ", "T") + "Z");
-  return new Intl.DateTimeFormat("es-MX", {
+  return new Intl.DateTimeFormat("es-GT", {
     day: "2-digit",
     month: "short",
     year: "numeric",
-    timeZone: "America/Mexico_City",
+    timeZone: "America/Guatemala",
   }).format(d);
 }
