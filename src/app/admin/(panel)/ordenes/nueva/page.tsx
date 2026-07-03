@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { getDb } from "@/lib/db";
+import { many } from "@/lib/db";
 import { createOrderAction } from "@/app/admin/actions";
 import { PageTitle, card, btnPrimary, btnSecondary, inputCls, labelCls } from "@/components/admin/ui";
 import { VEHICLE_TYPES } from "@/lib/status";
@@ -14,16 +14,13 @@ export default async function NewOrderPage({
   searchParams: Promise<{ vehiculo?: string }>;
 }) {
   const { vehiculo } = await searchParams;
-  const db = getDb();
-  const vehicles = db
-    .prepare(
-      `SELECT v.id, v.plate, v.brand, v.model, c.name AS client
+  const vehicles = await many<{ id: number; plate: string; brand: string | null; model: string | null; client: string }>(
+    `SELECT v.id, v.plate, v.brand, v.model, c.name AS client
        FROM vehicles v JOIN clients c ON c.id = v.client_id ORDER BY v.created_at DESC LIMIT 500`
-    )
-    .all() as { id: number; plate: string; brand: string | null; model: string | null; client: string }[];
-  const clients = db
-    .prepare("SELECT id, name FROM clients ORDER BY name LIMIT 1000")
-    .all() as { id: number; name: string }[];
+  );
+  const clients = await many<{ id: number; name: string }>(
+    "SELECT id, name FROM clients ORDER BY name LIMIT 1000"
+  );
 
   return (
     <div className="space-y-5 max-w-2xl">

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { UserPlus, ShieldCheck, ShieldOff } from "lucide-react";
-import { getDb } from "@/lib/db";
+import { many } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { createUserAction, toggleUserAction, resetPasswordAction } from "@/app/admin/actions";
 import { ROLES, formatDate } from "@/lib/status";
@@ -13,11 +13,9 @@ export default async function UsersPage() {
   const me = await getSessionUser();
   if (!me || me.role !== "admin") redirect("/admin");
 
-  const users = getDb()
-    .prepare("SELECT id, name, username, role, active, created_at FROM users ORDER BY name")
-    .all() as {
+  const users = await many<{
     id: number; name: string; username: string; role: string; active: number; created_at: string;
-  }[];
+  }>("SELECT id, name, username, role, active, created_at FROM users ORDER BY name");
 
   return (
     <div className="space-y-5">

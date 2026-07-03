@@ -17,6 +17,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function TrackingPage({ params, searchParams }: Props) {
   const { placa } = await params;
   const { code } = await searchParams;
-  const initial = getTracking(placa, code ?? null);
+  const initial = await getTracking(placa, code ?? null);
   return <TrackingClient initial={initial} initialCode={code ?? ""} />;
 }

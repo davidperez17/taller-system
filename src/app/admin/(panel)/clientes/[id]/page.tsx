@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Plus, ChevronRight } from "lucide-react";
-import { getDb } from "@/lib/db";
+import { one, many } from "@/lib/db";
 import { updateClientAction, createVehicleAction, deleteClientAction } from "@/app/admin/actions";
 import { formatDate } from "@/lib/status";
 import { VEHICLE_TYPES } from "@/lib/status";
@@ -14,29 +14,25 @@ export const metadata = { title: "Cliente" };
 
 export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const db = getDb();
-  const client = db.prepare("SELECT * FROM clients WHERE id = ?").get(Number(id)) as
-    | { id: number; name: string; phone: string | null; email: string | null; address: string | null; notes: string | null; created_at: string }
-    | undefined;
+  const client = await one<
+    { id: number; name: string; phone: string | null; email: string | null; address: string | null; notes: string | null; created_at: string }
+  >("SELECT * FROM clients WHERE id = ?", [Number(id)]);
   if (!client) notFound();
 
-  const vehicles = db
-    .prepare("SELECT * FROM vehicles WHERE client_id = ? ORDER BY created_at DESC")
-    .all(client.id) as {
+  const vehicles = await many<{
     id: number; plate: string; type: string; brand: string | null; model: string | null;
     year: string | null; color: string | null;
-  }[];
+  }>("SELECT * FROM vehicles WHERE client_id = ? ORDER BY created_at DESC", [client.id]);
 
-  const orders = db
-    .prepare(
-      `SELECT o.id, o.folio, o.status, o.description, o.updated_at, v.plate, v.type
-       FROM orders o JOIN vehicles v ON v.id = o.vehicle_id
-       WHERE v.client_id = ? ORDER BY o.created_at DESC LIMIT 50`
-    )
-    .all(client.id) as {
+  const orders = await many<{
     id: number; folio: string; status: string; description: string; updated_at: string;
     plate: string; type: string;
-  }[];
+  }>(
+    `SELECT o.id, o.folio, o.status, o.description, o.updated_at, v.plate, v.type
+       FROM orders o JOIN vehicles v ON v.id = o.vehicle_id
+       WHERE v.client_id = ? ORDER BY o.created_at DESC LIMIT 50`,
+    [client.id]
+  );
 
   return (
     <div className="space-y-5">

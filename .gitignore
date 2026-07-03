@@ -7,3 +7,5 @@ data/*.db
 data/*.db-*
 .DS_Store
 resumen_proyecto.md
+
+tsconfig.tsbuildinfo

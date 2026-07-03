@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Search, Plus } from "lucide-react";
-import { getDb, normalizePlate } from "@/lib/db";
+import { many, normalizePlate } from "@/lib/db";
 import { PageTitle, card, btnPrimary, btnSecondary, inputCls, PlateBadge, VehicleTypeIcon, StatusBadge } from "@/components/admin/ui";
 
 export const dynamic = "force-dynamic";
@@ -12,13 +12,15 @@ export default async function VehiclesPage({
   searchParams: Promise<{ q?: string }>;
 }) {
   const { q = "" } = await searchParams;
-  const db = getDb();
   const plateLike = `%${normalizePlate(q)}%`;
   const like = `%${q.trim()}%`;
 
-  const vehicles = db
-    .prepare(
-      `SELECT v.id, v.plate, v.type, v.brand, v.model, v.year, v.color,
+  const vehicles = await many<{
+    id: number; plate: string; type: string; brand: string | null; model: string | null;
+    year: string | null; color: string | null; client_id: number; client: string;
+    active_status: string | null; active_order_id: number | null;
+  }>(
+    `SELECT v.id, v.plate, v.type, v.brand, v.model, v.year, v.color,
               c.id AS client_id, c.name AS client,
               (SELECT o.status FROM orders o WHERE o.vehicle_id = v.id
                 AND o.status NOT IN ('entregado','cancelado')
@@ -28,13 +30,9 @@ export default async function VehiclesPage({
                 ORDER BY o.created_at DESC LIMIT 1) AS active_order_id
        FROM vehicles v JOIN clients c ON c.id = v.client_id
        WHERE v.plate LIKE ? OR v.brand LIKE ? OR v.model LIKE ? OR c.name LIKE ?
-       ORDER BY v.created_at DESC LIMIT 300`
-    )
-    .all(plateLike, like, like, like) as {
-    id: number; plate: string; type: string; brand: string | null; model: string | null;
-    year: string | null; color: string | null; client_id: number; client: string;
-    active_status: string | null; active_order_id: number | null;
-  }[];
+       ORDER BY v.created_at DESC LIMIT 300`,
+    [plateLike, like, like, like]
+  );
 
   return (
     <div className="space-y-5">

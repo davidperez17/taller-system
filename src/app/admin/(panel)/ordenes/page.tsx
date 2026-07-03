@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Plus, Search, ChevronRight } from "lucide-react";
-import { getDb, normalizePlate } from "@/lib/db";
+import { many, normalizePlate } from "@/lib/db";
 import { STATUS_META, formatDate, type OrderStatus } from "@/lib/status";
 import { StatusBadge, PlateBadge, VehicleTypeIcon, PageTitle, card, btnPrimary, inputCls } from "@/components/admin/ui";
 
@@ -19,7 +19,6 @@ export default async function OrdersPage({
   searchParams: Promise<{ estado?: string; q?: string }>;
 }) {
   const { estado = "activas", q = "" } = await searchParams;
-  const db = getDb();
 
   let where = "1=1";
   const args: (string | number)[] = [];
@@ -36,21 +35,20 @@ export default async function OrdersPage({
     args.push(plateLike, like, like);
   }
 
-  const orders = db
-    .prepare(
-      `SELECT o.id, o.folio, o.status, o.description, o.updated_at, o.created_at,
+  const orders = await many<{
+    id: number; folio: string; status: string; description: string; updated_at: string;
+    created_at: string; plate: string; type: string; brand: string | null;
+    model: string | null; client: string;
+  }>(
+    `SELECT o.id, o.folio, o.status, o.description, o.updated_at, o.created_at,
               v.plate, v.type, v.brand, v.model, c.name AS client
        FROM orders o
        JOIN vehicles v ON v.id = o.vehicle_id
        JOIN clients c ON c.id = v.client_id
        WHERE ${where}
-       ORDER BY o.updated_at DESC LIMIT 200`
-    )
-    .all(...args) as {
-    id: number; folio: string; status: string; description: string; updated_at: string;
-    created_at: string; plate: string; type: string; brand: string | null;
-    model: string | null; client: string;
-  }[];
+       ORDER BY o.updated_at DESC LIMIT 200`,
+    args
+  );
 
   return (
     <div className="space-y-5">

@@ -1,58 +1,46 @@
 import Link from "next/link";
 import { ClipboardList, Car, CheckCircle2, Banknote, Plus, ChevronRight } from "lucide-react";
-import { getDb } from "@/lib/db";
+import { one, many } from "@/lib/db";
 import { STATUS_META, STATUS_FLOW, formatMoney, formatDate, type OrderStatus } from "@/lib/status";
 import { StatusBadge, PlateBadge, VehicleTypeIcon, PageTitle, card, btnPrimary } from "@/components/admin/ui";
 
 export const dynamic = "force-dynamic";
 
-export default function DashboardPage() {
-  const db = getDb();
-
-  const active = db
-    .prepare(
-      "SELECT COUNT(*) AS n FROM orders WHERE status NOT IN ('entregado','cancelado')"
-    )
-    .get() as { n: number };
-  const ready = db
-    .prepare("SELECT COUNT(*) AS n FROM orders WHERE status = 'listo'")
-    .get() as { n: number };
-  const deliveredMonth = db
-    .prepare(
-      `SELECT COUNT(*) AS n FROM orders WHERE status = 'entregado'
-       AND strftime('%Y-%m', delivered_at) = strftime('%Y-%m', 'now')`
-    )
-    .get() as { n: number };
-  const revenueMonth = db
-    .prepare(
-      `SELECT COALESCE(SUM(i.qty * i.unit_price), 0) AS total
+export default async function DashboardPage() {
+  const active = (await one<{ n: number }>(
+    "SELECT COUNT(*)::int AS n FROM orders WHERE status NOT IN ('entregado','cancelado')"
+  ))!;
+  const ready = (await one<{ n: number }>(
+    "SELECT COUNT(*)::int AS n FROM orders WHERE status = 'listo'"
+  ))!;
+  const deliveredMonth = (await one<{ n: number }>(
+    `SELECT COUNT(*)::int AS n FROM orders WHERE status = 'entregado'
+       AND substr(delivered_at, 1, 7) = to_char(now(), 'YYYY-MM')`
+  ))!;
+  const revenueMonth = (await one<{ total: number }>(
+    `SELECT COALESCE(SUM(i.qty * i.unit_price), 0)::float8 AS total
        FROM order_items i JOIN orders o ON o.id = i.order_id
        WHERE o.status = 'entregado'
-       AND strftime('%Y-%m', o.delivered_at) = strftime('%Y-%m', 'now')`
-    )
-    .get() as { total: number };
+       AND substr(o.delivered_at, 1, 7) = to_char(now(), 'YYYY-MM')`
+  ))!;
 
-  const byStatus = db
-    .prepare(
-      `SELECT status, COUNT(*) AS n FROM orders
+  const byStatus = await many<{ status: OrderStatus; n: number }>(
+    `SELECT status, COUNT(*)::int AS n FROM orders
        WHERE status NOT IN ('entregado','cancelado') GROUP BY status`
-    )
-    .all() as { status: OrderStatus; n: number }[];
+  );
   const statusCount = Object.fromEntries(byStatus.map((r) => [r.status, r.n]));
 
-  const recent = db
-    .prepare(
-      `SELECT o.id, o.folio, o.status, o.description, o.updated_at, v.plate, v.type, c.name AS client
+  const recent = await many<{
+    id: number; folio: string; status: string; description: string;
+    updated_at: string; plate: string; type: string; client: string;
+  }>(
+    `SELECT o.id, o.folio, o.status, o.description, o.updated_at, v.plate, v.type, c.name AS client
        FROM orders o
        JOIN vehicles v ON v.id = o.vehicle_id
        JOIN clients c ON c.id = v.client_id
        WHERE o.status NOT IN ('entregado','cancelado')
        ORDER BY o.updated_at DESC LIMIT 8`
-    )
-    .all() as {
-    id: number; folio: string; status: string; description: string;
-    updated_at: string; plate: string; type: string; client: string;
-  }[];
+  );
 
   const kpis = [
     { label: "En el taller", value: active.n, icon: Car, tone: "bg-blue-50 text-blue-700" },

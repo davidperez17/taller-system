@@ -10,18 +10,21 @@ CRM + PWA para taller mecánico (autos, motos y camiones). Una sola app con dos 
 
 ## Stack
 
-Next.js 16 (App Router, Server Actions) · React 19 · Tailwind CSS 4 · SQLite (better-sqlite3) · web-push (VAPID) · Service Worker propio (push + offline básico).
+Next.js 16 (App Router, Server Actions) · React 19 · Tailwind CSS 4 · Neon Postgres (`@neondatabase/serverless`, HTTP) · web-push (VAPID) · Service Worker propio (push + offline básico).
 
 ## Puesta en marcha
 
 ```bash
 npm install
-npm run seed          # crea el usuario admin (agrega --demo para datos de prueba)
+# Sembrar esquema + admin (+ --demo para datos de prueba) contra tu Neon:
+DATABASE_URL="postgres://..." node scripts/seed.mjs --demo
 npm run build
 npm start             # producción en http://localhost:3000
 ```
 
-En desarrollo: `npm run dev`.
+En desarrollo: `npm run dev` (con `DATABASE_URL` en `.env.local`).
+
+> La app también crea el esquema sola en la primera consulta (`ensureSchema` en `src/lib/db.ts`), así que el seed solo es imprescindible para el usuario admin y los datos demo.
 
 **Credenciales iniciales:** usuario `admin` · contraseña `sanmiguel96` → cámbiala desde *Equipo* al entrar.
 
@@ -29,16 +32,15 @@ Con datos demo: placa `ABC1234` (código `K7PM`) y placa `XYZ987` (código `W3RT
 
 ## Variables de entorno (`.env.local`)
 
-Se generaron automáticamente. Si despliegas en otro servidor genera nuevas:
-
 ```
+DATABASE_URL                                                          # cadena de conexión de Neon Postgres
 VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY / NEXT_PUBLIC_VAPID_PUBLIC_KEY  # npx web-push generate-vapid-keys
 SESSION_SECRET                                                        # cadena aleatoria larga
 ```
 
 ## Notas de operación
 
-- **HTTPS es obligatorio** para push y PWA en producción (en `localhost` funciona sin HTTPS). Cualquier dominio con certificado (Cloudflare, Caddy, etc.) sirve.
-- La base vive en `data/taller.db` (respáldala copiando ese archivo).
+- **HTTPS es obligatorio** para push y PWA en producción (en `localhost` funciona sin HTTPS). Cualquier dominio con certificado (Vercel, Cloudflare, etc.) sirve.
+- Los datos viven en tu proyecto de Neon Postgres (respaldos y branches desde la consola de Neon).
 - El flujo diario: *Nueva orden* al recibir el vehículo → entregar al cliente su **placa + código de acceso** (aparecen en la orden) → ir cambiando etapas y anotando avances; el cliente lo ve todo en su teléfono.
 - Etapas: Recibido → Diagnóstico → Esperando aprobación → Esperando repuestos → En reparación → Control de calidad → Listo para entrega → Entregado (y Cancelado).

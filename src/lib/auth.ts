@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
-import { getDb } from "./db";
+import { one } from "./db";
 
 const COOKIE = "sm96_session";
 const MAX_AGE = 60 * 60 * 24 * 14; // 14 días
@@ -63,10 +63,10 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   if (!token) return null;
   const userId = verifyToken(token);
   if (!userId) return null;
-  const db = getDb();
-  const user = db
-    .prepare("SELECT id, name, username, role FROM users WHERE id = ? AND active = 1")
-    .get(userId) as SessionUser | undefined;
+  const user = await one<SessionUser>(
+    "SELECT id, name, username, role FROM users WHERE id = ? AND active = 1",
+    [userId]
+  );
   return user ?? null;
 }
 
