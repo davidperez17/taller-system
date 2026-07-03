@@ -3,10 +3,27 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Wrench, Search, Car, Bike, Truck, BellRing, ClipboardList,
-  MapPin, Phone, Clock, ChevronRight, X, Download, ShieldCheck,
+  Wrench,
+  Search,
+  Car,
+  Bike,
+  Truck,
+  BellRing,
+  ClipboardList,
+  MapPin,
+  Phone,
+  Clock,
+  ChevronRight,
+  X,
+  Download,
+  ShieldCheck,
 } from "lucide-react";
-import { getSavedVehicles, removeVehicle, registerSW, type SavedVehicle } from "./pwa";
+import {
+  getSavedVehicles,
+  removeVehicle,
+  registerSW,
+  type SavedVehicle,
+} from "./pwa";
 
 type InstallPromptEvent = Event & { prompt: () => Promise<void> };
 
@@ -50,7 +67,9 @@ export default function HomeClient() {
             <p className="font-heading font-bold text-lg leading-tight tracking-wide">
               MULTISERVICIOS SAN MIGUEL 96
             </p>
-            <p className="text-blue-200 text-xs">Taller mecánico · Autos · Motos · Camiones</p>
+            <p className="text-blue-200 text-xs">
+              Taller mecánico · Autos · Motos · Camiones
+            </p>
           </div>
         </div>
       </header>
@@ -62,8 +81,8 @@ export default function HomeClient() {
             SIGUE TU REPARACIÓN <span className="text-blue-400">EN VIVO</span>
           </h1>
           <p className="mt-3 text-blue-200 max-w-md mx-auto">
-            Consulta el avance de tu auto, moto o camión en tiempo real.
-            Solo necesitas tu placa.
+            Consulta el avance de tu auto, moto o camión en tiempo real. Solo
+            necesitas tu placa.
           </p>
 
           <form onSubmit={submit} className="mt-8 max-w-md mx-auto">
@@ -91,7 +110,8 @@ export default function HomeClient() {
               </button>
             </div>
             <p className="mt-2 text-xs text-blue-300">
-              Escribe la placa tal como aparece en tu vehículo, sin importar guiones o espacios.
+              Escribe la placa tal como aparece en tu vehículo, sin importar
+              guiones o espacios.
             </p>
           </form>
         </div>
@@ -111,7 +131,7 @@ export default function HomeClient() {
                     <button
                       onClick={() =>
                         router.push(
-                          `/seguimiento/${v.plate}${v.code ? `?code=${v.code}` : ""}`
+                          `/seguimiento/${v.plate}${v.code ? `?code=${v.code}` : ""}`,
                         )
                       }
                       className="flex-1 flex items-center gap-3 py-3 text-left cursor-pointer group min-w-0"
@@ -119,7 +139,9 @@ export default function HomeClient() {
                       <span className="plate-badge bg-slate-100 border border-slate-300 rounded-lg px-3 py-1 text-slate-800">
                         {v.plate}
                       </span>
-                      <span className="text-sm text-slate-500 truncate flex-1">{v.label}</span>
+                      <span className="text-sm text-slate-500 truncate flex-1">
+                        {v.label}
+                      </span>
                       <ChevronRight
                         className="w-5 h-5 text-slate-300 group-hover:text-blue-600 transition-colors shrink-0"
                         aria-hidden="true"
@@ -165,11 +187,16 @@ export default function HomeClient() {
                 },
               ].map((s) => (
                 <li key={s.title} className="flex sm:flex-col gap-3">
-                  <div className="bg-blue-50 text-blue-700 rounded-xl p-2.5 h-fit w-fit" aria-hidden="true">
+                  <div
+                    className="bg-blue-50 text-blue-700 rounded-xl p-2.5 h-fit w-fit"
+                    aria-hidden="true"
+                  >
                     <s.icon className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="font-semibold text-sm text-slate-800">{s.title}</p>
+                    <p className="font-semibold text-sm text-slate-800">
+                      {s.title}
+                    </p>
                     <p className="text-sm text-slate-500 mt-0.5">{s.text}</p>
                   </div>
                 </li>
@@ -189,7 +216,9 @@ export default function HomeClient() {
                 className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex flex-col items-center gap-2"
               >
                 <s.icon className="w-7 h-7 text-blue-700" aria-hidden="true" />
-                <span className="text-sm font-medium text-slate-700">{s.label}</span>
+                <span className="text-sm font-medium text-slate-700">
+                  {s.label}
+                </span>
               </div>
             ))}
           </section>
@@ -219,13 +248,16 @@ export default function HomeClient() {
       <footer className="bg-blue-950 text-blue-200 text-sm">
         <div className="max-w-3xl mx-auto px-4 py-6 grid gap-3 sm:grid-cols-3">
           <p className="flex items-center gap-2">
-            <MapPin className="w-4 h-4 shrink-0" aria-hidden="true" /> San Miguel, México
+            <MapPin className="w-4 h-4 shrink-0" aria-hidden="true" />{" "}
+            Chimaltenango, Guatemala
           </p>
           <p className="flex items-center gap-2">
-            <Phone className="w-4 h-4 shrink-0" aria-hidden="true" /> Atención en el taller
+            <Phone className="w-4 h-4 shrink-0" aria-hidden="true" /> Atención
+            en el taller
           </p>
           <p className="flex items-center gap-2">
-            <Clock className="w-4 h-4 shrink-0" aria-hidden="true" /> Lun–Sáb · 8:00–18:00
+            <Clock className="w-4 h-4 shrink-0" aria-hidden="true" /> Lun–Sáb ·
+            8:00–18:00
           </p>
         </div>
         <div className="border-t border-blue-900 py-3 text-center text-xs text-blue-400">
