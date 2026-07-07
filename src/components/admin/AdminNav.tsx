@@ -10,6 +10,7 @@ import {
 import { logoutAction } from "@/app/admin/actions";
 import type { SessionUser } from "@/lib/auth";
 import { ROLES } from "@/lib/status";
+import InstallButton from "@/components/InstallButton";
 
 type NavItem = {
   href: string;
@@ -106,6 +107,9 @@ export default function AdminNav({
           </a>
         </nav>
         <div className="p-4 border-t border-blue-900">
+          <div className="mb-3">
+            <InstallButton tone="onDark" appName="SM96 Admin" label="Instalar app" />
+          </div>
           <p className="text-sm font-medium truncate">{user.name}</p>
           <p className="text-xs text-blue-300">{ROLES[user.role]}</p>
           <form action={logoutAction} className="mt-3">
@@ -183,6 +187,9 @@ export default function AdminNav({
                   </Link>
                 );
               })}
+            </div>
+            <div className="mt-3">
+              <InstallButton appName="SM96 Admin" label="Instalar app del panel" />
             </div>
           </div>
         </div>

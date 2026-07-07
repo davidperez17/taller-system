@@ -15,7 +15,6 @@ import {
   Clock,
   ChevronRight,
   X,
-  Download,
   ShieldCheck,
 } from "lucide-react";
 import {
@@ -24,25 +23,17 @@ import {
   registerSW,
   type SavedVehicle,
 } from "./pwa";
-
-type InstallPromptEvent = Event & { prompt: () => Promise<void> };
+import InstallButton from "@/components/InstallButton";
 
 export default function HomeClient() {
   const router = useRouter();
   const [plate, setPlate] = useState("");
   const [saved, setSaved] = useState<SavedVehicle[]>([]);
-  const [installEvt, setInstallEvt] = useState<InstallPromptEvent | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setSaved(getSavedVehicles());
     registerSW();
-    const onPrompt = (e: Event) => {
-      e.preventDefault();
-      setInstallEvt(e as InstallPromptEvent);
-    };
-    window.addEventListener("beforeinstallprompt", onPrompt);
-    return () => window.removeEventListener("beforeinstallprompt", onPrompt);
   }, []);
 
   function submit(e: React.FormEvent) {
@@ -223,19 +214,8 @@ export default function HomeClient() {
             ))}
           </section>
 
-          {/* Instalar app */}
-          {installEvt && (
-            <button
-              onClick={async () => {
-                await installEvt.prompt();
-                setInstallEvt(null);
-              }}
-              className="w-full bg-blue-600 hover:bg-blue-500 active:bg-blue-700 transition-colors text-white rounded-2xl py-3.5 px-4 flex items-center justify-center gap-2 font-semibold shadow-sm cursor-pointer"
-            >
-              <Download className="w-5 h-5" aria-hidden="true" />
-              Instalar la app en tu celular
-            </button>
-          )}
+          {/* Instalar app (siempre visible salvo que ya esté instalada) */}
+          <InstallButton appName="SM96 Taller" label="Instalar la app en tu celular" />
 
           <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
             <ShieldCheck className="w-4 h-4" aria-hidden="true" />

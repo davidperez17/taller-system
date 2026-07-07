@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Wrench, Eye, EyeOff, LogIn, Loader2 } from "lucide-react";
 import { loginAction } from "../actions";
+import InstallButton from "@/components/InstallButton";
 
 export default function LoginForm() {
   const searchParams = useSearchParams();
@@ -82,6 +83,14 @@ export default function LoginForm() {
             {pending ? "Entrando…" : "Entrar"}
           </button>
         </form>
+
+        <div className="mt-4">
+          <InstallButton
+            tone="onDark"
+            appName="SM96 Admin"
+            label="Instalar app del panel"
+          />
+        </div>
       </div>
     </div>
   );
