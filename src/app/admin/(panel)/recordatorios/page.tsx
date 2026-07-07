@@ -158,7 +158,7 @@ export default async function RemindersPage() {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-5 items-start">
-        <div className="lg:col-span-2 space-y-5">
+        <div className="lg:col-span-2 min-w-0 space-y-5">
           {pending.length === 0 && (
             <section className={`${card} p-8 text-center`}>
               <BellRing className="w-8 h-8 text-slate-300 mx-auto" aria-hidden="true" />
@@ -206,7 +206,7 @@ export default async function RemindersPage() {
         </div>
 
         {/* Nuevo recordatorio */}
-        <section className={`${card} p-5`}>
+        <section className={`${card} p-5 min-w-0`}>
           <h2 className="font-heading font-semibold text-slate-800 tracking-wide flex items-center gap-2">
             <BellPlus className="w-4 h-4 text-blue-600" aria-hidden="true" /> NUEVO RECORDATORIO
           </h2>

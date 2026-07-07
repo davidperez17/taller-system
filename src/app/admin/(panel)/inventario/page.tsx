@@ -110,7 +110,7 @@ export default async function InventoryPage({
 
       <div className="grid lg:grid-cols-3 gap-5 items-start">
         {/* Lista + búsqueda */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="lg:col-span-2 min-w-0 space-y-4">
           <form className="flex gap-2" action="/admin/inventario" method="GET">
             {onlyLow && <input type="hidden" name="filtro" value="bajos" />}
             <div className="relative flex-1">
@@ -268,7 +268,7 @@ export default async function InventoryPage({
         </div>
 
         {/* Nuevo repuesto */}
-        <section className={`${card} p-5`}>
+        <section className={`${card} p-5 min-w-0`}>
           <h2 className="font-heading font-semibold text-slate-800 tracking-wide flex items-center gap-2">
             <PackagePlus className="w-4 h-4 text-blue-600" aria-hidden="true" /> NUEVO REPUESTO
           </h2>

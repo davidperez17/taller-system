@@ -172,7 +172,7 @@ export default async function ReportsPage() {
 
       <div className="grid lg:grid-cols-2 gap-5 items-start">
         {/* Órdenes recibidas por mes */}
-        <section className={`${card} p-5`}>
+        <section className={`${card} p-5 min-w-0`}>
           <h2 className="font-heading font-semibold text-lg text-slate-800 tracking-wide">
             ÓRDENES RECIBIDAS
           </h2>
@@ -196,7 +196,7 @@ export default async function ReportsPage() {
         </section>
 
         {/* Desempeño por mecánico */}
-        <section className={`${card} p-5`}>
+        <section className={`${card} p-5 min-w-0`}>
           <h2 className="font-heading font-semibold text-lg text-slate-800 tracking-wide flex items-center gap-2">
             <Wrench className="w-4 h-4 text-blue-600" aria-hidden="true" /> DESEMPEÑO POR MECÁNICO
           </h2>
