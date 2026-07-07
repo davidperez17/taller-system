@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, ClipboardList, Users, Car, UserCog, LogOut, Wrench, ExternalLink,
-  Boxes, BarChart3, Bell, MoreHorizontal, X,
+  Boxes, BarChart3, Bell, MoreHorizontal, X, BellRing,
 } from "lucide-react";
 import { logoutAction } from "@/app/admin/actions";
 import type { SessionUser } from "@/lib/auth";
@@ -28,6 +28,7 @@ const NAV: NavItem[] = [
   { href: "/admin/recordatorios", label: "Recordatorios", icon: Bell, alertKey: "recordatorios" },
   { href: "/admin/clientes", label: "Clientes", icon: Users },
   { href: "/admin/vehiculos", label: "Vehículos", icon: Car },
+  { href: "/admin/notificaciones", label: "Notificaciones", icon: BellRing },
   { href: "/admin/usuarios", label: "Equipo", icon: UserCog, adminOnly: true },
 ];
 

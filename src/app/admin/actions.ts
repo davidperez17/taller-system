@@ -9,6 +9,7 @@ import {
 import { sendPushToPlate } from "@/lib/push";
 import { emitPlateUpdate } from "@/lib/events";
 import { STATUS_META, type OrderStatus } from "@/lib/status";
+import { CLIENT_PRESETS } from "@/lib/notifications";
 
 // Marca de tiempo en UTC con el mismo formato que datetime('now') de SQLite.
 const NOW_SQL = "to_char(now(),'YYYY-MM-DD HH24:MI:SS')";
@@ -506,6 +507,35 @@ export async function deleteReminderAction(formData: FormData) {
   await run("DELETE FROM service_reminders WHERE id = ?", [id]);
   revalidatePath("/admin/recordatorios");
   revalidatePath("/admin");
+}
+
+/* ---------------- Probador de notificaciones ---------------- */
+
+// Envía una notificación push de PRUEBA a una placa, usando un preset de cliente.
+// Devuelve cuántos dispositivos están suscritos (0 = nadie recibió aún).
+export async function sendTestPushAction(
+  plateRaw: string,
+  presetId: string
+): Promise<{ ok: boolean; sent: number; error?: string }> {
+  await requireUser();
+  const plate = normalizePlate(plateRaw);
+  const preset = CLIENT_PRESETS.find((p) => p.id === presetId);
+  if (!plate) return { ok: false, sent: 0, error: "Ingresa una placa." };
+  if (!preset) return { ok: false, sent: 0, error: "Aviso no válido." };
+
+  const subs = await one<{ n: number }>(
+    "SELECT COUNT(*)::int AS n FROM push_subs WHERE plate = ?",
+    [plate]
+  );
+  const sent = subs?.n ?? 0;
+
+  await sendPushToPlate(plate, {
+    title: preset.title.replace("{placa}", plate),
+    body: preset.body,
+    url: `/seguimiento/${plate}`,
+  });
+
+  return { ok: true, sent };
 }
 
 export async function getCurrentUser() {
