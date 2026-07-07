@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Download, X, Share, SquarePlus, MoreVertical } from "lucide-react";
 
 type BIPEvent = Event & {
@@ -32,8 +33,10 @@ export default function InstallButton({
   const [installed, setInstalled] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [help, setHelp] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const standalone =
       window.matchMedia("(display-mode: standalone)").matches ||
       (navigator as unknown as { standalone?: boolean }).standalone === true;
@@ -60,6 +63,16 @@ export default function InstallButton({
       window.removeEventListener("appinstalled", onInstalled);
     };
   }, []);
+
+  // Bloquea el scroll del fondo mientras el modal de ayuda está abierto.
+  useEffect(() => {
+    if (!help) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [help]);
 
   // Ya instalada / abierta como app → no tiene sentido mostrar el botón.
   if (installed) return null;
@@ -91,12 +104,14 @@ export default function InstallButton({
         {label}
       </button>
 
-      {help && (
-        <div
-          className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center"
-          role="dialog"
-          aria-label={`Cómo instalar ${appName}`}
-        >
+      {help && mounted &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center"
+            style={{ height: "100dvh" }}
+            role="dialog"
+            aria-label={`Cómo instalar ${appName}`}
+          >
           <button
             className="absolute inset-0 bg-black/50"
             aria-label="Cerrar"
@@ -181,8 +196,9 @@ export default function InstallButton({
               Debe abrirse en el navegador (Safari o Chrome), no dentro de otra app.
             </p>
           </div>
-        </div>
-      )}
+        </div>,
+          document.body
+        )}
     </>
   );
 }
