@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { ClipboardList, Car, CheckCircle2, Banknote, Plus, ChevronRight } from "lucide-react";
+import {
+  ClipboardList, Car, CheckCircle2, Banknote, Plus, ChevronRight, AlertTriangle, Bell,
+} from "lucide-react";
 import { one, many } from "@/lib/db";
 import { STATUS_META, STATUS_FLOW, formatMoney, formatDate, type OrderStatus } from "@/lib/status";
 import { StatusBadge, PlateBadge, VehicleTypeIcon, PageTitle, card, btnPrimary } from "@/components/admin/ui";
@@ -42,6 +44,14 @@ export default async function DashboardPage() {
        ORDER BY o.updated_at DESC LIMIT 8`
   );
 
+  const lowStock = (await one<{ n: number }>(
+    `SELECT COUNT(*)::int AS n FROM parts WHERE active = 1 AND min_stock > 0 AND stock <= min_stock`
+  ))!;
+  const dueReminders = (await one<{ n: number }>(
+    `SELECT COUNT(*)::int AS n FROM service_reminders
+     WHERE done = 0 AND substr(due_date, 1, 10) <= to_char(now(), 'YYYY-MM-DD')`
+  ))!;
+
   const kpis = [
     { label: "En el taller", value: active.n, icon: Car, tone: "bg-blue-50 text-blue-700" },
     { label: "Listos para entrega", value: ready.n, icon: CheckCircle2, tone: "bg-emerald-50 text-emerald-700" },
@@ -60,6 +70,35 @@ export default async function DashboardPage() {
           </Link>
         }
       />
+
+      {/* Alertas */}
+      {(lowStock.n > 0 || dueReminders.n > 0) && (
+        <div className="grid sm:grid-cols-2 gap-3">
+          {lowStock.n > 0 && (
+            <Link
+              href="/admin/inventario?filtro=bajos"
+              className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 hover:bg-red-100 transition-colors"
+            >
+              <AlertTriangle className="w-5 h-5 shrink-0" aria-hidden="true" />
+              <span>
+                <b>{lowStock.n}</b> repuesto{lowStock.n === 1 ? "" : "s"} por agotarse.
+              </span>
+            </Link>
+          )}
+          {dueReminders.n > 0 && (
+            <Link
+              href="/admin/recordatorios"
+              className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 hover:bg-amber-100 transition-colors"
+            >
+              <Bell className="w-5 h-5 shrink-0" aria-hidden="true" />
+              <span>
+                <b>{dueReminders.n}</b> recordatorio{dueReminders.n === 1 ? "" : "s"} de servicio por
+                atender.
+              </span>
+            </Link>
+          )}
+        </div>
+      )}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

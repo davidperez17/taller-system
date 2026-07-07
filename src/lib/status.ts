@@ -93,6 +93,18 @@ export const ROLES: Record<string, string> = {
   mecanico: "Mecánico",
 };
 
+export const PART_CATEGORIES: string[] = [
+  "Motor",
+  "Frenos",
+  "Suspensión",
+  "Eléctrico",
+  "Lubricantes",
+  "Filtros",
+  "Llantas",
+  "Carrocería",
+  "Otro",
+];
+
 export function formatMoney(n: number): string {
   return new Intl.NumberFormat("es-GT", {
     style: "currency",
@@ -123,4 +135,25 @@ export function formatDateShort(iso: string | null | undefined): string {
     year: "numeric",
     timeZone: "America/Guatemala",
   }).format(d);
+}
+
+// Para fechas sin hora (YYYY-MM-DD): fija mediodía UTC para evitar corrimiento de día.
+export function formatDay(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const d = new Date(iso.length <= 10 ? iso + "T12:00:00Z" : iso.replace(" ", "T") + "Z");
+  return new Intl.DateTimeFormat("es-GT", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    timeZone: "America/Guatemala",
+  }).format(d);
+}
+
+// Días entre hoy (fecha local del taller) y una fecha YYYY-MM-DD. Negativo = vencido.
+export function daysUntil(dueDate: string): number {
+  const today = new Date();
+  const t = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+  const [y, m, day] = dueDate.slice(0, 10).split("-").map(Number);
+  const due = Date.UTC(y, (m || 1) - 1, day || 1);
+  return Math.round((due - t) / 86400000);
 }

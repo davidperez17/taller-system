@@ -100,11 +100,38 @@ const SCHEMA: string[] = [
      created_at TEXT NOT NULL DEFAULT to_char(now(),'YYYY-MM-DD HH24:MI:SS'),
      UNIQUE (plate, endpoint)
    )`,
+  `CREATE TABLE IF NOT EXISTS parts (
+     id SERIAL PRIMARY KEY,
+     sku TEXT,
+     name TEXT NOT NULL,
+     category TEXT,
+     stock DOUBLE PRECISION NOT NULL DEFAULT 0,
+     min_stock DOUBLE PRECISION NOT NULL DEFAULT 0,
+     unit_price DOUBLE PRECISION NOT NULL DEFAULT 0,
+     cost DOUBLE PRECISION NOT NULL DEFAULT 0,
+     location TEXT,
+     notes TEXT,
+     active INTEGER NOT NULL DEFAULT 1,
+     created_at TEXT NOT NULL DEFAULT to_char(now(),'YYYY-MM-DD HH24:MI:SS'),
+     updated_at TEXT NOT NULL DEFAULT to_char(now(),'YYYY-MM-DD HH24:MI:SS')
+   )`,
+  `CREATE TABLE IF NOT EXISTS service_reminders (
+     id SERIAL PRIMARY KEY,
+     vehicle_id INTEGER NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
+     due_date TEXT NOT NULL,
+     reason TEXT NOT NULL DEFAULT 'Servicio programado',
+     notes TEXT,
+     done INTEGER NOT NULL DEFAULT 0,
+     created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+     created_at TEXT NOT NULL DEFAULT to_char(now(),'YYYY-MM-DD HH24:MI:SS')
+   )`,
   `CREATE INDEX IF NOT EXISTS idx_vehicles_plate ON vehicles(plate)`,
   `CREATE INDEX IF NOT EXISTS idx_orders_vehicle ON orders(vehicle_id)`,
   `CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status)`,
   `CREATE INDEX IF NOT EXISTS idx_events_order ON order_events(order_id)`,
   `CREATE INDEX IF NOT EXISTS idx_push_plate ON push_subs(plate)`,
+  `CREATE INDEX IF NOT EXISTS idx_parts_active ON parts(active)`,
+  `CREATE INDEX IF NOT EXISTS idx_reminders_due ON service_reminders(due_date)`,
 ];
 
 // Crea el esquema una sola vez por proceso (idempotente). Si las tablas ya
@@ -114,7 +141,7 @@ function ensureSchema(): Promise<void> {
   if (!schemaReady) {
     schemaReady = (async () => {
       const rows = (await sql(
-        "SELECT to_regclass('public.users') IS NOT NULL AS ready"
+        "SELECT to_regclass('public.service_reminders') IS NOT NULL AS ready"
       )) as { ready: boolean }[];
       if (rows[0]?.ready) return;
       for (const stmt of SCHEMA) await sql(stmt);

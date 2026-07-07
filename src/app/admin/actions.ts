@@ -390,6 +390,124 @@ export async function resetPasswordAction(formData: FormData) {
   revalidatePath("/admin/usuarios");
 }
 
+/* ---------------- Inventario (repuestos) ---------------- */
+
+export async function createPartAction(formData: FormData) {
+  await requireUser();
+  const name = String(formData.get("name") || "").trim();
+  if (!name) return;
+  await run(
+    `INSERT INTO parts (sku, name, category, stock, min_stock, unit_price, cost, location, notes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      String(formData.get("sku") || "").trim() || null,
+      name,
+      String(formData.get("category") || "").trim() || null,
+      Number(formData.get("stock")) || 0,
+      Number(formData.get("min_stock")) || 0,
+      Number(formData.get("unit_price")) || 0,
+      Number(formData.get("cost")) || 0,
+      String(formData.get("location") || "").trim() || null,
+      String(formData.get("notes") || "").trim() || null,
+    ]
+  );
+  revalidatePath("/admin/inventario");
+  revalidatePath("/admin");
+}
+
+export async function updatePartAction(formData: FormData) {
+  await requireUser();
+  const id = Number(formData.get("id"));
+  const name = String(formData.get("name") || "").trim();
+  if (!id || !name) return;
+  await run(
+    `UPDATE parts SET sku = ?, name = ?, category = ?, min_stock = ?, unit_price = ?, cost = ?,
+     location = ?, notes = ?, updated_at = ${NOW_SQL} WHERE id = ?`,
+    [
+      String(formData.get("sku") || "").trim() || null,
+      name,
+      String(formData.get("category") || "").trim() || null,
+      Number(formData.get("min_stock")) || 0,
+      Number(formData.get("unit_price")) || 0,
+      Number(formData.get("cost")) || 0,
+      String(formData.get("location") || "").trim() || null,
+      String(formData.get("notes") || "").trim() || null,
+      id,
+    ]
+  );
+  revalidatePath("/admin/inventario");
+  revalidatePath("/admin");
+}
+
+// Ajuste de stock: entrada (+), salida (-) o fijar cantidad exacta.
+export async function adjustStockAction(formData: FormData) {
+  await requireUser();
+  const id = Number(formData.get("id"));
+  const mode = String(formData.get("mode") || "in");
+  const amount = Number(formData.get("amount")) || 0;
+  if (!id) return;
+  const part = await one<{ stock: number }>("SELECT stock FROM parts WHERE id = ?", [id]);
+  if (!part) return;
+  let next = part.stock;
+  if (mode === "set") next = amount;
+  else if (mode === "out") next = part.stock - amount;
+  else next = part.stock + amount;
+  if (next < 0) next = 0;
+  await run(`UPDATE parts SET stock = ?, updated_at = ${NOW_SQL} WHERE id = ?`, [next, id]);
+  revalidatePath("/admin/inventario");
+  revalidatePath("/admin");
+}
+
+export async function deletePartAction(formData: FormData) {
+  const user = await requireUser();
+  if (user.role !== "admin") return;
+  const id = Number(formData.get("id"));
+  if (!id) return;
+  await run("UPDATE parts SET active = 0 WHERE id = ?", [id]);
+  revalidatePath("/admin/inventario");
+  revalidatePath("/admin");
+}
+
+/* ---------------- Recordatorios de servicio ---------------- */
+
+export async function createReminderAction(formData: FormData) {
+  const user = await requireUser();
+  const vehicleId = Number(formData.get("vehicle_id"));
+  const dueDate = String(formData.get("due_date") || "").trim();
+  if (!vehicleId || !dueDate) return;
+  await run(
+    `INSERT INTO service_reminders (vehicle_id, due_date, reason, notes, created_by)
+     VALUES (?, ?, ?, ?, ?)`,
+    [
+      vehicleId,
+      dueDate,
+      String(formData.get("reason") || "").trim() || "Servicio programado",
+      String(formData.get("notes") || "").trim() || null,
+      user.id,
+    ]
+  );
+  revalidatePath("/admin/recordatorios");
+  revalidatePath("/admin");
+}
+
+export async function toggleReminderAction(formData: FormData) {
+  await requireUser();
+  const id = Number(formData.get("id"));
+  if (!id) return;
+  await run("UPDATE service_reminders SET done = 1 - done WHERE id = ?", [id]);
+  revalidatePath("/admin/recordatorios");
+  revalidatePath("/admin");
+}
+
+export async function deleteReminderAction(formData: FormData) {
+  await requireUser();
+  const id = Number(formData.get("id"));
+  if (!id) return;
+  await run("DELETE FROM service_reminders WHERE id = ?", [id]);
+  revalidatePath("/admin/recordatorios");
+  revalidatePath("/admin");
+}
+
 export async function getCurrentUser() {
   return getSessionUser();
 }
