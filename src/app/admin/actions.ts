@@ -9,7 +9,7 @@ import {
 import { sendPushToPlate, sendPushToStaff } from "@/lib/push";
 import { hitLimit, clientIp } from "@/lib/rate-limit";
 import { str, strOrNull } from "@/lib/validate";
-import { STATUS_META, type OrderStatus } from "@/lib/status";
+import { STATUS_META, RECEPTION_EVENT_TITLE, type OrderStatus } from "@/lib/status";
 import { CLIENT_PRESETS, STAFF_NOTIFS } from "@/lib/notifications";
 
 // Marca de tiempo en UTC con el mismo formato que datetime('now') de SQLite.
@@ -243,6 +243,24 @@ export async function createOrderAction(formData: FormData) {
     [orderId, "Vehículo recibido en el taller", description || null, user.id]
   );
 
+  // Recepción documentada: estado del vehículo al ingreso (fotos + observaciones).
+  // Protege a ambas partes ante reclamos ("ese rayón ya estaba").
+  const receptionNotes = str(formData, "reception_notes", { max: 2000 });
+  const receptionPhotos = await uploadOrderPhotos(orderId, formData);
+  if (receptionNotes || receptionPhotos.length > 0) {
+    await run(
+      `INSERT INTO order_events (order_id, type, title, detail, is_public, created_by, photo_urls)
+       VALUES (?, 'nota', ?, ?, 1, ?, ?)`,
+      [
+        orderId,
+        RECEPTION_EVENT_TITLE,
+        receptionNotes || null,
+        user.id,
+        receptionPhotos.length > 0 ? JSON.stringify(receptionPhotos) : null,
+      ]
+    );
+  }
+
   const veh = await one<{ plate: string; brand: string | null; model: string | null }>(
     "SELECT plate, brand, model FROM vehicles WHERE id = ?",
     [vehicleId]
@@ -308,16 +326,9 @@ export async function updateOrderStatusAction(formData: FormData) {
   revalidatePath("/admin");
 }
 
-export async function addOrderNoteAction(formData: FormData) {
-  const user = await requireUser();
-  const orderId = Number(formData.get("order_id"));
-  const title = str(formData, "title");
-  const detail = str(formData, "detail", { max: 2000 });
-  const isPublic = formData.get("is_public") === "on";
-  if (!orderId || !title) return;
-
-  // Fotos: hasta 4, jpeg/png/webp, 4 MB c/u, a Vercel Blob (requiere
-  // BLOB_READ_WRITE_TOKEN; sin token se guarda la nota sin fotos).
+// Fotos: hasta 4, jpeg/png/webp, 4 MB c/u, a Vercel Blob (requiere
+// BLOB_READ_WRITE_TOKEN; sin token se guarda el evento sin fotos).
+async function uploadOrderPhotos(orderId: number, formData: FormData): Promise<string[]> {
   const photoUrls: string[] = [];
   const photos = formData
     .getAll("photos")
@@ -335,6 +346,18 @@ export async function addOrderNoteAction(formData: FormData) {
       photoUrls.push(blob.url);
     }
   }
+  return photoUrls;
+}
+
+export async function addOrderNoteAction(formData: FormData) {
+  const user = await requireUser();
+  const orderId = Number(formData.get("order_id"));
+  const title = str(formData, "title");
+  const detail = str(formData, "detail", { max: 2000 });
+  const isPublic = formData.get("is_public") === "on";
+  if (!orderId || !title) return;
+
+  const photoUrls = await uploadOrderPhotos(orderId, formData);
 
   await run(
     `INSERT INTO order_events (order_id, type, title, detail, is_public, created_by, photo_urls)

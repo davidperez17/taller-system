@@ -80,6 +80,10 @@ export const STATUS_META: Record<
   },
 };
 
+// Título del evento que documenta el estado del vehículo al recibirlo
+// (fotos + observaciones). Lo crean createOrderAction y lo lee la orden impresa.
+export const RECEPTION_EVENT_TITLE = "Estado del vehículo al ingreso";
+
 export const VEHICLE_TYPES: Record<string, string> = {
   auto: "Auto",
   moto: "Moto",

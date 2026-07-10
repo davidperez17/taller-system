@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import {
-  ArrowLeft, MessageSquareText, MessageCircle, Wrench, Eye, EyeOff, Trash2, Phone, KeyRound, ExternalLink,
+  ArrowLeft, MessageSquareText, MessageCircle, Wrench, Eye, EyeOff, Trash2, Phone, KeyRound, ExternalLink, Printer,
 } from "lucide-react";
 import { waLink, WA_TEMPLATES } from "@/lib/whatsapp";
 import { one, many } from "@/lib/db";
@@ -585,6 +585,14 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               className={`${btnSecondary} w-full mt-4`}
             >
               <ExternalLink className="w-4 h-4" aria-hidden="true" /> Ver como cliente
+            </a>
+            <a
+              href={`/admin/ordenes/${order.id}/imprimir`}
+              target="_blank"
+              rel="noopener"
+              className={`${btnSecondary} w-full mt-2`}
+            >
+              <Printer className="w-4 h-4" aria-hidden="true" /> Imprimir orden de servicio
             </a>
           </section>
 

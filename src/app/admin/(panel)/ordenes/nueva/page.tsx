@@ -4,6 +4,7 @@ import { many } from "@/lib/db";
 import { createOrderAction } from "@/app/admin/actions";
 import { PageTitle, card, btnPrimary, btnSecondary, inputCls, labelCls } from "@/components/admin/ui";
 import { VEHICLE_TYPES } from "@/lib/status";
+import PhotoInput from "@/components/admin/PhotoInput";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Nueva orden" };
@@ -194,6 +195,29 @@ export default async function NewOrderPage({
               <input id="estimated_delivery" name="estimated_delivery" type="date" className={inputCls} />
             </div>
           </div>
+        </fieldset>
+
+        <fieldset className="space-y-4">
+          <legend className="font-heading font-semibold text-slate-800 tracking-wide">
+            RECEPCIÓN DEL VEHÍCULO
+          </legend>
+          <div>
+            <label htmlFor="reception_notes" className={labelCls}>
+              Estado al ingreso (opcional)
+            </label>
+            <textarea
+              id="reception_notes"
+              name="reception_notes"
+              rows={2}
+              placeholder="Ej. Rayón en puerta derecha, retrovisor flojo. Deja llaves y tarjeta de circulación."
+              className={inputCls}
+            />
+            <p className="text-xs text-slate-400 mt-1">
+              Golpes, rayones y pertenencias. Con fotos queda respaldo ante reclamos; el cliente
+              lo ve en su línea de tiempo y sale en la orden impresa.
+            </p>
+          </div>
+          <PhotoInput />
         </fieldset>
 
         <button type="submit" className={`${btnPrimary} w-full py-3`}>
