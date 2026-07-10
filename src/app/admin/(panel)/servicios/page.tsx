@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { Hammer, Plus } from "lucide-react";
 import { many } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
@@ -48,92 +49,22 @@ export default async function ServicesPage() {
                     <th className="py-2.5 pl-2 pr-5" aria-label="Acciones" />
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody>
                   {services.map((s) => {
                     const margin = s.price > 0 ? ((s.price - s.est_cost) / s.price) * 100 : 0;
                     return (
-                      <tr key={s.id} className="align-top">
-                        <td className="py-3 pl-5 pr-2 font-medium text-slate-700">
-                          {s.name}
-                          <details className="mt-1 text-sm font-normal">
-                            <summary className="text-xs font-medium text-primary-600 cursor-pointer">
-                              Editar
-                            </summary>
-                            <form
-                              action={updateServiceAction}
-                              className="mt-2 grid grid-cols-2 gap-2 max-w-md"
-                            >
-                              <input type="hidden" name="id" value={s.id} />
-                              <div className="col-span-2">
-                                <label htmlFor={`sn-${s.id}`} className={labelCls}>
-                                  Nombre
-                                </label>
-                                <input
-                                  id={`sn-${s.id}`}
-                                  name="name"
-                                  defaultValue={s.name}
-                                  required
-                                  className={inputCls}
-                                />
-                              </div>
-                              <div>
-                                <label htmlFor={`sc-${s.id}`} className={labelCls}>
-                                  Categoría
-                                </label>
-                                <input
-                                  id={`sc-${s.id}`}
-                                  name="category"
-                                  defaultValue={s.category ?? ""}
-                                  className={inputCls}
-                                />
-                              </div>
-                              <div className="grid grid-cols-2 gap-2">
-                                <div>
-                                  <label htmlFor={`sp-${s.id}`} className={labelCls}>
-                                    Precio
-                                  </label>
-                                  <input
-                                    id={`sp-${s.id}`}
-                                    name="price"
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    defaultValue={s.price}
-                                    className={inputCls}
-                                  />
-                                </div>
-                                <div>
-                                  <label htmlFor={`se-${s.id}`} className={labelCls}>
-                                    Costo est.
-                                  </label>
-                                  <input
-                                    id={`se-${s.id}`}
-                                    name="est_cost"
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    defaultValue={s.est_cost}
-                                    className={inputCls}
-                                  />
-                                </div>
-                              </div>
-                              <div className="col-span-2 flex gap-2">
-                                <button type="submit" className={btnSecondary}>
-                                  Guardar
-                                </button>
-                              </div>
-                            </form>
-                          </details>
-                        </td>
-                        <td className="py-3 px-2 text-slate-500">{s.category ?? "—"}</td>
-                        <td className="py-3 px-2 text-right tabular-nums text-slate-700">
+                      <Fragment key={s.id}>
+                      <tr className="align-top border-t border-slate-50">
+                        <td className="pt-3 pl-5 pr-2 font-medium text-slate-700">{s.name}</td>
+                        <td className="pt-3 px-2 text-slate-500">{s.category ?? "—"}</td>
+                        <td className="pt-3 px-2 text-right tabular-nums text-slate-700">
                           {formatMoney(s.price)}
                         </td>
-                        <td className="py-3 px-2 text-right tabular-nums text-slate-500">
+                        <td className="pt-3 px-2 text-right tabular-nums text-slate-500">
                           {formatMoney(s.est_cost)}
                         </td>
                         <td
-                          className={`py-3 px-2 text-right tabular-nums font-semibold ${
+                          className={`pt-3 px-2 text-right tabular-nums font-semibold ${
                             margin >= 40
                               ? "text-accent-700"
                               : margin >= 15
@@ -143,7 +74,7 @@ export default async function ServicesPage() {
                         >
                           {s.price > 0 ? `${Math.round(margin)}%` : "—"}
                         </td>
-                        <td className="py-3 pl-2 pr-5 text-right">
+                        <td className="pt-3 pl-2 pr-5 text-right">
                           {me?.role === "admin" && (
                             <form action={deleteServiceAction} className="inline">
                               <input type="hidden" name="id" value={s.id} />
@@ -157,6 +88,78 @@ export default async function ServicesPage() {
                           )}
                         </td>
                       </tr>
+                      <tr>
+                        <td colSpan={6} className="pb-3 px-5">
+                          <details>
+                            <summary className="text-xs font-medium text-primary-600 cursor-pointer w-fit">
+                              Editar
+                            </summary>
+                            <form
+                              action={updateServiceAction}
+                              className="mt-3 mb-1 flex flex-wrap items-end gap-3"
+                            >
+                              <input type="hidden" name="id" value={s.id} />
+                              <div className="grow basis-52">
+                                <label htmlFor={`sn-${s.id}`} className={labelCls}>
+                                  Nombre
+                                </label>
+                                <input
+                                  id={`sn-${s.id}`}
+                                  name="name"
+                                  defaultValue={s.name}
+                                  required
+                                  className={inputCls}
+                                />
+                              </div>
+                              <div className="grow basis-36">
+                                <label htmlFor={`sc-${s.id}`} className={labelCls}>
+                                  Categoría
+                                </label>
+                                <input
+                                  id={`sc-${s.id}`}
+                                  name="category"
+                                  defaultValue={s.category ?? ""}
+                                  className={inputCls}
+                                />
+                              </div>
+                              <div className="w-28 grow sm:grow-0">
+                                <label htmlFor={`sp-${s.id}`} className={labelCls}>
+                                  Precio (Q)
+                                </label>
+                                <input
+                                  id={`sp-${s.id}`}
+                                  name="price"
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  inputMode="decimal"
+                                  defaultValue={s.price}
+                                  className={inputCls}
+                                />
+                              </div>
+                              <div className="w-28 grow sm:grow-0">
+                                <label htmlFor={`se-${s.id}`} className={labelCls}>
+                                  Costo est. (Q)
+                                </label>
+                                <input
+                                  id={`se-${s.id}`}
+                                  name="est_cost"
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  inputMode="decimal"
+                                  defaultValue={s.est_cost}
+                                  className={inputCls}
+                                />
+                              </div>
+                              <button type="submit" className={btnSecondary}>
+                                Guardar
+                              </button>
+                            </form>
+                          </details>
+                        </td>
+                      </tr>
+                      </Fragment>
                     );
                   })}
                 </tbody>
