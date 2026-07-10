@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import {
-  ArrowLeft, MessageSquareText, MessageCircle, Wrench, Eye, EyeOff, Trash2, Phone, KeyRound, ExternalLink, Printer,
+  ArrowLeft, MessageSquareText, MessageCircle, Wrench, Eye, EyeOff, Trash2, Phone, KeyRound, ExternalLink, Printer, FileDown,
 } from "lucide-react";
 import { waLink, WA_TEMPLATES } from "@/lib/whatsapp";
 import { one, many } from "@/lib/db";
@@ -594,6 +594,27 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             >
               <Printer className="w-4 h-4" aria-hidden="true" /> Imprimir orden de servicio
             </a>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <a
+                href={`/admin/ordenes/${order.id}/pdf?doc=cotizacion`}
+                target="_blank"
+                rel="noopener"
+                className={btnSecondary}
+              >
+                <FileDown className="w-4 h-4" aria-hidden="true" /> Cotización
+              </a>
+              <a
+                href={`/admin/ordenes/${order.id}/pdf?doc=informe`}
+                target="_blank"
+                rel="noopener"
+                className={btnSecondary}
+              >
+                <FileDown className="w-4 h-4" aria-hidden="true" /> Informe
+              </a>
+            </div>
+            <p className="mt-1.5 text-[11px] text-slate-400 text-center">
+              PDF para enviar al cliente por WhatsApp o correo.
+            </p>
           </section>
 
           {/* Datos de la orden */}

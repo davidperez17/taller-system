@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   ArrowLeft, Bell, BellRing, BookmarkPlus, BookmarkCheck, Car, Bike, Truck,
   CheckCircle2, Circle, CircleDot, HelpCircle, KeyRound, MessageSquareText,
-  RefreshCw, SearchX, Wrench, CalendarClock, Receipt, History, LockKeyhole,
+  RefreshCw, SearchX, Wrench, CalendarClock, Receipt, History, LockKeyhole, FileDown,
 } from "lucide-react";
 import { STATUS_FLOW, STATUS_META, type OrderStatus, formatMoney, formatDate, formatDateShort } from "@/lib/status";
 import type { TrackingResult } from "@/lib/tracking";
@@ -416,6 +416,31 @@ export default function TrackingClient({
             <p className="text-sm text-slate-400 mt-3">
               El presupuesto aún no está cargado. Te avisaremos cuando esté listo.
             </p>
+          )}
+
+          {(data.items?.length ?? 0) > 0 && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <a
+                href={`/api/public/pdf/${encodeURIComponent(data.plate)}?code=${encodeURIComponent(codeRef.current)}&doc=cotizacion`}
+                target="_blank"
+                rel="noopener"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 transition-colors"
+              >
+                <FileDown className="w-4 h-4 text-primary-600" aria-hidden="true" />
+                Descargar cotización (PDF)
+              </a>
+              {order.status === "entregado" && (
+                <a
+                  href={`/api/public/pdf/${encodeURIComponent(data.plate)}?code=${encodeURIComponent(codeRef.current)}&doc=informe`}
+                  target="_blank"
+                  rel="noopener"
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 transition-colors"
+                >
+                  <FileDown className="w-4 h-4 text-accent-600" aria-hidden="true" />
+                  Informe de servicio (PDF)
+                </a>
+              )}
+            </div>
           )}
 
           {/* Aprobación del presupuesto por el cliente */}
