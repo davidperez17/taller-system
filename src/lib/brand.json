@@ -10,6 +10,10 @@
   "backgroundColor": "#f8fafc",
   "adminBackgroundColor": "#0f172a",
   "pushEmail": "contacto@sanmiguel96.com",
+  "phone": "",
+  "whatsapp": "",
+  "address": "Chimaltenango, Guatemala",
+  "hours": "Lun–Sáb · 8:00–18:00",
   "primary": {
     "50": "oklch(97% 0.014 254.604)",
     "100": "oklch(93.2% 0.032 255.585)",
