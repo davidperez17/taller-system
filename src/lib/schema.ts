@@ -195,4 +195,18 @@ export const MIGRATIONS: string[][] = [
   [`ALTER TABLE order_events ADD COLUMN IF NOT EXISTS photo_urls TEXT`],
   // v9 — tutorial de bienvenida del panel: NULL = aún no lo vio
   [`ALTER TABLE users ADD COLUMN IF NOT EXISTS tour_done_at TEXT`],
+  // v10 — gastos del taller y costo mensual del equipo (ganancia neta en reportes)
+  [
+    `CREATE TABLE IF NOT EXISTS expenses (
+       id SERIAL PRIMARY KEY,
+       spent_on TEXT NOT NULL,
+       category TEXT NOT NULL DEFAULT 'otros',
+       amount DOUBLE PRECISION NOT NULL CHECK (amount > 0),
+       notes TEXT,
+       created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+       created_at TEXT NOT NULL DEFAULT to_char(now(),'YYYY-MM-DD HH24:MI:SS')
+     )`,
+    `CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(spent_on)`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS monthly_cost DOUBLE PRECISION NOT NULL DEFAULT 0`,
+  ],
 ];

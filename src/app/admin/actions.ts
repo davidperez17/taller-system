@@ -9,7 +9,9 @@ import {
 import { sendPushToPlate, sendPushToStaff } from "@/lib/push";
 import { hitLimit, clientIp } from "@/lib/rate-limit";
 import { str, strOrNull } from "@/lib/validate";
-import { STATUS_META, RECEPTION_EVENT_TITLE, type OrderStatus } from "@/lib/status";
+import {
+  STATUS_META, RECEPTION_EVENT_TITLE, EXPENSE_CATEGORIES, type OrderStatus,
+} from "@/lib/status";
 import { CLIENT_PRESETS, STAFF_NOTIFS } from "@/lib/notifications";
 
 // Marca de tiempo en UTC con el mismo formato que datetime('now') de SQLite.
@@ -590,6 +592,47 @@ export async function changeOwnPasswordAction(
 export async function completeTourAction() {
   const user = await requireUser();
   await run(`UPDATE users SET tour_done_at = ${NOW_SQL} WHERE id = ?`, [user.id]);
+}
+
+/* ---------------- Gastos y costo del equipo ---------------- */
+
+export async function createExpenseAction(formData: FormData) {
+  const user = await requireUser();
+  if (user.role !== "admin") return;
+  const spentOn = str(formData, "spent_on");
+  const category = str(formData, "category") || "otros";
+  const amount = Number(formData.get("amount"));
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(spentOn) || !(amount > 0)) return;
+  if (!(category in EXPENSE_CATEGORIES)) return;
+  await run(
+    "INSERT INTO expenses (spent_on, category, amount, notes, created_by) VALUES (?, ?, ?, ?, ?)",
+    [spentOn, category, amount, strOrNull(formData, "notes"), user.id]
+  );
+  revalidatePath("/admin/gastos");
+  revalidatePath("/admin/reportes");
+}
+
+export async function deleteExpenseAction(formData: FormData) {
+  const user = await requireUser();
+  if (user.role !== "admin") return;
+  const id = Number(formData.get("id"));
+  if (!id) return;
+  await run("DELETE FROM expenses WHERE id = ?", [id]);
+  revalidatePath("/admin/gastos");
+  revalidatePath("/admin/reportes");
+}
+
+// Costo mensual (salario + prestaciones) por usuario: alimenta la planilla
+// estimada de reportes. 0 = no registrado.
+export async function setUserCostAction(formData: FormData) {
+  const user = await requireUser();
+  if (user.role !== "admin") return;
+  const id = Number(formData.get("id"));
+  const cost = Number(formData.get("monthly_cost"));
+  if (!id || !(cost >= 0)) return;
+  await run("UPDATE users SET monthly_cost = ? WHERE id = ?", [cost, id]);
+  revalidatePath("/admin/usuarios");
+  revalidatePath("/admin/reportes");
 }
 
 /* ---------------- Inventario (repuestos) ---------------- */

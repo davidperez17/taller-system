@@ -2,8 +2,10 @@ import { redirect } from "next/navigation";
 import { UserPlus, ShieldCheck, ShieldOff } from "lucide-react";
 import { many } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
-import { createUserAction, toggleUserAction, resetPasswordAction } from "@/app/admin/actions";
-import { ROLES, formatDate } from "@/lib/status";
+import {
+  createUserAction, toggleUserAction, resetPasswordAction, setUserCostAction,
+} from "@/app/admin/actions";
+import { ROLES, formatDate, formatMoney } from "@/lib/status";
 import { PageTitle, card, btnPrimary, btnSecondary, inputCls, labelCls } from "@/components/admin/ui";
 
 export const dynamic = "force-dynamic";
@@ -14,12 +16,21 @@ export default async function UsersPage() {
   if (!me || me.role !== "admin") redirect("/admin");
 
   const users = await many<{
-    id: number; name: string; username: string; role: string; active: number; created_at: string;
-  }>("SELECT id, name, username, role, active, created_at FROM users ORDER BY name");
+    id: number; name: string; username: string; role: string; active: number;
+    created_at: string; monthly_cost: number;
+  }>(
+    "SELECT id, name, username, role, active, created_at, monthly_cost FROM users ORDER BY name"
+  );
+  const payroll = users.filter((u) => u.active).reduce((s, u) => s + u.monthly_cost, 0);
 
   return (
     <div className="space-y-5">
-      <PageTitle title="EQUIPO" subtitle="Usuarios con acceso al panel del taller" />
+      <PageTitle
+        title="EQUIPO"
+        subtitle={`Usuarios con acceso al panel${
+          payroll > 0 ? ` · planilla: ${formatMoney(payroll)}/mes` : ""
+        }`}
+      />
 
       <div className="grid lg:grid-cols-3 gap-5 items-start *:min-w-0">
         <section className={`${card} overflow-hidden lg:col-span-2`}>
@@ -73,8 +84,39 @@ export default async function UsersPage() {
                     </form>
                   )}
                 </div>
+                <details className="mt-2 ml-12">
+                  <summary className="text-xs font-medium text-primary-600 cursor-pointer">
+                    {u.monthly_cost > 0
+                      ? `Costo mensual: ${formatMoney(u.monthly_cost)}`
+                      : "Registrar costo mensual"}
+                  </summary>
+                  <form action={setUserCostAction} className="mt-2 flex gap-2 max-w-sm items-end">
+                    <input type="hidden" name="id" value={u.id} />
+                    <div className="flex-1">
+                      <label htmlFor={`cost-${u.id}`} className={labelCls}>
+                        Salario + prestaciones (Q/mes)
+                      </label>
+                      <input
+                        id={`cost-${u.id}`}
+                        name="monthly_cost"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        inputMode="decimal"
+                        defaultValue={u.monthly_cost > 0 ? u.monthly_cost : ""}
+                        className={inputCls}
+                      />
+                    </div>
+                    <button type="submit" className={btnSecondary}>
+                      Guardar
+                    </button>
+                  </form>
+                  <p className="mt-1 text-[11px] text-slate-400">
+                    Se usa en Reportes para calcular la ganancia neta y el costo por trabajador.
+                  </p>
+                </details>
                 {u.id !== me.id ? (
-                  <details className="mt-2 ml-12">
+                  <details className="mt-1 ml-12">
                     <summary className="text-xs font-medium text-primary-600 cursor-pointer">
                       Restablecer contraseña
                     </summary>
@@ -98,7 +140,7 @@ export default async function UsersPage() {
                     </form>
                   </details>
                 ) : (
-                  <p className="mt-2 ml-12">
+                  <p className="mt-1 ml-12">
                     <a href="/admin/cuenta" className="text-xs font-medium text-primary-600">
                       Cambiar mi contraseña →
                     </a>

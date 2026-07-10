@@ -84,6 +84,18 @@ export const STATUS_META: Record<
 // (fotos + observaciones). Lo crean createOrderAction y lo lee la orden impresa.
 export const RECEPTION_EVENT_TITLE = "Estado del vehículo al ingreso";
 
+// Categorías de gastos del taller. Los salarios NO van aquí: se registran
+// como costo mensual por usuario (users.monthly_cost) para evitar doble
+// conteo en la ganancia neta de reportes.
+export const EXPENSE_CATEGORIES: Record<string, string> = {
+  renta: "Renta",
+  servicios_basicos: "Luz, agua e internet",
+  herramientas: "Herramientas y equipo",
+  insumos: "Insumos y consumibles",
+  transporte: "Transporte",
+  otros: "Otros",
+};
+
 export const VEHICLE_TYPES: Record<string, string> = {
   auto: "Auto",
   moto: "Moto",

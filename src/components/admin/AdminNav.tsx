@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, ClipboardList, Users, Car, UserCog, LogOut, Wrench, ExternalLink,
-  Boxes, BarChart3, Bell, MoreHorizontal, X, BellRing, Wallet, Hammer,
+  Boxes, BarChart3, Bell, MoreHorizontal, X, BellRing, Wallet, Hammer, Receipt,
 } from "lucide-react";
 import { logoutAction } from "@/app/admin/actions";
 import type { SessionUser } from "@/lib/auth";
@@ -27,6 +27,7 @@ const NAV: NavItem[] = [
   { href: "/admin", label: "Inicio", icon: LayoutDashboard, exact: true },
   { href: "/admin/ordenes", label: "Órdenes", icon: ClipboardList },
   { href: "/admin/caja", label: "Caja", icon: Wallet, noMechanic: true },
+  { href: "/admin/gastos", label: "Gastos", icon: Receipt, adminOnly: true },
   { href: "/admin/inventario", label: "Inventario", icon: Boxes, alertKey: "inventario" },
   { href: "/admin/servicios", label: "Servicios", icon: Hammer },
   { href: "/admin/reportes", label: "Reportes", icon: BarChart3 },
