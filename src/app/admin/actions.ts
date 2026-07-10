@@ -167,6 +167,27 @@ export async function updateVehicleAction(formData: FormData) {
 
 /* ---------------- Órdenes de trabajo ---------------- */
 
+// Quita un vehículo y, en cascada, sus órdenes, historial, fotos, pagos y
+// recordatorios. Bloqueado si tiene una orden activa: primero se cancela o
+// se entrega (evita borrar trabajo en curso por accidente).
+export async function deleteVehicleAction(formData: FormData) {
+  const user = await requireUser();
+  if (user.role !== "admin") return;
+  const id = Number(formData.get("id"));
+  const clientId = Number(formData.get("client_id"));
+  if (!id) return;
+  const active = await one<{ n: number }>(
+    `SELECT COUNT(*)::int AS n FROM orders
+      WHERE vehicle_id = ? AND status NOT IN ('entregado','cancelado')`,
+    [id]
+  );
+  if ((active?.n ?? 0) > 0) return;
+  await run("DELETE FROM vehicles WHERE id = ?", [id]);
+  revalidatePath("/admin/vehiculos");
+  if (clientId) revalidatePath(`/admin/clientes/${clientId}`);
+  revalidatePath("/admin");
+}
+
 export async function createOrderAction(formData: FormData) {
   const user = await requireUser();
 

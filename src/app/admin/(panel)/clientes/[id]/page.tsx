@@ -4,7 +4,10 @@ import { ArrowLeft, Plus, ChevronRight, MessageCircle } from "lucide-react";
 import { one, many } from "@/lib/db";
 import { waLink } from "@/lib/whatsapp";
 import brand from "@/lib/brand.json";
-import { updateClientAction, createVehicleAction, deleteClientAction } from "@/app/admin/actions";
+import {
+  updateClientAction, createVehicleAction, deleteClientAction, deleteVehicleAction,
+} from "@/app/admin/actions";
+import { getSessionUser } from "@/lib/auth";
 import { formatDate } from "@/lib/status";
 import { VEHICLE_TYPES } from "@/lib/status";
 import {
@@ -21,10 +24,17 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
   >("SELECT * FROM clients WHERE id = ?", [Number(id)]);
   if (!client) notFound();
 
+  const me = await getSessionUser();
   const vehicles = await many<{
     id: number; plate: string; type: string; brand: string | null; model: string | null;
-    year: string | null; color: string | null;
-  }>("SELECT * FROM vehicles WHERE client_id = ? ORDER BY created_at DESC", [client.id]);
+    year: string | null; color: string | null; active_orders: number;
+  }>(
+    `SELECT v.*,
+            (SELECT COUNT(*) FROM orders o
+              WHERE o.vehicle_id = v.id AND o.status NOT IN ('entregado','cancelado'))::int AS active_orders
+       FROM vehicles v WHERE v.client_id = ? ORDER BY v.created_at DESC`,
+    [client.id]
+  );
 
   const orders = await many<{
     id: number; folio: string; status: string; description: string; updated_at: string;
@@ -94,9 +104,33 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                     >
                       <Plus className="w-4 h-4" aria-hidden="true" /> Orden
                     </Link>
+                    {me?.role === "admin" &&
+                      (v.active_orders > 0 ? (
+                        <span className="text-[11px] font-medium text-slate-400 shrink-0">
+                          En taller
+                        </span>
+                      ) : (
+                        <form action={deleteVehicleAction} className="shrink-0">
+                          <input type="hidden" name="id" value={v.id} />
+                          <input type="hidden" name="client_id" value={client.id} />
+                          <button
+                            type="submit"
+                            aria-label={`Quitar ${v.plate} y todo su historial`}
+                            className="text-xs font-medium text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
+                          >
+                            Quitar
+                          </button>
+                        </form>
+                      ))}
                   </li>
                 ))}
               </ul>
+            )}
+            {me?.role === "admin" && vehicles.length > 0 && (
+              <p className="mt-2 text-[11px] text-slate-400">
+                Quitar un vehículo borra también sus órdenes, historial y pagos. Si está en el
+                taller, primero cancela o entrega su orden.
+              </p>
             )}
 
             <details className="mt-4">
