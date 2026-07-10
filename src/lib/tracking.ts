@@ -181,20 +181,30 @@ export async function getTracking(rawPlate: string, code?: string | null): Promi
   };
 }
 
-/** Valida placa+código contra la orden vigente; para endpoints públicos (suscripción push, aprobación). */
+/** Valida placa+código contra la orden vigente; para endpoints públicos (suscripción push, aprobación).
+ *  Mismo fallback que getTracking: si no hay orden activa vale la última cerrada
+ *  (un cliente con su orden entregada puede seguir suscrito a avisos de su placa;
+ *  la aprobación re-verifica el estado por su cuenta). */
 export async function verifyPlateCode(
   rawPlate: string,
   code: string
 ): Promise<{ orderId: number; status: OrderStatus } | null> {
   const plate = normalizePlate(rawPlate);
   if (!plate || !code) return null;
-  const row = await one<{ id: number; status: OrderStatus; tracking_code: string }>(
-    `SELECT o.id, o.status, o.tracking_code FROM orders o
-       JOIN vehicles v ON v.id = o.vehicle_id
-      WHERE v.plate = ? AND o.status NOT IN ('entregado','cancelado')
-      ORDER BY o.created_at DESC LIMIT 1`,
-    [plate]
-  );
+  const row =
+    (await one<{ id: number; status: OrderStatus; tracking_code: string }>(
+      `SELECT o.id, o.status, o.tracking_code FROM orders o
+         JOIN vehicles v ON v.id = o.vehicle_id
+        WHERE v.plate = ? AND o.status NOT IN ('entregado','cancelado')
+        ORDER BY o.created_at DESC LIMIT 1`,
+      [plate]
+    )) ??
+    (await one<{ id: number; status: OrderStatus; tracking_code: string }>(
+      `SELECT o.id, o.status, o.tracking_code FROM orders o
+         JOIN vehicles v ON v.id = o.vehicle_id
+        WHERE v.plate = ? ORDER BY o.created_at DESC LIMIT 1`,
+      [plate]
+    ));
   if (!row) return null;
   if (!safeCodeEqual(code.trim().toUpperCase(), row.tracking_code)) return null;
   return { orderId: row.id, status: row.status };

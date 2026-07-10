@@ -52,12 +52,17 @@ export async function POST(
   const total = totalRow?.total ?? 0;
 
   if (decision === "aprobado") {
-    await run(
+    // RETURNING id + chequeo: si otra petición concurrente ya respondió, el
+    // UPDATE no toca filas y NO se duplican evento ni push.
+    const updated = await run(
       `UPDATE orders SET approval_status = 'aprobado', approval_at = ${NOW_SQL},
          approval_total = ?, status = 'repuestos', updated_at = ${NOW_SQL}
-       WHERE id = ? AND approval_status = 'pendiente'`,
+       WHERE id = ? AND approval_status = 'pendiente' RETURNING id`,
       [total, order.id]
     );
+    if (updated.rowCount === 0) {
+      return NextResponse.json({ error: "El presupuesto ya fue respondido" }, { status: 409 });
+    }
     await run(
       `INSERT INTO order_events (order_id, type, title, detail, is_public)
        VALUES (?, 'sistema', ?, ?, 1)`,
@@ -72,12 +77,15 @@ export async function POST(
       url: `/admin/ordenes/${order.id}`,
     });
   } else {
-    await run(
+    const updated = await run(
       `UPDATE orders SET approval_status = 'rechazado', approval_at = ${NOW_SQL},
          approval_total = ?, updated_at = ${NOW_SQL}
-       WHERE id = ? AND approval_status = 'pendiente'`,
+       WHERE id = ? AND approval_status = 'pendiente' RETURNING id`,
       [total, order.id]
     );
+    if (updated.rowCount === 0) {
+      return NextResponse.json({ error: "El presupuesto ya fue respondido" }, { status: 409 });
+    }
     await run(
       `INSERT INTO order_events (order_id, type, title, detail, is_public)
        VALUES (?, 'sistema', ?, ?, 1)`,

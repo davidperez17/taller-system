@@ -9,3 +9,5 @@ data/*.db-*
 [Rr]esumen_proyecto.md
 
 tsconfig.tsbuildinfo
+.vercel
+.env*

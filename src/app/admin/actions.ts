@@ -414,6 +414,10 @@ export async function addOrderItemAction(formData: FormData) {
       [partId]
     );
     if (!part) return;
+    // No dejar el stock en negativo (la UI ya deshabilita repuestos sin
+    // existencias; esto cubre el caso qty > stock). Ajuste manual de
+    // inventario como vía de escape si el conteo físico difiere.
+    if (part.stock < qty) return;
     kind = "repuesto";
     description = description || part.name;
     if (!Number(formData.get("unit_price"))) unitPrice = part.unit_price;
