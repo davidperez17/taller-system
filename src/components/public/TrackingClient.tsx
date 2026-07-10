@@ -24,7 +24,8 @@ export default function TrackingClient({
   const [code, setCode] = useState(initialCode);
   const [codeInput, setCodeInput] = useState("");
   const [codeError, setCodeError] = useState("");
-  const [live, setLive] = useState(false);
+  const [updatedAt, setUpdatedAt] = useState<number>(() => Date.now());
+  const [, setTick] = useState(0); // re-render periódico para "hace Xs"
   const [refreshing, setRefreshing] = useState(false);
   const [notifState, setNotifState] = useState<"idle" | "loading" | "on" | "denied">("idle");
   const [savedLocal, setSavedLocal] = useState(false);
@@ -43,6 +44,7 @@ export default function TrackingClient({
         if (res.ok) {
           const json = (await res.json()) as TrackingResult;
           setData(json);
+          setUpdatedAt(Date.now());
           return json;
         }
       } catch {
@@ -55,7 +57,8 @@ export default function TrackingClient({
     [data.plate]
   );
 
-  // Conexión en vivo (SSE) + respaldo por sondeo
+  // Sondeo como mecanismo primario (SSE no es fiable en serverless): cada 25 s
+  // con la pestaña visible, y refresh inmediato al volver a la app.
   useEffect(() => {
     if (!initial.found) return;
     registerSW();
@@ -64,21 +67,20 @@ export default function TrackingClient({
       setNotifState("on");
     }
 
-    const es = new EventSource(`/api/public/events/${data.plate}`);
-    es.onopen = () => setLive(true);
-    es.onerror = () => setLive(false);
-    es.onmessage = (e) => {
-      try {
-        const msg = JSON.parse(e.data);
-        if (msg.type === "update") refresh();
-      } catch {
-        /* mensaje no JSON */
-      }
+    const poll = setInterval(() => {
+      if (document.visibilityState === "visible") refresh();
+    }, 25000);
+    const tick = setInterval(() => setTick((t) => t + 1), 10000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refresh();
     };
-    const poll = setInterval(() => refresh(), 45000);
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
     return () => {
-      es.close();
       clearInterval(poll);
+      clearInterval(tick);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.plate, initial.found]);
@@ -100,8 +102,9 @@ export default function TrackingClient({
   }
 
   async function enableNotifications() {
+    if (!codeRef.current) return; // el botón solo se muestra en modo detallado
     setNotifState("loading");
-    const ok = await subscribeToPush(data.plate);
+    const ok = await subscribeToPush(data.plate, codeRef.current);
     setNotifState(ok ? "on" : "denied");
   }
 
@@ -125,7 +128,7 @@ export default function TrackingClient({
           </p>
           <Link
             href="/"
-            className="inline-flex items-center gap-2 mt-6 bg-blue-600 hover:bg-blue-500 text-white rounded-xl px-5 py-2.5 font-semibold transition-colors"
+            className="inline-flex items-center gap-2 mt-6 bg-primary-600 hover:bg-primary-500 text-white rounded-xl px-5 py-2.5 font-semibold transition-colors"
           >
             <ArrowLeft className="w-4 h-4" aria-hidden="true" /> Buscar otra placa
           </Link>
@@ -140,18 +143,20 @@ export default function TrackingClient({
   const finished = order.status === "entregado" || order.status === "cancelado";
 
   return (
-    <Shell plate={data.plate} live={live} refreshing={refreshing} onRefresh={() => refresh()}>
+    <Shell plate={data.plate} refreshing={refreshing} onRefresh={() => refresh()}>
       {/* Tarjeta vehículo + estado actual */}
       <section className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden animate-slide-up">
         <div className="p-5 flex items-start gap-4">
-          <div className="bg-blue-50 text-blue-700 rounded-2xl p-3 shrink-0" aria-hidden="true">
+          <div className="bg-primary-50 text-primary-700 rounded-2xl p-3 shrink-0" aria-hidden="true">
             <VehicleIcon className="w-8 h-8" />
           </div>
           <div className="min-w-0 flex-1">
             <span className="plate-badge inline-block bg-slate-100 border border-slate-300 rounded-lg px-3 py-1 text-slate-800">
               {data.plate}
             </span>
-            <p className="text-slate-700 font-medium mt-1.5 truncate">{vehicleLabel(data)}</p>
+            {data.vehicle && (
+              <p className="text-slate-700 font-medium mt-1.5 truncate">{vehicleLabel(data)}</p>
+            )}
             <p className="text-xs text-slate-400 mt-0.5">
               Orden {order.folio} · Ingresó el {formatDateShort(order.created_at)}
             </p>
@@ -171,37 +176,39 @@ export default function TrackingClient({
         </div>
       </section>
 
-      {/* Acciones */}
-      <section className="grid grid-cols-2 gap-3">
-        <button
-          onClick={enableNotifications}
-          disabled={notifState === "on" || notifState === "loading"}
-          className={`rounded-2xl py-3 px-3 flex items-center justify-center gap-2 text-sm font-semibold transition-colors cursor-pointer disabled:cursor-default ${
-            notifState === "on"
-              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-              : "bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white shadow-sm"
-          }`}
-        >
-          {notifState === "on" ? (
-            <>
-              <BellRing className="w-4 h-4" aria-hidden="true" /> Notificaciones activas
-            </>
-          ) : notifState === "loading" ? (
-            <>
-              <RefreshCw className="w-4 h-4 animate-spin" aria-hidden="true" /> Activando…
-            </>
-          ) : (
-            <>
-              <Bell className="w-4 h-4" aria-hidden="true" /> Avisarme de cambios
-            </>
-          )}
-        </button>
+      {/* Acciones — activar avisos requiere el código (propiedad de la orden) */}
+      <section className={`grid gap-3 ${data.detailed ? "grid-cols-2" : "grid-cols-1"}`}>
+        {data.detailed && (
+          <button
+            onClick={enableNotifications}
+            disabled={notifState === "on" || notifState === "loading"}
+            className={`rounded-2xl py-3 px-3 flex items-center justify-center gap-2 text-sm font-semibold transition-colors cursor-pointer disabled:cursor-default ${
+              notifState === "on"
+                ? "bg-accent-50 text-accent-700 border border-accent-200"
+                : "bg-primary-600 hover:bg-primary-500 active:bg-primary-700 text-white shadow-sm"
+            }`}
+          >
+            {notifState === "on" ? (
+              <>
+                <BellRing className="w-4 h-4" aria-hidden="true" /> Notificaciones activas
+              </>
+            ) : notifState === "loading" ? (
+              <>
+                <RefreshCw className="w-4 h-4 animate-spin" aria-hidden="true" /> Activando…
+              </>
+            ) : (
+              <>
+                <Bell className="w-4 h-4" aria-hidden="true" /> Avisarme de cambios
+              </>
+            )}
+          </button>
+        )}
         <button
           onClick={handleSave}
           disabled={savedLocal}
           className={`rounded-2xl py-3 px-3 flex items-center justify-center gap-2 text-sm font-semibold transition-colors cursor-pointer disabled:cursor-default border ${
             savedLocal
-              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+              ? "bg-accent-50 text-accent-700 border-accent-200"
               : "bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-sm"
           }`}
         >
@@ -237,15 +244,15 @@ export default function TrackingClient({
                 <li key={s} className="flex gap-3">
                   <div className="flex flex-col items-center">
                     {done ? (
-                      <CheckCircle2 className="w-6 h-6 text-emerald-600 shrink-0" aria-hidden="true" />
+                      <CheckCircle2 className="w-6 h-6 text-accent-600 shrink-0" aria-hidden="true" />
                     ) : current ? (
-                      <CircleDot className="w-6 h-6 text-blue-600 shrink-0 live-dot" aria-hidden="true" />
+                      <CircleDot className="w-6 h-6 text-primary-600 shrink-0 live-dot" aria-hidden="true" />
                     ) : (
                       <Circle className="w-6 h-6 text-slate-200 shrink-0" aria-hidden="true" />
                     )}
                     {i < STATUS_FLOW.length - 1 && (
                       <span
-                        className={`w-0.5 flex-1 min-h-5 ${done ? "bg-emerald-500" : "bg-slate-200"}`}
+                        className={`w-0.5 flex-1 min-h-5 ${done ? "bg-accent-500" : "bg-slate-200"}`}
                         aria-hidden="true"
                       />
                     )}
@@ -253,12 +260,12 @@ export default function TrackingClient({
                   <div className={`pb-5 ${i === STATUS_FLOW.length - 1 ? "pb-0" : ""}`}>
                     <p
                       className={`font-semibold text-sm ${
-                        current ? "text-blue-700" : done ? "text-slate-700" : "text-slate-400"
+                        current ? "text-primary-700" : done ? "text-slate-700" : "text-slate-400"
                       }`}
                     >
                       {sMeta.client}
                       {current && (
-                        <span className="ml-2 text-[11px] font-bold uppercase tracking-wider bg-blue-100 text-blue-700 rounded-full px-2 py-0.5">
+                        <span className="ml-2 text-[11px] font-bold uppercase tracking-wider bg-primary-100 text-primary-700 rounded-full px-2 py-0.5">
                           Ahora
                         </span>
                       )}
@@ -272,58 +279,72 @@ export default function TrackingClient({
         </section>
       )}
 
-      {/* Anotaciones en vivo */}
-      <section className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="font-heading font-semibold text-lg text-slate-800 tracking-wide">
-            ANOTACIONES DEL TALLER
-          </h2>
-          <span className="flex items-center gap-1.5 text-xs text-slate-400">
-            <span
-              className={`w-2 h-2 rounded-full ${live ? "bg-emerald-500 live-dot" : "bg-slate-300"}`}
-              aria-hidden="true"
-            />
-            {live ? "En vivo" : "Actualización periódica"}
-          </span>
-        </div>
-        {data.events && data.events.length > 0 ? (
-          <ul className="mt-4 space-y-4">
-            {data.events.map((ev) => (
-              <li key={ev.id} className="flex gap-3">
-                <div
-                  className={`rounded-xl p-2 h-fit shrink-0 ${
-                    ev.type === "estado" ? "bg-blue-50 text-blue-600" : "bg-slate-100 text-slate-500"
-                  }`}
-                  aria-hidden="true"
-                >
-                  {ev.type === "estado" ? (
-                    <Wrench className="w-4 h-4" />
-                  ) : (
-                    <MessageSquareText className="w-4 h-4" />
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-slate-800">{ev.title}</p>
-                  {ev.detail && (
-                    <p className="text-sm text-slate-600 mt-0.5 whitespace-pre-wrap">{ev.detail}</p>
-                  )}
-                  <p className="text-xs text-slate-400 mt-1">{formatDate(ev.created_at)}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm text-slate-400 mt-3">
-            Aún no hay anotaciones. Aquí verás cada avance que registre el equipo del taller.
-          </p>
-        )}
-      </section>
+      {/* Anotaciones — solo con código (el modo básico no expone eventos) */}
+      {data.detailed && (
+        <section className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="font-heading font-semibold text-lg text-slate-800 tracking-wide">
+              ANOTACIONES DEL TALLER
+            </h2>
+            <span className="flex items-center gap-1.5 text-xs text-slate-400">
+              <span className="w-2 h-2 rounded-full bg-accent-500 live-dot" aria-hidden="true" />
+              Actualizado {agoLabel(updatedAt)}
+            </span>
+          </div>
+          {data.events && data.events.length > 0 ? (
+            <ul className="mt-4 space-y-4">
+              {data.events.map((ev) => (
+                <li key={ev.id} className="flex gap-3">
+                  <div
+                    className={`rounded-xl p-2 h-fit shrink-0 ${
+                      ev.type === "estado" ? "bg-primary-50 text-primary-600" : "bg-slate-100 text-slate-500"
+                    }`}
+                    aria-hidden="true"
+                  >
+                    {ev.type === "estado" ? (
+                      <Wrench className="w-4 h-4" />
+                    ) : (
+                      <MessageSquareText className="w-4 h-4" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-slate-800">{ev.title}</p>
+                    {ev.detail && (
+                      <p className="text-sm text-slate-600 mt-0.5 whitespace-pre-wrap">{ev.detail}</p>
+                    )}
+                    {ev.photos && ev.photos.length > 0 && (
+                      <div className="mt-2 flex gap-2 flex-wrap">
+                        {ev.photos.map((url) => (
+                          <a key={url} href={url} target="_blank" rel="noopener">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={url}
+                              alt="Foto del taller"
+                              loading="lazy"
+                              className="w-20 h-20 object-cover rounded-lg border border-slate-200"
+                            />
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                    <p className="text-xs text-slate-400 mt-1">{formatDate(ev.created_at)}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-slate-400 mt-3">
+              Aún no hay anotaciones. Aquí verás cada avance que registre el equipo del taller.
+            </p>
+          )}
+        </section>
+      )}
 
       {/* Detalle con código */}
       {data.detailed ? (
         <section className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
           <h2 className="font-heading font-semibold text-lg text-slate-800 tracking-wide flex items-center gap-2">
-            <Receipt className="w-5 h-5 text-blue-600" aria-hidden="true" /> DETALLE DE LA ORDEN
+            <Receipt className="w-5 h-5 text-primary-600" aria-hidden="true" /> DETALLE DE LA ORDEN
           </h2>
           {order.diagnosis && (
             <div className="mt-3 bg-slate-50 rounded-xl p-3">
@@ -368,12 +389,57 @@ export default function TrackingClient({
                       {formatMoney(data.total ?? 0)}
                     </td>
                   </tr>
+                  {(data.paid ?? 0) > 0 && (
+                    <>
+                      <tr>
+                        <td colSpan={2} className="py-1 text-sm text-slate-500">
+                          Pagado
+                        </td>
+                        <td className="py-1 text-right text-sm font-semibold text-accent-700 tabular-nums">
+                          {formatMoney(data.paid ?? 0)}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td colSpan={2} className="pb-3 text-sm text-slate-500">
+                          Saldo
+                        </td>
+                        <td className="pb-3 text-right text-sm font-semibold text-slate-800 tabular-nums">
+                          {formatMoney((data.total ?? 0) - (data.paid ?? 0))}
+                        </td>
+                      </tr>
+                    </>
+                  )}
                 </tfoot>
               </table>
             </div>
           ) : (
             <p className="text-sm text-slate-400 mt-3">
               El presupuesto aún no está cargado. Te avisaremos cuando esté listo.
+            </p>
+          )}
+
+          {/* Aprobación del presupuesto por el cliente */}
+          {order.status === "aprobacion" &&
+            order.approval_status === "pendiente" &&
+            (data.items?.length ?? 0) > 0 && (
+              <ApprovalBox
+                plate={data.plate}
+                code={codeRef.current}
+                total={data.total ?? 0}
+                onDone={() => refresh()}
+              />
+            )}
+          {order.approval_status === "aprobado" && order.approval_at && (
+            <p className="mt-4 flex items-center gap-2 text-sm font-medium text-accent-700 bg-accent-50 border border-accent-200 rounded-xl px-3 py-2.5">
+              <CheckCircle2 className="w-4 h-4 shrink-0" aria-hidden="true" />
+              Aprobaste este presupuesto el {formatDate(order.approval_at)}
+              {order.approval_total != null && <> por {formatMoney(order.approval_total)}</>}.
+            </p>
+          )}
+          {order.approval_status === "rechazado" && order.approval_at && (
+            <p className="mt-4 text-sm font-medium text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+              Rechazaste este presupuesto el {formatDate(order.approval_at)}. El taller se
+              pondrá en contacto contigo para acordar cómo continuar.
             </p>
           )}
 
@@ -396,13 +462,14 @@ export default function TrackingClient({
           )}
         </section>
       ) : (
-        <section className="bg-blue-50 border border-blue-100 rounded-2xl p-5">
-          <h2 className="font-heading font-semibold text-lg text-blue-900 tracking-wide flex items-center gap-2">
+        <section className="bg-primary-50 border border-primary-100 rounded-2xl p-5">
+          <h2 className="font-heading font-semibold text-lg text-primary-900 tracking-wide flex items-center gap-2">
             <LockKeyhole className="w-5 h-5" aria-hidden="true" /> ¿QUIERES VER EL DETALLE COMPLETO?
           </h2>
-          <p className="text-sm text-blue-800/80 mt-1">
-            Con el código de acceso de tu orden de servicio puedes ver el presupuesto,
-            diagnóstico y tu historial de visitas.
+          <p className="text-sm text-primary-800/80 mt-1">
+            Con el código de acceso de tu orden de servicio puedes ver las anotaciones del
+            taller, el presupuesto, el diagnóstico y tu historial de visitas, y activar
+            las notificaciones.
           </p>
           <form onSubmit={unlockDetail} className="mt-3 flex gap-2">
             <label htmlFor="access-code" className="sr-only">
@@ -415,17 +482,17 @@ export default function TrackingClient({
               placeholder="Ej. K7PM"
               maxLength={8}
               autoComplete="off"
-              className="plate-badge flex-1 min-w-0 bg-white border border-blue-200 rounded-xl px-4 py-2.5 text-center text-lg text-slate-800 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="plate-badge flex-1 min-w-0 bg-white border border-primary-200 rounded-xl px-4 py-2.5 text-center text-lg text-slate-800 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-primary-400"
             />
             <button
               type="submit"
-              className="bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white rounded-xl px-4 font-semibold text-sm transition-colors cursor-pointer flex items-center gap-1.5"
+              className="bg-primary-600 hover:bg-primary-500 active:bg-primary-700 text-white rounded-xl px-4 font-semibold text-sm transition-colors cursor-pointer flex items-center gap-1.5"
             >
               <KeyRound className="w-4 h-4" aria-hidden="true" /> Ver
             </button>
           </form>
           {codeError && <p className="text-sm text-red-600 mt-2">{codeError}</p>}
-          <p className="flex items-start gap-1.5 text-xs text-blue-700/70 mt-3">
+          <p className="flex items-start gap-1.5 text-xs text-primary-700/70 mt-3">
             <HelpCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden="true" />
             El código viene impreso en tu orden de servicio. Si lo perdiste, pídelo en el taller
             mostrando una identificación.
@@ -436,16 +503,120 @@ export default function TrackingClient({
   );
 }
 
+// Aprobar/rechazar presupuesto con confirmación de dos pasos.
+function ApprovalBox({
+  plate,
+  code,
+  total,
+  onDone,
+}: {
+  plate: string;
+  code: string;
+  total: number;
+  onDone: () => void;
+}) {
+  const [confirming, setConfirming] = useState<"aprobado" | "rechazado" | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function send(decision: "aprobado" | "rechazado") {
+    setBusy(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/public/track/${plate}/approve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, decision }),
+      });
+      if (res.ok) {
+        onDone();
+      } else {
+        const json = await res.json().catch(() => ({}));
+        setError(json.error || "No se pudo enviar tu respuesta. Intenta de nuevo.");
+        setConfirming(null);
+      }
+    } catch {
+      setError("Sin conexión. Intenta de nuevo.");
+      setConfirming(null);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-4 bg-primary-50 border border-primary-100 rounded-xl p-4">
+      <p className="text-sm font-semibold text-primary-900">
+        ¿Autorizas la reparación por {formatMoney(total)}?
+      </p>
+      <p className="text-xs text-primary-800/70 mt-0.5">
+        Al aprobar, el taller continúa con los repuestos y la reparación.
+      </p>
+      {confirming ? (
+        <div className="mt-3">
+          <p className="text-sm font-medium text-slate-700">
+            {confirming === "aprobado"
+              ? `Confirma: apruebas el presupuesto de ${formatMoney(total)}.`
+              : "Confirma: rechazas este presupuesto."}
+          </p>
+          <div className="mt-2 flex gap-2">
+            <button
+              onClick={() => send(confirming)}
+              disabled={busy}
+              className={`flex-1 rounded-xl py-2.5 text-sm font-semibold text-white transition-colors cursor-pointer ${
+                confirming === "aprobado"
+                  ? "bg-accent-600 hover:bg-accent-500"
+                  : "bg-amber-600 hover:bg-amber-500"
+              }`}
+            >
+              {busy ? "Enviando…" : "Sí, confirmar"}
+            </button>
+            <button
+              onClick={() => setConfirming(null)}
+              disabled={busy}
+              className="flex-1 rounded-xl py-2.5 text-sm font-semibold bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
+            >
+              Volver
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-3 flex gap-2">
+          <button
+            onClick={() => setConfirming("aprobado")}
+            className="flex-1 rounded-xl py-2.5 text-sm font-semibold bg-accent-600 hover:bg-accent-500 text-white transition-colors cursor-pointer"
+          >
+            Aprobar presupuesto
+          </button>
+          <button
+            onClick={() => setConfirming("rechazado")}
+            className="flex-1 rounded-xl py-2.5 text-sm font-semibold bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
+          >
+            Rechazar
+          </button>
+        </div>
+      )}
+      {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
+    </div>
+  );
+}
+
 function vehicleLabel(d: TrackingResult): string {
   const v = d.vehicle;
-  if (!v) return "";
+  if (!v) return "Vehículo";
   return [v.brand, v.model, v.year, v.color].filter(Boolean).join(" ") || "Vehículo";
+}
+
+function agoLabel(ts: number): string {
+  const s = Math.max(0, Math.round((Date.now() - ts) / 1000));
+  if (s < 15) return "ahora mismo";
+  if (s < 60) return `hace ${s} s`;
+  return `hace ${Math.round(s / 60)} min`;
 }
 
 function statusTone(color: string): string {
   switch (color) {
     case "green":
-      return "bg-emerald-50 border-emerald-100 text-emerald-900";
+      return "bg-accent-50 border-accent-100 text-accent-900";
     case "amber":
       return "bg-amber-50 border-amber-100 text-amber-900";
     case "violet":
@@ -453,7 +624,7 @@ function statusTone(color: string): string {
     case "red":
       return "bg-red-50 border-red-100 text-red-900";
     case "blue":
-      return "bg-blue-50 border-blue-100 text-blue-900";
+      return "bg-primary-50 border-primary-100 text-primary-900";
     default:
       return "bg-slate-50 border-slate-100 text-slate-800";
   }
@@ -462,36 +633,34 @@ function statusTone(color: string): string {
 function Shell({
   children,
   plate,
-  live,
   refreshing,
   onRefresh,
 }: {
   children: React.ReactNode;
   plate: string;
-  live?: boolean;
   refreshing?: boolean;
   onRefresh?: () => void;
 }) {
   return (
     <div className="min-h-dvh bg-slate-50 flex flex-col">
-      <header className="bg-blue-950 text-white sticky top-0 z-20 shadow-md">
+      <header className="bg-primary-950 text-white sticky top-0 z-20 shadow-md">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
           <Link
             href="/"
             aria-label="Volver al inicio"
-            className="p-2 -ml-2 rounded-xl hover:bg-blue-900 transition-colors"
+            className="p-2 -ml-2 rounded-xl hover:bg-primary-900 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" aria-hidden="true" />
           </Link>
           <div className="flex-1 min-w-0">
             <p className="font-heading font-bold tracking-wide leading-tight">SEGUIMIENTO</p>
-            <p className="text-blue-300 text-xs truncate">Multiservicios San Miguel 96</p>
+            <p className="text-primary-300 text-xs truncate">Multiservicios San Miguel 96</p>
           </div>
           {onRefresh && (
             <button
               onClick={onRefresh}
               aria-label="Actualizar ahora"
-              className="p-2 rounded-xl hover:bg-blue-900 transition-colors cursor-pointer"
+              className="p-2 rounded-xl hover:bg-primary-900 transition-colors cursor-pointer"
             >
               <RefreshCw
                 className={`w-5 h-5 ${refreshing ? "animate-spin" : ""}`}

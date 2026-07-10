@@ -1,124 +1,55 @@
 // Crea el esquema, el usuario administrador inicial y (opcional) datos demo
 // sobre Neon Postgres.
 //
-// Uso:  DATABASE_URL="postgres://..." node scripts/seed.mjs [--demo]
+// Uso:  node --env-file=.env.local scripts/seed.mjs [--demo]
+// Requiere DATABASE_URL y ADMIN_PASSWORD (la contraseña inicial del admin
+// ya no tiene valor por defecto).
+//
+// El esquema vive en src/lib/schema.ts (Node ≥23.6 importa TS nativo).
 import { neon } from "@neondatabase/serverless";
 import bcrypt from "bcryptjs";
+import { SCHEMA, MIGRATIONS } from "../src/lib/schema.ts";
 
 const url = process.env.DATABASE_URL;
 if (!url) {
-  console.error("✖ Falta DATABASE_URL. Corre: DATABASE_URL=... node scripts/seed.mjs --demo");
+  console.error("✖ Falta DATABASE_URL. Corre: node --env-file=.env.local scripts/seed.mjs --demo");
   process.exit(1);
 }
 const sql = neon(url);
 
-const SCHEMA = [
-  `CREATE TABLE IF NOT EXISTS users (
-     id SERIAL PRIMARY KEY,
-     name TEXT NOT NULL,
-     username TEXT NOT NULL UNIQUE,
-     password_hash TEXT NOT NULL,
-     role TEXT NOT NULL DEFAULT 'mecanico' CHECK (role IN ('admin','asesor','mecanico')),
-     active INTEGER NOT NULL DEFAULT 1,
-     created_at TEXT NOT NULL DEFAULT to_char(now(),'YYYY-MM-DD HH24:MI:SS')
-   )`,
-  `CREATE TABLE IF NOT EXISTS clients (
-     id SERIAL PRIMARY KEY,
-     name TEXT NOT NULL,
-     phone TEXT, email TEXT, address TEXT, notes TEXT,
-     created_at TEXT NOT NULL DEFAULT to_char(now(),'YYYY-MM-DD HH24:MI:SS')
-   )`,
-  `CREATE TABLE IF NOT EXISTS vehicles (
-     id SERIAL PRIMARY KEY,
-     client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
-     plate TEXT NOT NULL UNIQUE,
-     type TEXT NOT NULL DEFAULT 'auto' CHECK (type IN ('auto','moto','camion','otro')),
-     brand TEXT, model TEXT, year TEXT, color TEXT, notes TEXT,
-     created_at TEXT NOT NULL DEFAULT to_char(now(),'YYYY-MM-DD HH24:MI:SS')
-   )`,
-  `CREATE TABLE IF NOT EXISTS orders (
-     id SERIAL PRIMARY KEY,
-     folio TEXT NOT NULL UNIQUE,
-     tracking_code TEXT NOT NULL,
-     vehicle_id INTEGER NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
-     status TEXT NOT NULL DEFAULT 'recibido',
-     description TEXT NOT NULL DEFAULT '',
-     diagnosis TEXT, km TEXT, fuel_level TEXT,
-     assigned_to INTEGER REFERENCES users(id) ON DELETE SET NULL,
-     estimated_delivery TEXT,
-     created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
-     created_at TEXT NOT NULL DEFAULT to_char(now(),'YYYY-MM-DD HH24:MI:SS'),
-     updated_at TEXT NOT NULL DEFAULT to_char(now(),'YYYY-MM-DD HH24:MI:SS'),
-     delivered_at TEXT
-   )`,
-  `CREATE TABLE IF NOT EXISTS order_items (
-     id SERIAL PRIMARY KEY,
-     order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-     kind TEXT NOT NULL DEFAULT 'servicio' CHECK (kind IN ('servicio','repuesto')),
-     description TEXT NOT NULL,
-     qty DOUBLE PRECISION NOT NULL DEFAULT 1,
-     unit_price DOUBLE PRECISION NOT NULL DEFAULT 0,
-     created_at TEXT NOT NULL DEFAULT to_char(now(),'YYYY-MM-DD HH24:MI:SS')
-   )`,
-  `CREATE TABLE IF NOT EXISTS order_events (
-     id SERIAL PRIMARY KEY,
-     order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-     type TEXT NOT NULL DEFAULT 'nota' CHECK (type IN ('nota','estado','sistema')),
-     title TEXT NOT NULL,
-     detail TEXT,
-     is_public INTEGER NOT NULL DEFAULT 1,
-     created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
-     created_at TEXT NOT NULL DEFAULT to_char(now(),'YYYY-MM-DD HH24:MI:SS')
-   )`,
-  `CREATE TABLE IF NOT EXISTS push_subs (
-     id SERIAL PRIMARY KEY,
-     plate TEXT NOT NULL,
-     endpoint TEXT NOT NULL,
-     subscription TEXT NOT NULL,
-     created_at TEXT NOT NULL DEFAULT to_char(now(),'YYYY-MM-DD HH24:MI:SS'),
-     UNIQUE (plate, endpoint)
-   )`,
-  `CREATE TABLE IF NOT EXISTS parts (
-     id SERIAL PRIMARY KEY,
-     sku TEXT, name TEXT NOT NULL, category TEXT,
-     stock DOUBLE PRECISION NOT NULL DEFAULT 0,
-     min_stock DOUBLE PRECISION NOT NULL DEFAULT 0,
-     unit_price DOUBLE PRECISION NOT NULL DEFAULT 0,
-     cost DOUBLE PRECISION NOT NULL DEFAULT 0,
-     location TEXT, notes TEXT,
-     active INTEGER NOT NULL DEFAULT 1,
-     created_at TEXT NOT NULL DEFAULT to_char(now(),'YYYY-MM-DD HH24:MI:SS'),
-     updated_at TEXT NOT NULL DEFAULT to_char(now(),'YYYY-MM-DD HH24:MI:SS')
-   )`,
-  `CREATE TABLE IF NOT EXISTS service_reminders (
-     id SERIAL PRIMARY KEY,
-     vehicle_id INTEGER NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
-     due_date TEXT NOT NULL,
-     reason TEXT NOT NULL DEFAULT 'Servicio programado',
-     notes TEXT,
-     done INTEGER NOT NULL DEFAULT 0,
-     created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
-     created_at TEXT NOT NULL DEFAULT to_char(now(),'YYYY-MM-DD HH24:MI:SS')
-   )`,
-  `CREATE INDEX IF NOT EXISTS idx_vehicles_plate ON vehicles(plate)`,
-  `CREATE INDEX IF NOT EXISTS idx_orders_vehicle ON orders(vehicle_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status)`,
-  `CREATE INDEX IF NOT EXISTS idx_events_order ON order_events(order_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_push_plate ON push_subs(plate)`,
-  `CREATE INDEX IF NOT EXISTS idx_parts_active ON parts(active)`,
-  `CREATE INDEX IF NOT EXISTS idx_reminders_due ON service_reminders(due_date)`,
-];
+function demoCode() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "";
+  for (let i = 0; i < 8; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
+
 
 async function main() {
   for (const stmt of SCHEMA) await sql(stmt);
+  await sql(`CREATE TABLE IF NOT EXISTS schema_migrations (
+    version INTEGER PRIMARY KEY,
+    applied_at TEXT NOT NULL DEFAULT to_char(now(),'YYYY-MM-DD HH24:MI:SS')
+  )`);
+  const applied = new Set((await sql("SELECT version FROM schema_migrations")).map((r) => r.version));
+  for (let i = 0; i < MIGRATIONS.length; i++) {
+    if (applied.has(i + 1)) continue;
+    for (const stmt of MIGRATIONS[i]) await sql(stmt);
+    await sql("INSERT INTO schema_migrations (version) VALUES ($1) ON CONFLICT DO NOTHING", [i + 1]);
+  }
 
   const admins = await sql("SELECT COUNT(*)::int AS n FROM users WHERE role = 'admin'");
   if (admins[0].n === 0) {
+    const adminPass = process.env.ADMIN_PASSWORD;
+    if (!adminPass || adminPass.length < 8) {
+      console.error("✖ Falta ADMIN_PASSWORD (mínimo 8 caracteres) para crear el usuario admin.");
+      process.exit(1);
+    }
     await sql(
       "INSERT INTO users (name, username, password_hash, role) VALUES ($1, $2, $3, 'admin')",
-      ["Administrador", "admin", bcrypt.hashSync("sanmiguel96", 10)]
+      ["Administrador", "admin", bcrypt.hashSync(adminPass, 10)]
     );
-    console.log("✔ Usuario creado → usuario: admin · contraseña: sanmiguel96 (cámbiala al entrar)");
+    console.log("✔ Usuario creado → usuario: admin · contraseña: la de ADMIN_PASSWORD (cámbiala al entrar)");
   } else {
     console.log("• Ya existe un administrador, no se crea otro.");
   }
@@ -239,12 +170,12 @@ async function main() {
           await sql(
             `INSERT INTO orders (folio, tracking_code, vehicle_id, status, description, assigned_to, created_by,
                created_at, updated_at, delivered_at)
-             VALUES ($1, 'DONE', $2, 'entregado', $3, $4, $5,
+             VALUES ($1, $8, $2, 'entregado', $3, $4, $5,
                to_char(now() - make_interval(days => $6), 'YYYY-MM-DD HH24:MI:SS'),
                to_char(now() - make_interval(days => $7), 'YYYY-MM-DD HH24:MI:SS'),
                to_char(now() - make_interval(days => $7), 'YYYY-MM-DD HH24:MI:SS'))
              RETURNING id`,
-            [folio, vid, `${d.brand} ${d.model} — servicio`, d.mec, admin.id, d.days + 2, d.days]
+            [folio, vid, `${d.brand} ${d.model} — servicio`, d.mec, admin.id, d.days + 2, d.days, demoCode()]
           )
         )[0].id;
         for (const [kind, desc, qty, price] of d.items) {
@@ -280,6 +211,24 @@ async function main() {
           `INSERT INTO parts (sku, name, category, stock, min_stock, unit_price, cost, location)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
           p
+        );
+      }
+
+      // Catálogo de servicios (precio de venta y costo estimado).
+      const services = [
+        ["Cambio de aceite y filtro", "Mantenimiento", 320, 90],
+        ["Servicio menor (20,000 km)", "Mantenimiento", 550, 160],
+        ["Servicio mayor (40,000 km)", "Mantenimiento", 950, 280],
+        ["Afinamiento completo", "Motor", 480, 150],
+        ["Cambio de pastillas de freno", "Frenos", 350, 100],
+        ["Alineación y balanceo", "Suspensión", 280, 80],
+        ["Diagnóstico eléctrico", "Eléctrico", 450, 120],
+        ["Cambio de embrague", "Transmisión", 1800, 600],
+      ];
+      for (const [name, category, price, estCost] of services) {
+        await sql(
+          "INSERT INTO services (name, category, price, est_cost) VALUES ($1, $2, $3, $4)",
+          [name, category, price, estCost]
         );
       }
 

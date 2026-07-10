@@ -1,16 +1,21 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import {
-  ArrowLeft, MessageSquareText, Wrench, Eye, EyeOff, Trash2, Phone, KeyRound, ExternalLink,
+  ArrowLeft, MessageSquareText, MessageCircle, Wrench, Eye, EyeOff, Trash2, Phone, KeyRound, ExternalLink,
 } from "lucide-react";
+import { waLink, WA_TEMPLATES } from "@/lib/whatsapp";
 import { one, many } from "@/lib/db";
 import {
   STATUS_META, STATUS_FLOW, ROLES, formatMoney, formatDate, formatDateShort, type OrderStatus,
 } from "@/lib/status";
 import {
-  updateOrderStatusAction, addOrderNoteAction, addOrderItemAction,
-  deleteOrderItemAction, updateOrderInfoAction,
+  updateOrderStatusAction, addOrderNoteAction,
+  deleteOrderItemAction, updateOrderInfoAction, addPaymentAction, deletePaymentAction,
 } from "@/app/admin/actions";
+import { getSessionUser } from "@/lib/auth";
+import ItemPicker from "@/components/admin/ItemPicker";
+import PhotoInput from "@/components/admin/PhotoInput";
 import {
   StatusBadge, PlateBadge, VehicleTypeIcon, PageTitle, card, btnPrimary, btnSecondary, inputCls, labelCls,
 } from "@/components/admin/ui";
@@ -28,6 +33,8 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
     updated_at: string; plate: string; type: string; brand: string | null; model: string | null;
     year: string | null; color: string | null; client_id: number; client_name: string;
     client_phone: string | null;
+    approval_status: "pendiente" | "aprobado" | "rechazado";
+    approval_at: string | null; approval_total: number | null;
   }>(
     `SELECT o.*, v.plate, v.type, v.brand, v.model, v.year, v.color,
               c.id AS client_id, c.name AS client_name, c.phone AS client_phone
@@ -47,7 +54,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
   const events = await many<{
     id: number; type: string; title: string; detail: string | null; is_public: number;
-    created_at: string; author: string | null;
+    created_at: string; author: string | null; photo_urls: string | null;
   }>(
     `SELECT e.*, u.name AS author FROM order_events e
        LEFT JOIN users u ON u.id = e.created_by
@@ -59,8 +66,57 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
     "SELECT id, name, role FROM users WHERE active = 1 ORDER BY name"
   );
 
+  const payments = await many<{
+    id: number; amount: number; method: string; reference: string | null;
+    notes: string | null; created_at: string; author: string | null;
+  }>(
+    `SELECT p.*, u.name AS author FROM payments p
+       LEFT JOIN users u ON u.id = p.created_by
+       WHERE p.order_id = ? ORDER BY p.created_at DESC, p.id DESC`,
+    [order.id]
+  );
+  const paid = payments.reduce((s, p) => s + p.amount, 0);
+  const saldo = total - paid;
+  const me = await getSessionUser();
+
+  const pickerParts = await many<{
+    id: number; name: string; sku: string | null; stock: number; unit_price: number;
+  }>(
+    "SELECT id, name, sku, stock, unit_price FROM parts WHERE active = 1 ORDER BY name LIMIT 200"
+  );
+  const pickerServices = await many<{
+    id: number; name: string; category: string | null; price: number;
+  }>(
+    "SELECT id, name, category, price FROM services WHERE active = 1 ORDER BY category NULLS LAST, name LIMIT 200"
+  );
+
   const meta = STATUS_META[order.status];
   const nextStatuses = STATUS_FLOW.filter((s) => s !== order.status);
+
+  // Enlaces de WhatsApp con mensaje prellenado según la situación de la orden.
+  const h = await headers();
+  const origin = `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host") ?? "localhost"}`;
+  const waActions: { label: string; href: string }[] = [];
+  if (order.client_phone) {
+    const base = { nombre: order.client_name.split(" ")[0], placa: order.plate, origin };
+    const push = (label: string, msg: string) => {
+      const href = waLink(order.client_phone, msg);
+      if (href) waActions.push({ label, href });
+    };
+    if (order.status === "listo") {
+      push("Vehículo listo", WA_TEMPLATES.listo(base));
+    } else if (order.status === "aprobacion" && total > 0) {
+      push(
+        "Presupuesto listo",
+        WA_TEMPLATES.presupuesto({ ...base, total, code: order.tracking_code })
+      );
+    } else if (order.status !== "cancelado") {
+      push("Estado actual", WA_TEMPLATES.estado({ ...base, estado: meta.client }));
+    }
+    if (saldo > 0.009 && (order.status === "listo" || order.status === "entregado")) {
+      push("Saldo pendiente", WA_TEMPLATES.saldo({ ...base, saldo }));
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -84,12 +140,37 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                   Estado actual
                 </p>
-                <div className="mt-1 flex items-center gap-2">
+                <div className="mt-1 flex items-center gap-2 flex-wrap">
                   <StatusBadge status={order.status} />
+                  {order.approval_status === "aprobado" && (
+                    <span className="text-[11px] font-semibold uppercase tracking-wide bg-accent-50 text-accent-700 border border-accent-200 rounded-full px-2 py-0.5">
+                      Presupuesto aprobado
+                    </span>
+                  )}
+                  {order.approval_status === "rechazado" && (
+                    <span className="text-[11px] font-semibold uppercase tracking-wide bg-red-50 text-red-700 border border-red-200 rounded-full px-2 py-0.5">
+                      Presupuesto rechazado
+                    </span>
+                  )}
                   <span className="text-sm text-slate-500">{meta.description}</span>
                 </div>
               </div>
             </div>
+            {order.approval_status === "rechazado" && (
+              <p className="mt-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+                El cliente rechazó el presupuesto
+                {order.approval_at && <> el {formatDate(order.approval_at)}</>}. Contactarlo para
+                re-cotizar o cancelar la orden.
+              </p>
+            )}
+            {order.approval_status === "aprobado" &&
+              order.approval_total != null &&
+              Math.abs(total - order.approval_total) > 0.009 && (
+                <p className="mt-3 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                  Ojo: el total actual ({formatMoney(total)}) ya no coincide con el aprobado por el
+                  cliente ({formatMoney(order.approval_total)}).
+                </p>
+              )}
             <form action={updateOrderStatusAction} className="mt-4 space-y-3">
               <input type="hidden" name="order_id" value={order.id} />
               <div className="grid sm:grid-cols-2 gap-3">
@@ -156,13 +237,14 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 </label>
                 <textarea id="note-detail" name="detail" rows={2} className={inputCls} />
               </div>
+              <PhotoInput />
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
                   <input
                     type="checkbox"
                     name="is_public"
                     defaultChecked
-                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    className="w-4 h-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
                   />
                   Visible para el cliente (envía notificación)
                 </label>
@@ -178,7 +260,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                   <div
                     className={`rounded-xl p-2 h-fit shrink-0 ${
                       ev.type === "estado"
-                        ? "bg-blue-50 text-blue-600"
+                        ? "bg-primary-50 text-primary-600"
                         : ev.is_public
                           ? "bg-slate-100 text-slate-500"
                           : "bg-amber-50 text-amber-600"
@@ -197,7 +279,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                       <span
                         className={`inline-flex items-center gap-1 text-[11px] font-medium rounded-full px-2 py-0.5 ${
                           ev.is_public
-                            ? "bg-emerald-50 text-emerald-700"
+                            ? "bg-accent-50 text-accent-700"
                             : "bg-amber-50 text-amber-700"
                         }`}
                       >
@@ -215,6 +297,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                     {ev.detail && (
                       <p className="text-sm text-slate-600 mt-0.5 whitespace-pre-wrap">{ev.detail}</p>
                     )}
+                    <EventPhotos raw={ev.photo_urls} />
                     <p className="text-xs text-slate-400 mt-1">
                       {formatDate(ev.created_at)}
                       {ev.author ? ` · ${ev.author}` : ""}
@@ -285,64 +368,114 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 </table>
               </div>
             )}
-            <form
-              action={addOrderItemAction}
-              className="mt-4 grid grid-cols-2 sm:grid-cols-[1fr_auto_5rem_7rem_auto] gap-2 items-end"
-            >
-              <input type="hidden" name="order_id" value={order.id} />
-              <div className="col-span-2 sm:col-span-1">
-                <label htmlFor="item-desc" className={labelCls}>
-                  Concepto
-                </label>
-                <input
-                  id="item-desc"
-                  name="description"
-                  required
-                  placeholder="Ej. Cambio de balatas delanteras"
-                  className={inputCls}
-                />
+            <ItemPicker orderId={order.id} parts={pickerParts} services={pickerServices} />
+          </section>
+
+          {/* Pagos */}
+          <section className={`${card} p-5`}>
+            <h2 className="font-heading font-semibold text-lg text-slate-800 tracking-wide">
+              PAGOS
+            </h2>
+            <div className="mt-3 grid grid-cols-3 gap-3 text-center">
+              <div className="bg-slate-50 rounded-xl px-2 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Total</p>
+                <p className="font-heading font-bold text-lg text-slate-800 tabular-nums">{formatMoney(total)}</p>
               </div>
-              <div>
-                <label htmlFor="item-kind" className={labelCls}>
-                  Tipo
-                </label>
-                <select id="item-kind" name="kind" className={inputCls}>
-                  <option value="servicio">Servicio</option>
-                  <option value="repuesto">Repuesto</option>
-                </select>
+              <div className="bg-accent-50 rounded-xl px-2 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-accent-700/70">Pagado</p>
+                <p className="font-heading font-bold text-lg text-accent-700 tabular-nums">{formatMoney(paid)}</p>
               </div>
-              <div>
-                <label htmlFor="item-qty" className={labelCls}>
-                  Cant.
-                </label>
-                <input
-                  id="item-qty"
-                  name="qty"
-                  type="number"
-                  step="0.5"
-                  min="0.5"
-                  defaultValue={1}
-                  className={inputCls}
-                />
+              <div className={`rounded-xl px-2 py-3 ${saldo > 0.009 ? "bg-amber-50" : "bg-slate-50"}`}>
+                <p className={`text-[11px] font-semibold uppercase tracking-wider ${saldo > 0.009 ? "text-amber-700/70" : "text-slate-400"}`}>Saldo</p>
+                <p className={`font-heading font-bold text-lg tabular-nums ${saldo > 0.009 ? "text-amber-700" : "text-slate-500"}`}>{formatMoney(saldo)}</p>
               </div>
-              <div>
-                <label htmlFor="item-price" className={labelCls}>
-                  P. unitario
-                </label>
-                <input
-                  id="item-price"
-                  name="unit_price"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  inputMode="decimal"
-                  className={inputCls}
-                />
-              </div>
-              <button type="submit" className={`${btnPrimary} col-span-2 sm:col-span-1`}>
-                Agregar
-              </button>
-            </form>
+            </div>
+
+            {payments.length > 0 && (
+              <ul className="mt-4 divide-y divide-slate-50">
+                {payments.map((p) => (
+                  <li key={p.id} className="py-2.5 flex items-center gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-slate-700">
+                        {formatMoney(p.amount)}
+                        <span className="ml-2 text-[11px] uppercase tracking-wide text-slate-400 capitalize">
+                          {p.method}
+                        </span>
+                        {p.reference && (
+                          <span className="ml-2 text-xs text-slate-400">ref. {p.reference}</span>
+                        )}
+                      </p>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        {formatDate(p.created_at)}
+                        {p.author ? ` · ${p.author}` : ""}
+                        {p.notes ? ` · ${p.notes}` : ""}
+                      </p>
+                    </div>
+                    {me?.role === "admin" && (
+                      <form action={deletePaymentAction}>
+                        <input type="hidden" name="id" value={p.id} />
+                        <button
+                          type="submit"
+                          aria-label={`Eliminar pago de ${formatMoney(p.amount)}`}
+                          className="p-1.5 text-slate-300 hover:text-red-500 transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" aria-hidden="true" />
+                        </button>
+                      </form>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {me?.role !== "mecanico" && saldo > 0.009 && (
+              <form
+                action={addPaymentAction}
+                className="mt-4 grid grid-cols-2 sm:grid-cols-[7rem_auto_1fr_auto] gap-2 items-end"
+              >
+                <input type="hidden" name="order_id" value={order.id} />
+                <div>
+                  <label htmlFor="pay-amount" className={labelCls}>
+                    Monto *
+                  </label>
+                  <input
+                    id="pay-amount"
+                    name="amount"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    max={Math.round(saldo * 100) / 100}
+                    required
+                    inputMode="decimal"
+                    className={inputCls}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="pay-method" className={labelCls}>
+                    Método
+                  </label>
+                  <select id="pay-method" name="method" className={inputCls}>
+                    <option value="efectivo">Efectivo</option>
+                    <option value="tarjeta">Tarjeta</option>
+                    <option value="transferencia">Transferencia</option>
+                  </select>
+                </div>
+                <div className="col-span-2 sm:col-span-1">
+                  <label htmlFor="pay-ref" className={labelCls}>
+                    Referencia (opcional)
+                  </label>
+                  <input id="pay-ref" name="reference" className={inputCls} />
+                </div>
+                <button type="submit" className={`${btnPrimary} col-span-2 sm:col-span-1`}>
+                  Registrar pago
+                </button>
+              </form>
+            )}
+            {payments.length === 0 && saldo <= 0.009 && (
+              <p className="text-sm text-slate-400 mt-3">
+                Sin importes por cobrar: agrega conceptos al presupuesto primero.
+              </p>
+            )}
           </section>
         </div>
 
@@ -367,7 +500,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 <dd>
                   <Link
                     href={`/admin/clientes/${order.client_id}`}
-                    className="font-medium text-blue-600 hover:text-blue-500"
+                    className="font-medium text-primary-600 hover:text-primary-500"
                   >
                     {order.client_name}
                   </Link>
@@ -400,12 +533,32 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 <dd className="text-slate-700">{formatDateShort(order.estimated_delivery)}</dd>
               </div>
             </dl>
+            {waActions.length > 0 && (
+              <div className="mt-4 pt-3 border-t border-slate-100">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  WhatsApp al cliente
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {waActions.map((a) => (
+                    <a
+                      key={a.label}
+                      href={a.href}
+                      target="_blank"
+                      rel="noopener"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold bg-accent-50 text-accent-700 border border-accent-200 rounded-full px-3 py-1.5 hover:bg-accent-100 transition-colors"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" aria-hidden="true" /> {a.label}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </section>
 
           {/* Acceso del cliente */}
-          <section className={`${card} p-5 bg-blue-50/50`}>
+          <section className={`${card} p-5 bg-primary-50/50`}>
             <h2 className="font-heading font-semibold text-slate-800 tracking-wide flex items-center gap-2">
-              <KeyRound className="w-4 h-4 text-blue-600" aria-hidden="true" /> ACCESO DEL CLIENTE
+              <KeyRound className="w-4 h-4 text-primary-600" aria-hidden="true" /> ACCESO DEL CLIENTE
             </h2>
             <p className="text-xs text-slate-500 mt-1">
               Entrega estos datos al cliente para que siga su reparación:
@@ -417,7 +570,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               </div>
               <div className="flex justify-between items-center gap-2">
                 <span className="text-slate-400">Código de acceso</span>
-                <span className="plate-badge bg-white border border-blue-200 rounded-md px-2.5 py-0.5 text-blue-700">
+                <span className="plate-badge bg-white border border-primary-200 rounded-md px-2.5 py-0.5 text-primary-700">
                   {order.tracking_code}
                 </span>
               </div>
@@ -522,6 +675,33 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           </section>
         </div>
       </div>
+    </div>
+  );
+}
+
+// Miniaturas de las fotos de una anotación (photo_urls = JSON array de Blob).
+function EventPhotos({ raw }: { raw: string | null }) {
+  if (!raw) return null;
+  let urls: string[] = [];
+  try {
+    urls = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (!Array.isArray(urls) || urls.length === 0) return null;
+  return (
+    <div className="mt-2 flex gap-2 flex-wrap">
+      {urls.map((url) => (
+        <a key={url} href={url} target="_blank" rel="noopener">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={url}
+            alt="Foto de la anotación"
+            loading="lazy"
+            className="w-20 h-20 object-cover rounded-lg border border-slate-200 hover:opacity-90 transition-opacity"
+          />
+        </a>
+      ))}
     </div>
   );
 }

@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { run, normalizePlate } from "@/lib/db";
+import { verifyPlateCode } from "@/lib/tracking";
+import { hitLimit, clientIp } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
   try {
-    const { plate, subscription } = await req.json();
+    if (await hitLimit("subscribe", await clientIp(), 10, 60 * 60)) {
+      return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 });
+    }
+    const { plate, code, subscription } = await req.json();
     if (!plate || !subscription?.endpoint) {
       return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
+    }
+    // Solo quien tiene el código impreso en la orden puede suscribirse a los
+    // avisos de esa placa (evita interceptar push de vehículos ajenos).
+    if (!code || !(await verifyPlateCode(plate, String(code)))) {
+      return NextResponse.json({ error: "Código inválido" }, { status: 403 });
     }
     await run(
       `INSERT INTO push_subs (plate, endpoint, subscription) VALUES (?, ?, ?)

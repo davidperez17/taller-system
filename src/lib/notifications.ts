@@ -124,3 +124,33 @@ export const ADMIN_PRESETS: NotifPreset[] = [
 ];
 
 export const NOTIF_PRESETS: NotifPreset[] = [...CLIENT_PRESETS, ...ADMIN_PRESETS];
+
+// Plantillas REALES de los avisos internos (los ADMIN_PRESETS de arriba son
+// texto de muestra para el probador). Cada evento del panel que notifica al
+// equipo usa una de estas.
+export const STAFF_NOTIFS = {
+  nueva_orden: (v: { folio: string; placa: string; vehiculo?: string | null }) => ({
+    title: "Nueva orden recibida",
+    body: `${v.folio} · ${v.placa}${v.vehiculo ? ` (${v.vehiculo})` : ""} ingresó al taller.`,
+  }),
+  aprobado: (v: { folio: string; total: string }) => ({
+    title: "Presupuesto aprobado por el cliente",
+    body: `El cliente aprobó el presupuesto de ${v.folio} (${v.total}). Puedes iniciar la reparación.`,
+  }),
+  rechazado: (v: { folio: string }) => ({
+    title: "Presupuesto rechazado por el cliente",
+    body: `El cliente rechazó el presupuesto de ${v.folio}. Contáctalo para acordar cómo seguir.`,
+  }),
+  listo_admin: (v: { folio: string; placa: string }) => ({
+    title: "Orden lista para entrega",
+    body: `${v.placa} (${v.folio}) pasó el control de calidad y está lista para entrega.`,
+  }),
+  stock_bajo: (v: { nombre: string; stock: number; minimo: number }) => ({
+    title: "Repuesto por agotarse",
+    body: `${v.nombre}: quedan ${v.stock} (mínimo ${v.minimo}). Conviene reponer.`,
+  }),
+  recordatorio: (v: { placa: string; motivo: string; dias: number }) => ({
+    title: "Recordatorio de servicio vencido",
+    body: `${v.placa} — ${v.motivo}, vencido hace ${v.dias} día${v.dias === 1 ? "" : "s"}. Contactar al cliente.`,
+  }),
+} as const;

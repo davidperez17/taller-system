@@ -13,7 +13,7 @@ type Tone = "primary" | "onDark";
 
 const TONES: Record<Tone, string> = {
   primary:
-    "bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white shadow-sm",
+    "bg-primary-600 hover:bg-primary-500 active:bg-primary-700 text-white shadow-sm",
   onDark:
     "bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur",
 };
@@ -134,26 +134,26 @@ export default function InstallButton({
             {isIOS ? (
               <ol className="space-y-3 text-sm text-slate-700">
                 <li className="flex items-start gap-3">
-                  <span className="shrink-0 w-6 h-6 rounded-full bg-blue-100 text-blue-700 font-bold text-xs flex items-center justify-center">
+                  <span className="shrink-0 w-6 h-6 rounded-full bg-primary-100 text-primary-700 font-bold text-xs flex items-center justify-center">
                     1
                   </span>
                   <span className="flex items-center gap-1.5 flex-wrap">
                     Toca el botón <b>Compartir</b>
-                    <Share className="w-4 h-4 text-blue-600 inline" aria-hidden="true" />
+                    <Share className="w-4 h-4 text-primary-600 inline" aria-hidden="true" />
                     en la barra de Safari.
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="shrink-0 w-6 h-6 rounded-full bg-blue-100 text-blue-700 font-bold text-xs flex items-center justify-center">
+                  <span className="shrink-0 w-6 h-6 rounded-full bg-primary-100 text-primary-700 font-bold text-xs flex items-center justify-center">
                     2
                   </span>
                   <span className="flex items-center gap-1.5 flex-wrap">
                     Elige <b>Agregar a inicio</b>
-                    <SquarePlus className="w-4 h-4 text-blue-600 inline" aria-hidden="true" />
+                    <SquarePlus className="w-4 h-4 text-primary-600 inline" aria-hidden="true" />
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="shrink-0 w-6 h-6 rounded-full bg-blue-100 text-blue-700 font-bold text-xs flex items-center justify-center">
+                  <span className="shrink-0 w-6 h-6 rounded-full bg-primary-100 text-primary-700 font-bold text-xs flex items-center justify-center">
                     3
                   </span>
                   <span>
@@ -165,7 +165,7 @@ export default function InstallButton({
             ) : (
               <ol className="space-y-3 text-sm text-slate-700">
                 <li className="flex items-start gap-3">
-                  <span className="shrink-0 w-6 h-6 rounded-full bg-blue-100 text-blue-700 font-bold text-xs flex items-center justify-center">
+                  <span className="shrink-0 w-6 h-6 rounded-full bg-primary-100 text-primary-700 font-bold text-xs flex items-center justify-center">
                     1
                   </span>
                   <span className="flex items-center gap-1.5 flex-wrap">
@@ -174,7 +174,7 @@ export default function InstallButton({
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="shrink-0 w-6 h-6 rounded-full bg-blue-100 text-blue-700 font-bold text-xs flex items-center justify-center">
+                  <span className="shrink-0 w-6 h-6 rounded-full bg-primary-100 text-primary-700 font-bold text-xs flex items-center justify-center">
                     2
                   </span>
                   <span>
@@ -182,7 +182,7 @@ export default function InstallButton({
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="shrink-0 w-6 h-6 rounded-full bg-blue-100 text-blue-700 font-bold text-xs flex items-center justify-center">
+                  <span className="shrink-0 w-6 h-6 rounded-full bg-primary-100 text-primary-700 font-bold text-xs flex items-center justify-center">
                     3
                   </span>
                   <span>

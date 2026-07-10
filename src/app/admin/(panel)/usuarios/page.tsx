@@ -29,7 +29,7 @@ export default async function UsersPage() {
                 <div className="flex items-center gap-3">
                   <div
                     className={`w-9 h-9 rounded-full flex items-center justify-center font-semibold text-sm shrink-0 ${
-                      u.active ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-400"
+                      u.active ? "bg-primary-100 text-primary-700" : "bg-slate-100 text-slate-400"
                     }`}
                   >
                     {u.name.charAt(0).toUpperCase()}
@@ -38,7 +38,7 @@ export default async function UsersPage() {
                     <p className="text-sm font-medium text-slate-800">
                       {u.name}
                       {u.id === me.id && (
-                        <span className="ml-2 text-[11px] font-semibold bg-blue-50 text-blue-600 rounded-full px-2 py-0.5">
+                        <span className="ml-2 text-[11px] font-semibold bg-primary-50 text-primary-600 rounded-full px-2 py-0.5">
                           Tú
                         </span>
                       )}
@@ -73,9 +73,9 @@ export default async function UsersPage() {
                     </form>
                   )}
                 </div>
-                {u.id !== me.id && (
+                {u.id !== me.id ? (
                   <details className="mt-2 ml-12">
-                    <summary className="text-xs font-medium text-blue-600 cursor-pointer">
+                    <summary className="text-xs font-medium text-primary-600 cursor-pointer">
                       Restablecer contraseña
                     </summary>
                     <form action={resetPasswordAction} className="mt-2 flex gap-2 max-w-sm">
@@ -87,9 +87,9 @@ export default async function UsersPage() {
                         id={`pw-${u.id}`}
                         name="password"
                         type="password"
-                        minLength={6}
+                        minLength={8}
                         required
-                        placeholder="Nueva contraseña (mín. 6)"
+                        placeholder="Nueva contraseña (mín. 8)"
                         className={inputCls}
                       />
                       <button type="submit" className={btnPrimary}>
@@ -97,6 +97,12 @@ export default async function UsersPage() {
                       </button>
                     </form>
                   </details>
+                ) : (
+                  <p className="mt-2 ml-12">
+                    <a href="/admin/cuenta" className="text-xs font-medium text-primary-600">
+                      Cambiar mi contraseña →
+                    </a>
+                  </p>
                 )}
               </li>
             ))}
@@ -105,7 +111,7 @@ export default async function UsersPage() {
 
         <section className={`${card} p-5`}>
           <h2 className="font-heading font-semibold text-slate-800 tracking-wide flex items-center gap-2">
-            <UserPlus className="w-4 h-4 text-blue-600" aria-hidden="true" /> NUEVO USUARIO
+            <UserPlus className="w-4 h-4 text-primary-600" aria-hidden="true" /> NUEVO USUARIO
           </h2>
           <form action={createUserAction} className="mt-3 space-y-3">
             <div>
@@ -128,13 +134,13 @@ export default async function UsersPage() {
             </div>
             <div>
               <label htmlFor="u-password" className={labelCls}>
-                Contraseña * (mín. 6)
+                Contraseña * (mín. 8)
               </label>
               <input
                 id="u-password"
                 name="password"
                 type="password"
-                minLength={6}
+                minLength={8}
                 required
                 className={inputCls}
               />

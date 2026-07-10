@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Barlow_Condensed, Inter } from "next/font/google";
+import brand from "@/lib/brand.json";
 import "./globals.css";
 
 const barlow = Barlow_Condensed({
@@ -15,16 +16,15 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "Multiservicios San Miguel 96 — Seguimiento de tu vehículo",
-    template: "%s | Multiservicios San Miguel 96",
+    default: `${brand.name} — Seguimiento de tu vehículo`,
+    template: `%s | ${brand.name}`,
   },
-  description:
-    "Consulta en vivo el avance de la reparación de tu auto, moto o camión en Multiservicios San Miguel 96. Solo necesitas tu placa.",
+  description: `Consulta en vivo el avance de la reparación de tu auto, moto o camión en ${brand.name}. Solo necesitas tu placa.`,
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "SM96 Taller",
+    title: brand.clientAppName,
   },
   icons: {
     icon: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#1e3a8a",
+  themeColor: brand.themeColor,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

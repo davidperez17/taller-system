@@ -90,7 +90,7 @@ export default async function OrdersPage({
             aria-current={estado === f.key ? "page" : undefined}
             className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
               estado === f.key
-                ? "bg-blue-600 text-white"
+                ? "bg-primary-600 text-white"
                 : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
             }`}
           >
@@ -128,7 +128,7 @@ export default async function OrdersPage({
                   </div>
                   <StatusBadge status={o.status} />
                   <ChevronRight
-                    className="w-4 h-4 text-slate-300 group-hover:text-blue-600 shrink-0"
+                    className="w-4 h-4 text-slate-300 group-hover:text-primary-600 shrink-0"
                     aria-hidden="true"
                   />
                 </Link>

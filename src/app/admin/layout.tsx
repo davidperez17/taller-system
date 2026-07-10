@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import brand from "@/lib/brand.json";
 
 // Metadata propia del área de administración: usa un manifest distinto
 // (start_url /admin, scope /admin) para que se pueda instalar como una app
@@ -6,14 +7,14 @@ import type { Metadata, Viewport } from "next";
 // panel directo, sin quedar atrapado en la PWA del cliente.
 export const metadata: Metadata = {
   title: {
-    default: "Panel del taller | San Miguel 96",
-    template: "%s | SM96 Admin",
+    default: `Panel del taller | ${brand.name}`,
+    template: `%s | ${brand.adminAppName}`,
   },
   manifest: "/admin.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "SM96 Admin",
+    title: brand.adminAppName,
   },
   icons: {
     icon: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
@@ -24,7 +25,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#172554",
+  themeColor: brand.adminThemeColor,
 };
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

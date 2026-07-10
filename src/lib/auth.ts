@@ -1,7 +1,7 @@
-import { createHmac, timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import { one } from "./db";
+import { createToken, verifyToken } from "./token";
 
 const COOKIE = "sm96_session";
 const MAX_AGE = 60 * 60 * 24 * 14; // 14 días
@@ -13,37 +13,9 @@ export type SessionUser = {
   role: "admin" | "asesor" | "mecanico";
 };
 
-function secret(): string {
-  return process.env.SESSION_SECRET || "dev-secret-change-me";
-}
-
-function sign(payload: string): string {
-  return createHmac("sha256", secret()).update(payload).digest("base64url");
-}
-
-export function createToken(userId: number): string {
-  const payload = `${userId}.${Date.now() + MAX_AGE * 1000}`;
-  return `${Buffer.from(payload).toString("base64url")}.${sign(payload)}`;
-}
-
-export function verifyToken(token: string): number | null {
-  const [b64, sig] = token.split(".");
-  if (!b64 || !sig) return null;
-  const payload = Buffer.from(b64, "base64url").toString();
-  const expected = sign(payload);
-  try {
-    if (!timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null;
-  } catch {
-    return null;
-  }
-  const [id, exp] = payload.split(".");
-  if (Number(exp) < Date.now()) return null;
-  return Number(id);
-}
-
-export async function setSession(userId: number) {
+export async function setSession(userId: number, tokenVersion: number) {
   const store = await cookies();
-  store.set(COOKIE, createToken(userId), {
+  store.set(COOKIE, await createToken(userId, tokenVersion, MAX_AGE * 1000), {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
@@ -61,13 +33,14 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   const store = await cookies();
   const token = store.get(COOKIE)?.value;
   if (!token) return null;
-  const userId = verifyToken(token);
-  if (!userId) return null;
-  const user = await one<SessionUser>(
-    "SELECT id, name, username, role FROM users WHERE id = ? AND active = 1",
-    [userId]
+  const data = await verifyToken(token);
+  if (!data) return null;
+  const user = await one<SessionUser & { token_version: number }>(
+    "SELECT id, name, username, role, token_version FROM users WHERE id = ? AND active = 1",
+    [data.userId]
   );
-  return user ?? null;
+  if (!user || user.token_version !== data.tokenVersion) return null;
+  return { id: user.id, name: user.name, username: user.username, role: user.role };
 }
 
 export async function requireUser(): Promise<SessionUser> {

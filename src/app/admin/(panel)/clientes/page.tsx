@@ -58,7 +58,7 @@ export default async function ClientsPage({
                       href={`/admin/clientes/${c.id}`}
                       className="flex items-center gap-3 px-4 lg:px-5 py-3.5 hover:bg-slate-50 transition-colors group"
                     >
-                      <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-semibold text-sm shrink-0">
+                      <div className="w-9 h-9 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center font-semibold text-sm shrink-0">
                         {c.name.charAt(0).toUpperCase()}
                       </div>
                       <div className="min-w-0 flex-1">
@@ -73,7 +73,7 @@ export default async function ClientsPage({
                         </p>
                       </div>
                       <ChevronRight
-                        className="w-4 h-4 text-slate-300 group-hover:text-blue-600 shrink-0"
+                        className="w-4 h-4 text-slate-300 group-hover:text-primary-600 shrink-0"
                         aria-hidden="true"
                       />
                     </Link>
@@ -86,7 +86,7 @@ export default async function ClientsPage({
 
         <section className={`${card} p-5`}>
           <h2 className="font-heading font-semibold text-slate-800 tracking-wide flex items-center gap-2">
-            <UserPlus className="w-4 h-4 text-blue-600" aria-hidden="true" /> NUEVO CLIENTE
+            <UserPlus className="w-4 h-4 text-primary-600" aria-hidden="true" /> NUEVO CLIENTE
           </h2>
           <form action={createClientAction} className="mt-3 space-y-3">
             <div>

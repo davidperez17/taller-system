@@ -6,10 +6,11 @@ import { one, run, normalizePlate, nextFolio, newTrackingCode } from "@/lib/db";
 import {
   checkPassword, hashPassword, setSession, clearSession, getSessionUser, requireUser,
 } from "@/lib/auth";
-import { sendPushToPlate } from "@/lib/push";
-import { emitPlateUpdate } from "@/lib/events";
+import { sendPushToPlate, sendPushToStaff } from "@/lib/push";
+import { hitLimit, clientIp } from "@/lib/rate-limit";
+import { str, strOrNull } from "@/lib/validate";
 import { STATUS_META, type OrderStatus } from "@/lib/status";
-import { CLIENT_PRESETS } from "@/lib/notifications";
+import { CLIENT_PRESETS, STAFF_NOTIFS } from "@/lib/notifications";
 
 // Marca de tiempo en UTC con el mismo formato que datetime('now') de SQLite.
 const NOW_SQL = "to_char(now(),'YYYY-MM-DD HH24:MI:SS')";
@@ -22,15 +23,24 @@ export async function loginAction(_prev: { error?: string } | null, formData: Fo
   const next = String(formData.get("next") || "/admin");
   if (!username || !password) return { error: "Ingresa usuario y contraseña." };
 
-  const user = await one<{ id: number; password_hash: string; active: number }>(
-    "SELECT id, password_hash, active FROM users WHERE username = ?",
+  if (await hitLimit("login", `${username}:${await clientIp()}`, 5, 15 * 60)) {
+    return { error: "Demasiados intentos. Espera unos minutos e intenta de nuevo." };
+  }
+
+  const user = await one<{
+    id: number;
+    password_hash: string;
+    active: number;
+    token_version: number;
+  }>(
+    "SELECT id, password_hash, active, token_version FROM users WHERE username = ?",
     [username]
   );
 
   if (!user || !user.active || !checkPassword(password, user.password_hash)) {
     return { error: "Usuario o contraseña incorrectos." };
   }
-  await setSession(user.id);
+  await setSession(user.id, user.token_version);
   redirect(next.startsWith("/admin") ? next : "/admin");
 }
 
@@ -43,16 +53,16 @@ export async function logoutAction() {
 
 export async function createClientAction(formData: FormData) {
   await requireUser();
-  const name = String(formData.get("name") || "").trim();
+  const name = str(formData, "name");
   if (!name) return;
   const info = await run(
     "INSERT INTO clients (name, phone, email, address, notes) VALUES (?, ?, ?, ?, ?) RETURNING id",
     [
       name,
-      String(formData.get("phone") || "").trim() || null,
-      String(formData.get("email") || "").trim() || null,
-      String(formData.get("address") || "").trim() || null,
-      String(formData.get("notes") || "").trim() || null,
+      strOrNull(formData, "phone"),
+      strOrNull(formData, "email"),
+      strOrNull(formData, "address"),
+      strOrNull(formData, "notes", { max: 2000 }),
     ]
   );
   revalidatePath("/admin/clientes");
@@ -62,16 +72,16 @@ export async function createClientAction(formData: FormData) {
 export async function updateClientAction(formData: FormData) {
   await requireUser();
   const id = Number(formData.get("id"));
-  const name = String(formData.get("name") || "").trim();
+  const name = str(formData, "name");
   if (!id || !name) return;
   await run(
     "UPDATE clients SET name = ?, phone = ?, email = ?, address = ?, notes = ? WHERE id = ?",
     [
       name,
-      String(formData.get("phone") || "").trim() || null,
-      String(formData.get("email") || "").trim() || null,
-      String(formData.get("address") || "").trim() || null,
-      String(formData.get("notes") || "").trim() || null,
+      strOrNull(formData, "phone"),
+      strOrNull(formData, "email"),
+      strOrNull(formData, "address"),
+      strOrNull(formData, "notes", { max: 2000 }),
       id,
     ]
   );
@@ -84,6 +94,15 @@ export async function deleteClientAction(formData: FormData) {
   if (user.role !== "admin") return;
   const id = Number(formData.get("id"));
   if (!id) return;
+  // El CASCADE borraría también los pagos (contabilidad): bloquear si existen.
+  const paid = await one<{ n: number }>(
+    `SELECT COUNT(*)::int AS n FROM payments p
+       JOIN orders o ON o.id = p.order_id
+       JOIN vehicles v ON v.id = o.vehicle_id
+      WHERE v.client_id = ?`,
+    [id]
+  );
+  if ((paid?.n ?? 0) > 0) return;
   await run("DELETE FROM clients WHERE id = ?", [id]);
   revalidatePath("/admin/clientes");
   redirect("/admin/clientes");
@@ -104,11 +123,11 @@ export async function createVehicleAction(formData: FormData) {
         clientId,
         plate,
         String(formData.get("type") || "auto"),
-        String(formData.get("brand") || "").trim() || null,
-        String(formData.get("model") || "").trim() || null,
-        String(formData.get("year") || "").trim() || null,
-        String(formData.get("color") || "").trim() || null,
-        String(formData.get("notes") || "").trim() || null,
+        strOrNull(formData, "brand"),
+        strOrNull(formData, "model"),
+        strOrNull(formData, "year"),
+        strOrNull(formData, "color"),
+        strOrNull(formData, "notes", { max: 2000 }),
       ]
     );
   } catch {
@@ -130,11 +149,11 @@ export async function updateVehicleAction(formData: FormData) {
       [
         plate,
         String(formData.get("type") || "auto"),
-        String(formData.get("brand") || "").trim() || null,
-        String(formData.get("model") || "").trim() || null,
-        String(formData.get("year") || "").trim() || null,
-        String(formData.get("color") || "").trim() || null,
-        String(formData.get("notes") || "").trim() || null,
+        strOrNull(formData, "brand"),
+        strOrNull(formData, "model"),
+        strOrNull(formData, "year"),
+        strOrNull(formData, "color"),
+        strOrNull(formData, "notes", { max: 2000 }),
         id,
       ]
     );
@@ -164,11 +183,11 @@ export async function createOrderAction(formData: FormData) {
     } else {
       let clientId = Number(formData.get("client_id")) || 0;
       if (!clientId) {
-        const clientName = String(formData.get("new_client_name") || "").trim();
+        const clientName = str(formData, "new_client_name");
         if (!clientName) return;
         const c = await run(
           "INSERT INTO clients (name, phone) VALUES (?, ?) RETURNING id",
-          [clientName, String(formData.get("new_client_phone") || "").trim() || null]
+          [clientName, strOrNull(formData, "new_client_phone")]
         );
         clientId = Number(c.lastInsertRowid);
       }
@@ -179,10 +198,10 @@ export async function createOrderAction(formData: FormData) {
           clientId,
           plate,
           String(formData.get("new_type") || "auto"),
-          String(formData.get("new_brand") || "").trim() || null,
-          String(formData.get("new_model") || "").trim() || null,
-          String(formData.get("new_year") || "").trim() || null,
-          String(formData.get("new_color") || "").trim() || null,
+          strOrNull(formData, "new_brand"),
+          strOrNull(formData, "new_model"),
+          strOrNull(formData, "new_year"),
+          strOrNull(formData, "new_color"),
         ]
       );
       vehicleId = Number(v.lastInsertRowid);
@@ -190,23 +209,33 @@ export async function createOrderAction(formData: FormData) {
   }
 
   const folio = await nextFolio();
-  const code = newTrackingCode();
-  const description = String(formData.get("description") || "").trim();
-  const info = await run(
-    `INSERT INTO orders (folio, tracking_code, vehicle_id, status, description, km, fuel_level, estimated_delivery, created_by)
-     VALUES (?, ?, ?, 'recibido', ?, ?, ?, ?, ?) RETURNING id`,
-    [
-      folio,
-      code,
-      vehicleId,
-      description,
-      String(formData.get("km") || "").trim() || null,
-      String(formData.get("fuel_level") || "").trim() || null,
-      String(formData.get("estimated_delivery") || "").trim() || null,
-      user.id,
-    ]
-  );
-  const orderId = Number(info.lastInsertRowid);
+  const description = str(formData, "description", { max: 2000 });
+  // Reintento por si el tracking_code choca con el índice UNIQUE (improbable
+  // con 40 bits, pero posible frente a códigos legados de 4 caracteres).
+  let orderId = 0;
+  for (let attempt = 0; attempt < 3 && !orderId; attempt++) {
+    try {
+      const info = await run(
+        `INSERT INTO orders (folio, tracking_code, vehicle_id, status, description, km, fuel_level, estimated_delivery, created_by)
+         VALUES (?, ?, ?, 'recibido', ?, ?, ?, ?, ?) RETURNING id`,
+        [
+          folio,
+          newTrackingCode(),
+          vehicleId,
+          description,
+          strOrNull(formData, "km"),
+          strOrNull(formData, "fuel_level"),
+          strOrNull(formData, "estimated_delivery"),
+          user.id,
+        ]
+      );
+      orderId = Number(info.lastInsertRowid);
+    } catch (err) {
+      const isUniqueCode =
+        err instanceof Error && err.message.includes("idx_orders_tracking");
+      if (!isUniqueCode || attempt === 2) throw err;
+    }
+  }
 
   await run(
     `INSERT INTO order_events (order_id, type, title, detail, is_public, created_by)
@@ -214,11 +243,20 @@ export async function createOrderAction(formData: FormData) {
     [orderId, "Vehículo recibido en el taller", description || null, user.id]
   );
 
-  const veh = await one<{ plate: string }>(
-    "SELECT plate FROM vehicles WHERE id = ?",
+  const veh = await one<{ plate: string; brand: string | null; model: string | null }>(
+    "SELECT plate, brand, model FROM vehicles WHERE id = ?",
     [vehicleId]
   );
-  if (veh) emitPlateUpdate(veh.plate);
+  if (veh) {
+    await sendPushToStaff({
+      ...STAFF_NOTIFS.nueva_orden({
+        folio,
+        placa: veh.plate,
+        vehiculo: [veh.brand, veh.model].filter(Boolean).join(" ") || null,
+      }),
+      url: `/admin/ordenes/${orderId}`,
+    });
+  }
 
   revalidatePath("/admin");
   revalidatePath("/admin/ordenes");
@@ -229,7 +267,7 @@ export async function updateOrderStatusAction(formData: FormData) {
   const user = await requireUser();
   const orderId = Number(formData.get("order_id"));
   const status = String(formData.get("status")) as OrderStatus;
-  const note = String(formData.get("note") || "").trim();
+  const note = str(formData, "note", { max: 2000 });
   if (!orderId || !STATUS_META[status]) return;
 
   const order = await one<{ id: number; status: string; folio: string; plate: string }>(
@@ -253,11 +291,17 @@ export async function updateOrderStatusAction(formData: FormData) {
     [orderId, meta.client, note || meta.description, user.id]
   );
 
-  emitPlateUpdate(order.plate);
   await sendPushToPlate(order.plate, {
     title: `${order.plate}: ${meta.client}`,
     body: note || meta.description,
   });
+
+  if (status === "listo") {
+    await sendPushToStaff({
+      ...STAFF_NOTIFS.listo_admin({ folio: order.folio, placa: order.plate }),
+      url: `/admin/ordenes/${orderId}`,
+    });
+  }
 
   revalidatePath(`/admin/ordenes/${orderId}`);
   revalidatePath("/admin/ordenes");
@@ -267,15 +311,42 @@ export async function updateOrderStatusAction(formData: FormData) {
 export async function addOrderNoteAction(formData: FormData) {
   const user = await requireUser();
   const orderId = Number(formData.get("order_id"));
-  const title = String(formData.get("title") || "").trim();
-  const detail = String(formData.get("detail") || "").trim();
+  const title = str(formData, "title");
+  const detail = str(formData, "detail", { max: 2000 });
   const isPublic = formData.get("is_public") === "on";
   if (!orderId || !title) return;
 
+  // Fotos: hasta 4, jpeg/png/webp, 4 MB c/u, a Vercel Blob (requiere
+  // BLOB_READ_WRITE_TOKEN; sin token se guarda la nota sin fotos).
+  const photoUrls: string[] = [];
+  const photos = formData
+    .getAll("photos")
+    .filter((f): f is File => f instanceof File && f.size > 0)
+    .slice(0, 4);
+  if (photos.length > 0 && process.env.BLOB_READ_WRITE_TOKEN) {
+    const { put } = await import("@vercel/blob");
+    for (const photo of photos) {
+      if (!["image/jpeg", "image/png", "image/webp"].includes(photo.type)) continue;
+      if (photo.size > 4 * 1024 * 1024) continue;
+      const blob = await put(`orders/${orderId}/${photo.name || "foto.jpg"}`, photo, {
+        access: "public",
+        addRandomSuffix: true,
+      });
+      photoUrls.push(blob.url);
+    }
+  }
+
   await run(
-    `INSERT INTO order_events (order_id, type, title, detail, is_public, created_by)
-     VALUES (?, 'nota', ?, ?, ?, ?)`,
-    [orderId, title, detail || null, isPublic ? 1 : 0, user.id]
+    `INSERT INTO order_events (order_id, type, title, detail, is_public, created_by, photo_urls)
+     VALUES (?, 'nota', ?, ?, ?, ?, ?)`,
+    [
+      orderId,
+      title,
+      detail || null,
+      isPublic ? 1 : 0,
+      user.id,
+      photoUrls.length > 0 ? JSON.stringify(photoUrls) : null,
+    ]
   );
 
   if (isPublic) {
@@ -284,7 +355,6 @@ export async function addOrderNoteAction(formData: FormData) {
       [orderId]
     );
     if (row) {
-      emitPlateUpdate(row.plate);
       await sendPushToPlate(row.plate, {
         title: `${row.plate}: nueva anotación del taller`,
         body: title,
@@ -302,11 +372,11 @@ export async function updateOrderInfoAction(formData: FormData) {
     `UPDATE orders SET description = ?, diagnosis = ?, km = ?, fuel_level = ?,
      estimated_delivery = ?, assigned_to = ?, updated_at = ${NOW_SQL} WHERE id = ?`,
     [
-      String(formData.get("description") || "").trim(),
-      String(formData.get("diagnosis") || "").trim() || null,
-      String(formData.get("km") || "").trim() || null,
-      String(formData.get("fuel_level") || "").trim() || null,
-      String(formData.get("estimated_delivery") || "").trim() || null,
+      str(formData, "description", { max: 2000 }),
+      strOrNull(formData, "diagnosis", { max: 2000 }),
+      strOrNull(formData, "km"),
+      strOrNull(formData, "fuel_level"),
+      strOrNull(formData, "estimated_delivery"),
       Number(formData.get("assigned_to")) || null,
       orderId,
     ]
@@ -315,30 +385,85 @@ export async function updateOrderInfoAction(formData: FormData) {
     "SELECT v.plate FROM orders o JOIN vehicles v ON v.id = o.vehicle_id WHERE o.id = ?",
     [orderId]
   );
-  if (row) emitPlateUpdate(row.plate);
   revalidatePath(`/admin/ordenes/${orderId}`);
 }
 
+// Agrega un ítem al presupuesto. Tres orígenes:
+//  - part_id: repuesto de inventario → snapshot de costo/precio y descuento de
+//    stock automático (con aviso al staff si cruza el mínimo).
+//  - service_id: servicio del catálogo → snapshot de costo estimado/precio.
+//  - libre: descripción manual, costo opcional.
 export async function addOrderItemAction(formData: FormData) {
   await requireUser();
   const orderId = Number(formData.get("order_id"));
-  const description = String(formData.get("description") || "").trim();
-  if (!orderId || !description) return;
+  const partId = Number(formData.get("part_id")) || null;
+  const serviceId = Number(formData.get("service_id")) || null;
+  const qty = Number(formData.get("qty")) || 1;
+  if (!orderId || qty <= 0) return;
+
+  let kind = String(formData.get("kind") || "servicio");
+  let description = str(formData, "description", { max: 2000 });
+  let unitPrice = Number(formData.get("unit_price")) || 0;
+  let unitCost = Number(formData.get("unit_cost")) || 0;
+
+  if (partId) {
+    const part = await one<{
+      name: string; unit_price: number; cost: number; stock: number; min_stock: number;
+    }>(
+      "SELECT name, unit_price, cost, stock, min_stock FROM parts WHERE id = ? AND active = 1",
+      [partId]
+    );
+    if (!part) return;
+    kind = "repuesto";
+    description = description || part.name;
+    if (!Number(formData.get("unit_price"))) unitPrice = part.unit_price;
+    unitCost = part.cost;
+  } else if (serviceId) {
+    const service = await one<{ name: string; price: number; est_cost: number }>(
+      "SELECT name, price, est_cost FROM services WHERE id = ? AND active = 1",
+      [serviceId]
+    );
+    if (!service) return;
+    kind = "servicio";
+    description = description || service.name;
+    if (!Number(formData.get("unit_price"))) unitPrice = service.price;
+    unitCost = service.est_cost;
+  }
+  if (!description) return;
+  if (!["servicio", "repuesto"].includes(kind)) kind = "servicio";
+
   await run(
-    "INSERT INTO order_items (order_id, kind, description, qty, unit_price) VALUES (?, ?, ?, ?, ?)",
-    [
-      orderId,
-      String(formData.get("kind") || "servicio"),
-      description,
-      Number(formData.get("qty")) || 1,
-      Number(formData.get("unit_price")) || 0,
-    ]
+    `INSERT INTO order_items (order_id, kind, description, qty, unit_price, unit_cost, part_id, service_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [orderId, kind, description, qty, unitPrice, unitCost, partId, serviceId]
   );
-  const row = await one<{ plate: string }>(
-    "SELECT v.plate FROM orders o JOIN vehicles v ON v.id = o.vehicle_id WHERE o.id = ?",
-    [orderId]
-  );
-  if (row) emitPlateUpdate(row.plate);
+
+  // Descuento de stock (sin transacción en Neon HTTP: si algo falla, el ajuste
+  // manual de inventario es el respaldo).
+  if (partId) {
+    const updated = await one<{ name: string; stock: number; min_stock: number }>(
+      `UPDATE parts SET stock = stock - ?, updated_at = ${NOW_SQL}
+        WHERE id = ? RETURNING name, stock, min_stock`,
+      [qty, partId]
+    );
+    if (
+      updated &&
+      updated.min_stock > 0 &&
+      updated.stock <= updated.min_stock &&
+      updated.stock + qty > updated.min_stock // solo al CRUZAR el mínimo, no en cada venta
+    ) {
+      await sendPushToStaff({
+        ...STAFF_NOTIFS.stock_bajo({
+          nombre: updated.name,
+          stock: updated.stock,
+          minimo: updated.min_stock,
+        }),
+        url: "/admin/inventario",
+      });
+    }
+    revalidatePath("/admin/inventario");
+  }
+
   revalidatePath(`/admin/ordenes/${orderId}`);
 }
 
@@ -347,7 +472,19 @@ export async function deleteOrderItemAction(formData: FormData) {
   const id = Number(formData.get("id"));
   const orderId = Number(formData.get("order_id"));
   if (!id) return;
+  const item = await one<{ part_id: number | null; qty: number }>(
+    "SELECT part_id, qty FROM order_items WHERE id = ?",
+    [id]
+  );
   await run("DELETE FROM order_items WHERE id = ?", [id]);
+  // Restituye el stock si el ítem venía de inventario.
+  if (item?.part_id) {
+    await run(`UPDATE parts SET stock = stock + ?, updated_at = ${NOW_SQL} WHERE id = ?`, [
+      item.qty,
+      item.part_id,
+    ]);
+    revalidatePath("/admin/inventario");
+  }
   revalidatePath(`/admin/ordenes/${orderId}`);
 }
 
@@ -356,11 +493,12 @@ export async function deleteOrderItemAction(formData: FormData) {
 export async function createUserAction(formData: FormData) {
   const user = await requireUser();
   if (user.role !== "admin") return;
-  const name = String(formData.get("name") || "").trim();
+  const name = str(formData, "name");
   const username = String(formData.get("username") || "").trim().toLowerCase();
   const password = String(formData.get("password") || "");
   const role = String(formData.get("role") || "mecanico");
-  if (!name || !username || password.length < 6) return;
+  if (!["admin", "asesor", "mecanico"].includes(role)) return;
+  if (!name || !username || password.length < 8) return;
   try {
     await run(
       "INSERT INTO users (name, username, password_hash, role) VALUES (?, ?, ?, ?)",
@@ -386,30 +524,61 @@ export async function resetPasswordAction(formData: FormData) {
   if (user.role !== "admin") return;
   const id = Number(formData.get("id"));
   const password = String(formData.get("password") || "");
-  if (!id || password.length < 6) return;
-  await run("UPDATE users SET password_hash = ? WHERE id = ?", [hashPassword(password), id]);
+  if (!id || password.length < 8) return;
+  // token_version + 1 revoca las sesiones vigentes de ese usuario.
+  await run(
+    "UPDATE users SET password_hash = ?, token_version = token_version + 1 WHERE id = ?",
+    [hashPassword(password), id]
+  );
   revalidatePath("/admin/usuarios");
+}
+
+export async function changeOwnPasswordAction(
+  _prev: { error?: string; ok?: boolean } | null,
+  formData: FormData
+) {
+  const user = await requireUser();
+  const current = String(formData.get("current") || "");
+  const password = String(formData.get("password") || "");
+  if (password.length < 8) {
+    return { error: "La contraseña nueva debe tener al menos 8 caracteres." };
+  }
+  const row = await one<{ password_hash: string }>(
+    "SELECT password_hash FROM users WHERE id = ?",
+    [user.id]
+  );
+  if (!row || !checkPassword(current, row.password_hash)) {
+    return { error: "La contraseña actual no es correcta." };
+  }
+  const updated = await one<{ token_version: number }>(
+    "UPDATE users SET password_hash = ?, token_version = token_version + 1 WHERE id = ? RETURNING token_version",
+    [hashPassword(password), user.id]
+  );
+  // Re-emite la propia sesión para no quedar deslogueado por el bump.
+  await setSession(user.id, updated?.token_version ?? 0);
+  revalidatePath("/admin/usuarios");
+  return { ok: true };
 }
 
 /* ---------------- Inventario (repuestos) ---------------- */
 
 export async function createPartAction(formData: FormData) {
   await requireUser();
-  const name = String(formData.get("name") || "").trim();
+  const name = str(formData, "name");
   if (!name) return;
   await run(
     `INSERT INTO parts (sku, name, category, stock, min_stock, unit_price, cost, location, notes)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
-      String(formData.get("sku") || "").trim() || null,
+      strOrNull(formData, "sku"),
       name,
-      String(formData.get("category") || "").trim() || null,
+      strOrNull(formData, "category"),
       Number(formData.get("stock")) || 0,
       Number(formData.get("min_stock")) || 0,
       Number(formData.get("unit_price")) || 0,
       Number(formData.get("cost")) || 0,
-      String(formData.get("location") || "").trim() || null,
-      String(formData.get("notes") || "").trim() || null,
+      strOrNull(formData, "location"),
+      strOrNull(formData, "notes", { max: 2000 }),
     ]
   );
   revalidatePath("/admin/inventario");
@@ -419,20 +588,20 @@ export async function createPartAction(formData: FormData) {
 export async function updatePartAction(formData: FormData) {
   await requireUser();
   const id = Number(formData.get("id"));
-  const name = String(formData.get("name") || "").trim();
+  const name = str(formData, "name");
   if (!id || !name) return;
   await run(
     `UPDATE parts SET sku = ?, name = ?, category = ?, min_stock = ?, unit_price = ?, cost = ?,
      location = ?, notes = ?, updated_at = ${NOW_SQL} WHERE id = ?`,
     [
-      String(formData.get("sku") || "").trim() || null,
+      strOrNull(formData, "sku"),
       name,
-      String(formData.get("category") || "").trim() || null,
+      strOrNull(formData, "category"),
       Number(formData.get("min_stock")) || 0,
       Number(formData.get("unit_price")) || 0,
       Number(formData.get("cost")) || 0,
-      String(formData.get("location") || "").trim() || null,
-      String(formData.get("notes") || "").trim() || null,
+      strOrNull(formData, "location"),
+      strOrNull(formData, "notes", { max: 2000 }),
       id,
     ]
   );
@@ -474,7 +643,7 @@ export async function deletePartAction(formData: FormData) {
 export async function createReminderAction(formData: FormData) {
   const user = await requireUser();
   const vehicleId = Number(formData.get("vehicle_id"));
-  const dueDate = String(formData.get("due_date") || "").trim();
+  const dueDate = str(formData, "due_date");
   if (!vehicleId || !dueDate) return;
   await run(
     `INSERT INTO service_reminders (vehicle_id, due_date, reason, notes, created_by)
@@ -482,8 +651,8 @@ export async function createReminderAction(formData: FormData) {
     [
       vehicleId,
       dueDate,
-      String(formData.get("reason") || "").trim() || "Servicio programado",
-      String(formData.get("notes") || "").trim() || null,
+      str(formData, "reason") || "Servicio programado",
+      strOrNull(formData, "notes", { max: 2000 }),
       user.id,
     ]
   );
@@ -540,4 +709,144 @@ export async function sendTestPushAction(
 
 export async function getCurrentUser() {
   return getSessionUser();
+}
+
+/* ---------------- Catálogo de servicios ---------------- */
+
+export async function createServiceAction(formData: FormData) {
+  await requireUser();
+  const name = str(formData, "name");
+  if (!name) return;
+  await run(
+    "INSERT INTO services (name, category, price, est_cost) VALUES (?, ?, ?, ?)",
+    [
+      name,
+      strOrNull(formData, "category"),
+      Number(formData.get("price")) || 0,
+      Number(formData.get("est_cost")) || 0,
+    ]
+  );
+  revalidatePath("/admin/servicios");
+}
+
+export async function updateServiceAction(formData: FormData) {
+  await requireUser();
+  const id = Number(formData.get("id"));
+  const name = str(formData, "name");
+  if (!id || !name) return;
+  await run(
+    `UPDATE services SET name = ?, category = ?, price = ?, est_cost = ?, updated_at = ${NOW_SQL}
+     WHERE id = ?`,
+    [
+      name,
+      strOrNull(formData, "category"),
+      Number(formData.get("price")) || 0,
+      Number(formData.get("est_cost")) || 0,
+      id,
+    ]
+  );
+  revalidatePath("/admin/servicios");
+}
+
+export async function deleteServiceAction(formData: FormData) {
+  const user = await requireUser();
+  if (user.role !== "admin") return;
+  const id = Number(formData.get("id"));
+  if (!id) return;
+  // Borrado lógico: los items históricos conservan su service_id.
+  await run("UPDATE services SET active = 0 WHERE id = ?", [id]);
+  revalidatePath("/admin/servicios");
+}
+
+/* ---------------- Caja / pagos ---------------- */
+
+export async function addPaymentAction(formData: FormData) {
+  const user = await requireUser();
+  if (user.role === "mecanico") return;
+  const orderId = Number(formData.get("order_id"));
+  const amount = Number(formData.get("amount"));
+  const method = str(formData, "method") || "efectivo";
+  if (!orderId || !Number.isFinite(amount) || amount <= 0) return;
+  if (!["efectivo", "tarjeta", "transferencia"].includes(method)) return;
+
+  // No cobrar de más: el pago no puede exceder el saldo pendiente.
+  const row = await one<{ total: number; paid: number }>(
+    `SELECT
+       (SELECT COALESCE(SUM(qty * unit_price), 0) FROM order_items WHERE order_id = o.id)::float8 AS total,
+       (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE order_id = o.id)::float8 AS paid
+     FROM orders o WHERE o.id = ?`,
+    [orderId]
+  );
+  if (!row) return;
+  const saldo = row.total - row.paid;
+  if (amount > saldo + 0.009) return;
+
+  await run(
+    `INSERT INTO payments (order_id, amount, method, reference, notes, created_by)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [
+      orderId,
+      amount,
+      method,
+      strOrNull(formData, "reference"),
+      strOrNull(formData, "notes"),
+      user.id,
+    ]
+  );
+  revalidatePath(`/admin/ordenes/${orderId}`);
+  revalidatePath("/admin/caja");
+  revalidatePath("/admin/reportes");
+}
+
+export async function deletePaymentAction(formData: FormData) {
+  const user = await requireUser();
+  if (user.role !== "admin") return;
+  const id = Number(formData.get("id"));
+  if (!id) return;
+  const payment = await one<{ order_id: number; amount: number; method: string }>(
+    "SELECT order_id, amount, method FROM payments WHERE id = ?",
+    [id]
+  );
+  if (!payment) return;
+  await run("DELETE FROM payments WHERE id = ?", [id]);
+  // Rastro interno en la orden para auditar eliminaciones de cobros.
+  await run(
+    `INSERT INTO order_events (order_id, type, title, detail, is_public, created_by)
+     VALUES (?, 'sistema', ?, ?, 0, ?)`,
+    [
+      payment.order_id,
+      "Pago eliminado",
+      `Se eliminó un pago de ${payment.amount} (${payment.method}).`,
+      user.id,
+    ]
+  );
+  revalidatePath(`/admin/ordenes/${payment.order_id}`);
+  revalidatePath("/admin/caja");
+  revalidatePath("/admin/reportes");
+}
+
+/* ---------------- Push interno del staff ---------------- */
+
+export async function subscribeAdminPushAction(subscription: {
+  endpoint: string;
+  [k: string]: unknown;
+}): Promise<{ ok: boolean }> {
+  const user = await requireUser();
+  if (!subscription?.endpoint) return { ok: false };
+  await run(
+    `INSERT INTO admin_push_subs (user_id, endpoint, subscription) VALUES (?, ?, ?)
+     ON CONFLICT (user_id, endpoint) DO UPDATE SET subscription = excluded.subscription`,
+    [user.id, String(subscription.endpoint), JSON.stringify(subscription)]
+  );
+  return { ok: true };
+}
+
+export async function unsubscribeAdminPushAction(endpoint: string): Promise<{ ok: boolean }> {
+  const user = await requireUser();
+  if (!endpoint) return { ok: false };
+  await run("DELETE FROM admin_push_subs WHERE user_id = ? AND endpoint = ?", [
+    user.id,
+    endpoint,
+  ]);
+  return { ok: true };
 }

@@ -5,12 +5,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, ClipboardList, Users, Car, UserCog, LogOut, Wrench, ExternalLink,
-  Boxes, BarChart3, Bell, MoreHorizontal, X, BellRing,
+  Boxes, BarChart3, Bell, MoreHorizontal, X, BellRing, Wallet, Hammer,
 } from "lucide-react";
 import { logoutAction } from "@/app/admin/actions";
 import type { SessionUser } from "@/lib/auth";
 import { ROLES } from "@/lib/status";
 import InstallButton from "@/components/InstallButton";
+import AdminPushToggle from "@/components/admin/AdminPushToggle";
 
 type NavItem = {
   href: string;
@@ -18,13 +19,16 @@ type NavItem = {
   icon: typeof LayoutDashboard;
   exact?: boolean;
   adminOnly?: boolean;
+  noMechanic?: boolean;
   alertKey?: "inventario" | "recordatorios";
 };
 
 const NAV: NavItem[] = [
   { href: "/admin", label: "Inicio", icon: LayoutDashboard, exact: true },
   { href: "/admin/ordenes", label: "Órdenes", icon: ClipboardList },
+  { href: "/admin/caja", label: "Caja", icon: Wallet, noMechanic: true },
   { href: "/admin/inventario", label: "Inventario", icon: Boxes, alertKey: "inventario" },
+  { href: "/admin/servicios", label: "Servicios", icon: Hammer },
   { href: "/admin/reportes", label: "Reportes", icon: BarChart3 },
   { href: "/admin/recordatorios", label: "Recordatorios", icon: Bell, alertKey: "recordatorios" },
   { href: "/admin/clientes", label: "Clientes", icon: Users },
@@ -47,7 +51,11 @@ export default function AdminNav({
 }) {
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
-  const items = NAV.filter((n) => !n.adminOnly || user.role === "admin");
+  const items = NAV.filter(
+    (n) =>
+      (!n.adminOnly || user.role === "admin") &&
+      (!n.noMechanic || user.role !== "mecanico")
+  );
 
   const isActive = (item: NavItem) =>
     item.exact ? pathname === item.href : pathname.startsWith(item.href);
@@ -60,16 +68,16 @@ export default function AdminNav({
   return (
     <>
       {/* Sidebar escritorio */}
-      <aside className="hidden lg:flex flex-col w-64 shrink-0 bg-blue-950 text-white min-h-dvh sticky top-0">
-        <div className="p-5 flex items-center gap-3 border-b border-blue-900">
-          <div className="bg-blue-600 rounded-xl p-2" aria-hidden="true">
+      <aside className="hidden lg:flex flex-col w-64 shrink-0 bg-primary-950 text-white min-h-dvh sticky top-0">
+        <div className="p-5 flex items-center gap-3 border-b border-primary-900">
+          <div className="bg-primary-600 rounded-xl p-2" aria-hidden="true">
             <Wrench className="w-5 h-5" />
           </div>
           <div className="min-w-0">
             <p className="font-heading font-bold tracking-wide leading-tight text-sm">
               SAN MIGUEL 96
             </p>
-            <p className="text-blue-300 text-xs">Panel del taller</p>
+            <p className="text-primary-300 text-xs">Panel del taller</p>
           </div>
         </div>
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto" aria-label="Navegación principal">
@@ -82,8 +90,8 @@ export default function AdminNav({
                 aria-current={isActive(item) ? "page" : undefined}
                 className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors ${
                   isActive(item)
-                    ? "bg-blue-600 text-white"
-                    : "text-blue-200 hover:bg-blue-900 hover:text-white"
+                    ? "bg-primary-600 text-white"
+                    : "text-primary-200 hover:bg-primary-900 hover:text-white"
                 }`}
               >
                 <item.icon className="w-5 h-5 shrink-0" aria-hidden="true" />
@@ -100,22 +108,23 @@ export default function AdminNav({
             href="/"
             target="_blank"
             rel="noopener"
-            className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-blue-200 hover:bg-blue-900 hover:text-white transition-colors"
+            className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-primary-200 hover:bg-primary-900 hover:text-white transition-colors"
           >
             <ExternalLink className="w-5 h-5 shrink-0" aria-hidden="true" />
             Ver app de clientes
           </a>
         </nav>
-        <div className="p-4 border-t border-blue-900">
-          <div className="mb-3">
+        <div className="p-4 border-t border-primary-900">
+          <div className="mb-3 flex items-center gap-2">
             <InstallButton tone="onDark" appName="SM96 Admin" label="Instalar app" />
+            <AdminPushToggle compact />
           </div>
           <p className="text-sm font-medium truncate">{user.name}</p>
-          <p className="text-xs text-blue-300">{ROLES[user.role]}</p>
+          <p className="text-xs text-primary-300">{ROLES[user.role]}</p>
           <form action={logoutAction} className="mt-3">
             <button
               type="submit"
-              className="flex items-center gap-2 text-sm text-blue-200 hover:text-white transition-colors cursor-pointer"
+              className="flex items-center gap-2 text-sm text-primary-200 hover:text-white transition-colors cursor-pointer"
             >
               <LogOut className="w-4 h-4" aria-hidden="true" /> Cerrar sesión
             </button>
@@ -124,23 +133,26 @@ export default function AdminNav({
       </aside>
 
       {/* Barra superior móvil */}
-      <header className="lg:hidden bg-blue-950 text-white sticky top-0 z-30 shadow-md">
+      <header className="lg:hidden bg-primary-950 text-white sticky top-0 z-30 shadow-md">
         <div className="px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="bg-blue-600 rounded-lg p-1.5" aria-hidden="true">
+            <div className="bg-primary-600 rounded-lg p-1.5" aria-hidden="true">
               <Wrench className="w-4 h-4" />
             </div>
             <p className="font-heading font-bold tracking-wide text-sm truncate">SAN MIGUEL 96</p>
           </div>
-          <form action={logoutAction}>
-            <button
-              type="submit"
-              aria-label="Cerrar sesión"
-              className="p-2 rounded-lg hover:bg-blue-900 transition-colors cursor-pointer"
-            >
-              <LogOut className="w-5 h-5" aria-hidden="true" />
-            </button>
-          </form>
+          <div className="flex items-center gap-1">
+            <AdminPushToggle compact />
+            <form action={logoutAction}>
+              <button
+                type="submit"
+                aria-label="Cerrar sesión"
+                className="p-2 rounded-lg hover:bg-primary-900 transition-colors cursor-pointer"
+              >
+                <LogOut className="w-5 h-5" aria-hidden="true" />
+              </button>
+            </form>
+          </div>
         </div>
       </header>
 
@@ -173,7 +185,7 @@ export default function AdminNav({
                     onClick={() => setMoreOpen(false)}
                     className={`relative flex flex-col items-center gap-1.5 rounded-xl py-3 text-xs font-medium ${
                       isActive(item)
-                        ? "bg-blue-50 text-blue-600"
+                        ? "bg-primary-50 text-primary-600"
                         : "text-slate-600 hover:bg-slate-50"
                     }`}
                   >
@@ -209,7 +221,7 @@ export default function AdminNav({
                   href={item.href}
                   aria-current={isActive(item) ? "page" : undefined}
                   className={`relative flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium transition-colors ${
-                    isActive(item) ? "text-blue-600" : "text-slate-400 hover:text-slate-600"
+                    isActive(item) ? "text-primary-600" : "text-slate-400 hover:text-slate-600"
                   }`}
                 >
                   <item.icon className="w-5 h-5" aria-hidden="true" />

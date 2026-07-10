@@ -1,4 +1,5 @@
-import { BellPlus, BellRing, Check, RotateCcw, Trash2, Phone } from "lucide-react";
+import { BellPlus, BellRing, Check, RotateCcw, Trash2, Phone, MessageCircle } from "lucide-react";
+import { waLink, WA_TEMPLATES } from "@/lib/whatsapp";
 import { many } from "@/lib/db";
 import {
   createReminderAction,
@@ -95,20 +96,50 @@ export default async function RemindersPage() {
           </p>
         </div>
         {r.phone && !r.done && (
-          <a
-            href={`tel:${r.phone}`}
-            className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-blue-600 transition-colors shrink-0"
-            aria-label={`Llamar a ${r.client}`}
-            title={r.phone}
-          >
-            <Phone className="w-4 h-4" aria-hidden="true" />
-          </a>
+          <>
+            {waLink(
+              r.phone,
+              WA_TEMPLATES.recordatorio({
+                nombre: r.client.split(" ")[0],
+                placa: r.plate,
+                motivo: r.reason,
+              })
+            ) && (
+              <a
+                href={
+                  waLink(
+                    r.phone,
+                    WA_TEMPLATES.recordatorio({
+                      nombre: r.client.split(" ")[0],
+                      placa: r.plate,
+                      motivo: r.reason,
+                    })
+                  )!
+                }
+                target="_blank"
+                rel="noopener"
+                className="p-2 rounded-lg text-slate-400 hover:bg-accent-50 hover:text-accent-600 transition-colors shrink-0"
+                aria-label={`WhatsApp a ${r.client}`}
+                title="Enviar WhatsApp"
+              >
+                <MessageCircle className="w-4 h-4" aria-hidden="true" />
+              </a>
+            )}
+            <a
+              href={`tel:${r.phone}`}
+              className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-primary-600 transition-colors shrink-0"
+              aria-label={`Llamar a ${r.client}`}
+              title={r.phone}
+            >
+              <Phone className="w-4 h-4" aria-hidden="true" />
+            </a>
+          </>
         )}
         <form action={toggleReminderAction}>
           <input type="hidden" name="id" value={r.id} />
           <button
             type="submit"
-            className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-emerald-600 transition-colors cursor-pointer shrink-0"
+            className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-accent-600 transition-colors cursor-pointer shrink-0"
             aria-label={r.done ? "Marcar como pendiente" : "Marcar como hecho"}
             title={r.done ? "Reabrir" : "Marcar hecho"}
           >
@@ -208,7 +239,7 @@ export default async function RemindersPage() {
         {/* Nuevo recordatorio */}
         <section className={`${card} p-5 min-w-0`}>
           <h2 className="font-heading font-semibold text-slate-800 tracking-wide flex items-center gap-2">
-            <BellPlus className="w-4 h-4 text-blue-600" aria-hidden="true" /> NUEVO RECORDATORIO
+            <BellPlus className="w-4 h-4 text-primary-600" aria-hidden="true" /> NUEVO RECORDATORIO
           </h2>
           {vehicles.length === 0 ? (
             <p className="mt-3 text-sm text-slate-400">

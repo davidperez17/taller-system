@@ -49,16 +49,16 @@ export default function HomeClient() {
   return (
     <div className="min-h-dvh flex flex-col bg-slate-50">
       {/* Header */}
-      <header className="bg-blue-950 text-white">
+      <header className="bg-primary-950 text-white">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-3">
-          <div className="bg-blue-600 rounded-xl p-2" aria-hidden="true">
+          <div className="bg-primary-600 rounded-xl p-2" aria-hidden="true">
             <Wrench className="w-6 h-6" />
           </div>
           <div>
             <p className="font-heading font-bold text-lg leading-tight tracking-wide">
               MULTISERVICIOS SAN MIGUEL 96
             </p>
-            <p className="text-blue-200 text-xs">
+            <p className="text-primary-200 text-xs">
               Taller mecánico · Autos · Motos · Camiones
             </p>
           </div>
@@ -66,12 +66,12 @@ export default function HomeClient() {
       </header>
 
       {/* Hero + buscador */}
-      <section className="bg-blue-950 text-white pb-16 pt-8 px-4">
+      <section className="bg-primary-950 text-white pb-16 pt-8 px-4">
         <div className="max-w-3xl mx-auto text-center">
           <h1 className="font-heading text-4xl sm:text-5xl font-bold tracking-wide">
-            SIGUE TU REPARACIÓN <span className="text-blue-400">EN VIVO</span>
+            SIGUE TU REPARACIÓN <span className="text-primary-400">EN VIVO</span>
           </h1>
-          <p className="mt-3 text-blue-200 max-w-md mx-auto">
+          <p className="mt-3 text-primary-200 max-w-md mx-auto">
             Consulta el avance de tu auto, moto o camión en tiempo real. Solo
             necesitas tu placa.
           </p>
@@ -80,7 +80,7 @@ export default function HomeClient() {
             <label htmlFor="plate" className="sr-only">
               Placa del vehículo
             </label>
-            <div className="flex rounded-2xl overflow-hidden shadow-lg ring-1 ring-blue-800 focus-within:ring-2 focus-within:ring-blue-400">
+            <div className="flex rounded-2xl overflow-hidden shadow-lg ring-1 ring-primary-800 focus-within:ring-2 focus-within:ring-primary-400">
               <input
                 ref={inputRef}
                 id="plate"
@@ -94,13 +94,13 @@ export default function HomeClient() {
               />
               <button
                 type="submit"
-                className="bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 transition-colors px-6 flex items-center gap-2 font-semibold cursor-pointer"
+                className="bg-accent-600 hover:bg-accent-500 active:bg-accent-700 transition-colors px-6 flex items-center gap-2 font-semibold cursor-pointer"
               >
                 <Search className="w-5 h-5" aria-hidden="true" />
                 <span className="hidden sm:inline">Consultar</span>
               </button>
             </div>
-            <p className="mt-2 text-xs text-blue-300">
+            <p className="mt-2 text-xs text-primary-300">
               Escribe la placa tal como aparece en tu vehículo, sin importar
               guiones o espacios.
             </p>
@@ -134,7 +134,7 @@ export default function HomeClient() {
                         {v.label}
                       </span>
                       <ChevronRight
-                        className="w-5 h-5 text-slate-300 group-hover:text-blue-600 transition-colors shrink-0"
+                        className="w-5 h-5 text-slate-300 group-hover:text-primary-600 transition-colors shrink-0"
                         aria-hidden="true"
                       />
                     </button>
@@ -179,7 +179,7 @@ export default function HomeClient() {
               ].map((s) => (
                 <li key={s.title} className="flex sm:flex-col gap-3">
                   <div
-                    className="bg-blue-50 text-blue-700 rounded-xl p-2.5 h-fit w-fit"
+                    className="bg-primary-50 text-primary-700 rounded-xl p-2.5 h-fit w-fit"
                     aria-hidden="true"
                   >
                     <s.icon className="w-5 h-5" />
@@ -206,7 +206,7 @@ export default function HomeClient() {
                 key={s.label}
                 className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex flex-col items-center gap-2"
               >
-                <s.icon className="w-7 h-7 text-blue-700" aria-hidden="true" />
+                <s.icon className="w-7 h-7 text-primary-700" aria-hidden="true" />
                 <span className="text-sm font-medium text-slate-700">
                   {s.label}
                 </span>
@@ -225,7 +225,7 @@ export default function HomeClient() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-blue-950 text-blue-200 text-sm">
+      <footer className="bg-primary-950 text-primary-200 text-sm">
         <div className="max-w-3xl mx-auto px-4 py-6 grid gap-3 sm:grid-cols-3">
           <p className="flex items-center gap-2">
             <MapPin className="w-4 h-4 shrink-0" aria-hidden="true" />{" "}
@@ -240,7 +240,7 @@ export default function HomeClient() {
             8:00–18:00
           </p>
         </div>
-        <div className="border-t border-blue-900 py-3 text-center text-xs text-blue-400">
+        <div className="border-t border-primary-900 py-3 text-center text-xs text-primary-400">
           © {new Date().getFullYear()} Multiservicios San Miguel 96
         </div>
       </footer>

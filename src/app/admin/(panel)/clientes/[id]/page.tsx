@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Plus, ChevronRight } from "lucide-react";
+import { ArrowLeft, Plus, ChevronRight, MessageCircle } from "lucide-react";
 import { one, many } from "@/lib/db";
+import { waLink } from "@/lib/whatsapp";
+import brand from "@/lib/brand.json";
 import { updateClientAction, createVehicleAction, deleteClientAction } from "@/app/admin/actions";
 import { formatDate } from "@/lib/status";
 import { VEHICLE_TYPES } from "@/lib/status";
@@ -40,9 +42,27 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
         title={client.name.toUpperCase()}
         subtitle={`Cliente desde ${formatDate(client.created_at)}`}
         action={
-          <Link href="/admin/clientes" className={btnSecondary}>
-            <ArrowLeft className="w-4 h-4" aria-hidden="true" /> Clientes
-          </Link>
+          <div className="flex items-center gap-2">
+            {client.phone &&
+              waLink(client.phone, `Hola ${client.name.split(" ")[0]}, le saludamos de ${brand.name}.`) && (
+                <a
+                  href={
+                    waLink(
+                      client.phone,
+                      `Hola ${client.name.split(" ")[0]}, le saludamos de ${brand.name}.`
+                    )!
+                  }
+                  target="_blank"
+                  rel="noopener"
+                  className={btnSecondary}
+                >
+                  <MessageCircle className="w-4 h-4" aria-hidden="true" /> WhatsApp
+                </a>
+              )}
+            <Link href="/admin/clientes" className={btnSecondary}>
+              <ArrowLeft className="w-4 h-4" aria-hidden="true" /> Clientes
+            </Link>
+          </div>
         }
       />
 
@@ -80,7 +100,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             )}
 
             <details className="mt-4">
-              <summary className="text-sm font-medium text-blue-600 cursor-pointer">
+              <summary className="text-sm font-medium text-primary-600 cursor-pointer">
                 Agregar vehículo
               </summary>
               <form action={createVehicleAction} className="mt-3 grid grid-cols-2 gap-3">
@@ -168,7 +188,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                       </div>
                       <StatusBadge status={o.status} />
                       <ChevronRight
-                        className="w-4 h-4 text-slate-300 group-hover:text-blue-600 shrink-0"
+                        className="w-4 h-4 text-slate-300 group-hover:text-primary-600 shrink-0"
                         aria-hidden="true"
                       />
                     </Link>

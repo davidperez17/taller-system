@@ -18,7 +18,7 @@ export async function registerSW(): Promise<ServiceWorkerRegistration | null> {
   }
 }
 
-export async function subscribeToPush(plate: string): Promise<boolean> {
+export async function subscribeToPush(plate: string, code: string): Promise<boolean> {
   const reg = await registerSW();
   if (!reg || !("PushManager" in window)) return false;
   const permission = await Notification.requestPermission();
@@ -34,7 +34,7 @@ export async function subscribeToPush(plate: string): Promise<boolean> {
   const res = await fetch("/api/public/subscribe", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ plate, subscription: sub.toJSON() }),
+    body: JSON.stringify({ plate, code, subscription: sub.toJSON() }),
   });
   return res.ok;
 }

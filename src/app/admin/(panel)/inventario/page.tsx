@@ -62,12 +62,12 @@ export default async function InventoryPage({
   ))!;
 
   const kpis = [
-    { label: "Repuestos", value: totals.n, icon: Package, tone: "bg-blue-50 text-blue-700" },
+    { label: "Repuestos", value: totals.n, icon: Package, tone: "bg-primary-50 text-primary-700" },
     {
       label: "Valor en bodega",
       value: formatMoney(totals.value),
       icon: Boxes,
-      tone: "bg-emerald-50 text-emerald-700",
+      tone: "bg-accent-50 text-accent-700",
     },
     {
       label: "Stock bajo",
@@ -132,7 +132,7 @@ export default async function InventoryPage({
           </form>
 
           {onlyLow && (
-            <a href="/admin/inventario" className="inline-block text-sm text-blue-600 hover:text-blue-500">
+            <a href="/admin/inventario" className="inline-block text-sm text-primary-600 hover:text-primary-500">
               ← Ver todo el inventario
             </a>
           )}
@@ -166,7 +166,13 @@ export default async function InventoryPage({
                             )}
                           </div>
                           <p className="text-xs text-slate-400 mt-0.5 truncate">
-                            {[p.sku && `Cód. ${p.sku}`, p.location, `Precio ${formatMoney(p.unit_price)}`]
+                            {[
+                              p.sku && `Cód. ${p.sku}`,
+                              p.location,
+                              `Precio ${formatMoney(p.unit_price)}`,
+                              p.unit_price > 0 && p.cost > 0 &&
+                                `Margen ${Math.round(((p.unit_price - p.cost) / p.unit_price) * 100)}%`,
+                            ]
                               .filter(Boolean)
                               .join(" · ")}
                           </p>
@@ -186,7 +192,7 @@ export default async function InventoryPage({
                       <div className="px-4 lg:px-5 pb-3 flex flex-wrap gap-4">
                         {/* Ajustar stock */}
                         <details className="text-sm">
-                          <summary className="text-xs font-medium text-blue-600 cursor-pointer">
+                          <summary className="text-xs font-medium text-primary-600 cursor-pointer">
                             Ajustar stock
                           </summary>
                           <form action={adjustStockAction} className="mt-2 flex items-end gap-2 flex-wrap">
@@ -223,7 +229,7 @@ export default async function InventoryPage({
 
                         {/* Editar */}
                         <details className="text-sm">
-                          <summary className="text-xs font-medium text-blue-600 cursor-pointer">
+                          <summary className="text-xs font-medium text-primary-600 cursor-pointer">
                             Editar
                           </summary>
                           <form action={updatePartAction} className="mt-2 grid sm:grid-cols-2 gap-2 max-w-xl">
@@ -270,7 +276,7 @@ export default async function InventoryPage({
         {/* Nuevo repuesto */}
         <section className={`${card} p-5 min-w-0`}>
           <h2 className="font-heading font-semibold text-slate-800 tracking-wide flex items-center gap-2">
-            <PackagePlus className="w-4 h-4 text-blue-600" aria-hidden="true" /> NUEVO REPUESTO
+            <PackagePlus className="w-4 h-4 text-primary-600" aria-hidden="true" /> NUEVO REPUESTO
           </h2>
           <form action={createPartAction} className="mt-3 space-y-3">
             <div>
