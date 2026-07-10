@@ -145,7 +145,7 @@ export default function NotifTester({
           </p>
         )}
 
-        <div className="grid sm:grid-cols-2 gap-3">
+        <div className="grid sm:grid-cols-2 gap-3 *:min-w-0">
           {CLIENT_PRESETS.map((preset) => {
             const title = preset.title.replace("{placa}", plate || "ABC1234");
             return (
@@ -202,7 +202,7 @@ export default function NotifTester({
           en pantalla.
         </p>
 
-        <div className="grid sm:grid-cols-2 gap-3">
+        <div className="grid sm:grid-cols-2 gap-3 *:min-w-0">
           {ADMIN_PRESETS.map((preset) => (
             <div key={preset.id} className={`${card} p-4 flex items-center gap-3`}>
               <div className={`rounded-xl p-2 shrink-0 ${TONE_ICON[preset.tone]}`} aria-hidden="true">

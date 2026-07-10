@@ -21,7 +21,7 @@ export default async function UsersPage() {
     <div className="space-y-5">
       <PageTitle title="EQUIPO" subtitle="Usuarios con acceso al panel del taller" />
 
-      <div className="grid lg:grid-cols-3 gap-5 items-start">
+      <div className="grid lg:grid-cols-3 gap-5 items-start *:min-w-0">
         <section className={`${card} overflow-hidden lg:col-span-2`}>
           <ul className="divide-y divide-slate-100">
             {users.map((u) => (

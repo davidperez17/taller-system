@@ -130,7 +130,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         }
       />
 
-      <div className="grid lg:grid-cols-3 gap-5 items-start">
+      <div className="grid lg:grid-cols-3 gap-5 items-start *:min-w-0">
         {/* Columna principal */}
         <div className="lg:col-span-2 space-y-5">
           {/* Estado + cambio */}
@@ -319,9 +319,9 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                   <thead>
                     <tr className="text-left text-xs uppercase tracking-wider text-slate-400 border-b border-slate-100">
                       <th className="py-2 pr-2 font-semibold">Concepto</th>
-                      <th className="py-2 px-2 font-semibold">Tipo</th>
+                      <th className="py-2 px-2 font-semibold hidden sm:table-cell">Tipo</th>
                       <th className="py-2 px-2 font-semibold text-right">Cant.</th>
-                      <th className="py-2 px-2 font-semibold text-right">P. unitario</th>
+                      <th className="py-2 px-2 font-semibold text-right hidden md:table-cell">P. unitario</th>
                       <th className="py-2 px-2 font-semibold text-right">Importe</th>
                       <th className="py-2 pl-2" aria-label="Acciones" />
                     </tr>
@@ -330,9 +330,11 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                     {items.map((it) => (
                       <tr key={it.id}>
                         <td className="py-2.5 pr-2 text-slate-700">{it.description}</td>
-                        <td className="py-2.5 px-2 text-slate-500 capitalize">{it.kind}</td>
+                        <td className="py-2.5 px-2 text-slate-500 capitalize hidden sm:table-cell">
+                          {it.kind}
+                        </td>
                         <td className="py-2.5 px-2 text-right tabular-nums text-slate-500">{it.qty}</td>
-                        <td className="py-2.5 px-2 text-right tabular-nums text-slate-500">
+                        <td className="py-2.5 px-2 text-right tabular-nums text-slate-500 hidden md:table-cell">
                           {formatMoney(it.unit_price)}
                         </td>
                         <td className="py-2.5 px-2 text-right tabular-nums font-medium text-slate-700">
@@ -356,9 +358,10 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                   </tbody>
                   <tfoot>
                     <tr className="border-t border-slate-200">
-                      <td colSpan={4} className="py-3 font-semibold text-slate-800">
-                        Total
-                      </td>
+                      <td className="py-3 font-semibold text-slate-800">Total</td>
+                      <td className="hidden sm:table-cell" />
+                      <td />
+                      <td className="hidden md:table-cell" />
                       <td className="py-3 text-right font-bold text-slate-900 tabular-nums">
                         {formatMoney(total)}
                       </td>
@@ -379,15 +382,15 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             <div className="mt-3 grid grid-cols-3 gap-3 text-center">
               <div className="bg-slate-50 rounded-xl px-2 py-3">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Total</p>
-                <p className="font-heading font-bold text-lg text-slate-800 tabular-nums">{formatMoney(total)}</p>
+                <p className="font-heading font-bold text-base sm:text-lg text-slate-800 tabular-nums">{formatMoney(total)}</p>
               </div>
               <div className="bg-accent-50 rounded-xl px-2 py-3">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-accent-700/70">Pagado</p>
-                <p className="font-heading font-bold text-lg text-accent-700 tabular-nums">{formatMoney(paid)}</p>
+                <p className="font-heading font-bold text-base sm:text-lg text-accent-700 tabular-nums">{formatMoney(paid)}</p>
               </div>
               <div className={`rounded-xl px-2 py-3 ${saldo > 0.009 ? "bg-amber-50" : "bg-slate-50"}`}>
                 <p className={`text-[11px] font-semibold uppercase tracking-wider ${saldo > 0.009 ? "text-amber-700/70" : "text-slate-400"}`}>Saldo</p>
-                <p className={`font-heading font-bold text-lg tabular-nums ${saldo > 0.009 ? "text-amber-700" : "text-slate-500"}`}>{formatMoney(saldo)}</p>
+                <p className={`font-heading font-bold text-base sm:text-lg tabular-nums ${saldo > 0.009 ? "text-amber-700" : "text-slate-500"}`}>{formatMoney(saldo)}</p>
               </div>
             </div>
 

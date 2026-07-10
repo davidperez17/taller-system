@@ -108,7 +108,7 @@ export default async function InventoryPage({
         </a>
       )}
 
-      <div className="grid lg:grid-cols-3 gap-5 items-start">
+      <div className="grid lg:grid-cols-3 gap-5 items-start *:min-w-0">
         {/* Lista + búsqueda */}
         <div className="lg:col-span-2 min-w-0 space-y-4">
           <form className="flex gap-2" action="/admin/inventario" method="GET">

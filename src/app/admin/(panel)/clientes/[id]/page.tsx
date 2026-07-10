@@ -66,7 +66,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
         }
       />
 
-      <div className="grid lg:grid-cols-3 gap-5 items-start">
+      <div className="grid lg:grid-cols-3 gap-5 items-start *:min-w-0">
         <div className="lg:col-span-2 space-y-5">
           {/* Vehículos */}
           <section className={`${card} p-5`}>

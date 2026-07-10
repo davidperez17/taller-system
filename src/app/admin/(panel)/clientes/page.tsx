@@ -26,7 +26,7 @@ export default async function ClientsPage({
     <div className="space-y-5">
       <PageTitle title="CLIENTES" subtitle={`${clients.length} registrados`} />
 
-      <div className="grid lg:grid-cols-3 gap-5 items-start">
+      <div className="grid lg:grid-cols-3 gap-5 items-start *:min-w-0">
         <div className="lg:col-span-2 space-y-4">
           <form className="flex gap-2" action="/admin/clientes" method="GET">
             <div className="relative flex-1">

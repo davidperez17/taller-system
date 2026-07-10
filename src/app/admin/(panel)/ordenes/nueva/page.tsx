@@ -167,7 +167,7 @@ export default async function NewOrderPage({
               className={inputCls}
             />
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <div>
               <label htmlFor="km" className={labelCls}>
                 Kilometraje
@@ -187,7 +187,7 @@ export default async function NewOrderPage({
                 <option>Lleno</option>
               </select>
             </div>
-            <div>
+            <div className="col-span-2 sm:col-span-1">
               <label htmlFor="estimated_delivery" className={labelCls}>
                 Entrega estimada
               </label>

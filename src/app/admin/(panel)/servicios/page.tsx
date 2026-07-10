@@ -29,7 +29,7 @@ export default async function ServicesPage() {
         subtitle="Catálogo de servicios del taller: precios y costos estimados"
       />
 
-      <div className="grid lg:grid-cols-3 gap-5 items-start">
+      <div className="grid lg:grid-cols-3 gap-5 items-start *:min-w-0">
         <section className={`${card} overflow-hidden lg:col-span-2`}>
           {services.length === 0 ? (
             <p className="p-5 text-sm text-slate-400">
@@ -42,9 +42,9 @@ export default async function ServicesPage() {
                 <thead>
                   <tr className="text-left text-xs uppercase tracking-wider text-slate-400 border-b border-slate-100">
                     <th className="py-2.5 pl-5 pr-2 font-semibold">Servicio</th>
-                    <th className="py-2.5 px-2 font-semibold">Categoría</th>
+                    <th className="py-2.5 px-2 font-semibold hidden sm:table-cell">Categoría</th>
                     <th className="py-2.5 px-2 font-semibold text-right">Precio</th>
-                    <th className="py-2.5 px-2 font-semibold text-right">Costo est.</th>
+                    <th className="py-2.5 px-2 font-semibold text-right hidden md:table-cell">Costo est.</th>
                     <th className="py-2.5 px-2 font-semibold text-right">Margen</th>
                     <th className="py-2.5 pl-2 pr-5" aria-label="Acciones" />
                   </tr>
@@ -56,11 +56,13 @@ export default async function ServicesPage() {
                       <Fragment key={s.id}>
                       <tr className="align-top border-t border-slate-50">
                         <td className="pt-3 pl-5 pr-2 font-medium text-slate-700">{s.name}</td>
-                        <td className="pt-3 px-2 text-slate-500">{s.category ?? "—"}</td>
+                        <td className="pt-3 px-2 text-slate-500 hidden sm:table-cell">
+                          {s.category ?? "—"}
+                        </td>
                         <td className="pt-3 px-2 text-right tabular-nums text-slate-700">
                           {formatMoney(s.price)}
                         </td>
-                        <td className="pt-3 px-2 text-right tabular-nums text-slate-500">
+                        <td className="pt-3 px-2 text-right tabular-nums text-slate-500 hidden md:table-cell">
                           {formatMoney(s.est_cost)}
                         </td>
                         <td

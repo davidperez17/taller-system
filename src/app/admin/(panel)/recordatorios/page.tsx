@@ -188,7 +188,7 @@ export default async function RemindersPage() {
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-5 items-start">
+      <div className="grid lg:grid-cols-3 gap-5 items-start *:min-w-0">
         <div className="lg:col-span-2 min-w-0 space-y-5">
           {pending.length === 0 && (
             <section className={`${card} p-8 text-center`}>
