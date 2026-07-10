@@ -6,6 +6,6 @@ out/
 data/*.db
 data/*.db-*
 .DS_Store
-resumen_proyecto.md
+[Rr]esumen_proyecto.md
 
 tsconfig.tsbuildinfo
