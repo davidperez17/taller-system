@@ -1,4 +1,4 @@
-const CACHE = "sm96-v2";
+const CACHE = "sm96-v3";
 const OFFLINE_ASSETS = ["/", "/manifest.webmanifest", "/icons/icon-192.png"];
 
 self.addEventListener("install", (event) => {

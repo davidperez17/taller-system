@@ -25,6 +25,8 @@ for (const [shade, value] of Object.entries(brand.primary)) {
 for (const [shade, value] of Object.entries(brand.accent)) {
   lines.push(`  --color-accent-${shade}: ${value};`);
 }
+// Fondo de marca (body de la app pública)
+lines.push(`  --color-surface: ${brand.backgroundColor};`);
 const block = `/* BRAND:START — bloque generado por scripts/brand.mjs desde src/lib/brand.json.
      No editar a mano: correr \`node scripts/brand.mjs\` tras cambiar brand.json. */
 ${lines.join("\n")}

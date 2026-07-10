@@ -41,7 +41,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" className={`${barlow.variable} ${inter.variable}`}>
-      <body className="bg-slate-50 text-slate-900 antialiased min-h-dvh">
+      <body className="bg-surface text-slate-900 antialiased min-h-dvh">
         {children}
       </body>
     </html>
