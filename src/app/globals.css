@@ -3,17 +3,17 @@
 @theme {
   /* BRAND:START — bloque generado por scripts/brand.mjs desde src/lib/brand.json.
      No editar a mano: correr `node scripts/brand.mjs` tras cambiar brand.json. */
-  --color-primary-50: oklch(97.1% 0.012 27.2);
-  --color-primary-100: oklch(93.6% 0.029 27.2);
-  --color-primary-200: oklch(88.5% 0.056 27.2);
-  --color-primary-300: oklch(80.8% 0.103 27.2);
-  --color-primary-400: oklch(70.4% 0.172 27.2);
-  --color-primary-500: oklch(60.5% 0.215 27.2);
-  --color-primary-600: oklch(50.5% 0.194 27.2);
-  --color-primary-700: oklch(44.4% 0.16 27.2);
-  --color-primary-800: oklch(39.6% 0.128 27.2);
-  --color-primary-900: oklch(30% 0.08 27.2);
-  --color-primary-950: oklch(14.3% 0.004 345.4);
+  --color-primary-50: oklch(97% 0.014 254.604);
+  --color-primary-100: oklch(93.2% 0.032 255.585);
+  --color-primary-200: oklch(88.2% 0.059 254.128);
+  --color-primary-300: oklch(80.9% 0.105 251.813);
+  --color-primary-400: oklch(70.7% 0.165 254.624);
+  --color-primary-500: oklch(62.3% 0.214 259.815);
+  --color-primary-600: oklch(54.6% 0.245 262.881);
+  --color-primary-700: oklch(48.8% 0.243 264.376);
+  --color-primary-800: oklch(42.4% 0.199 265.638);
+  --color-primary-900: oklch(37.9% 0.146 265.522);
+  --color-primary-950: oklch(28.2% 0.091 267.935);
   --color-accent-50: oklch(97.9% 0.021 166.113);
   --color-accent-100: oklch(95% 0.052 163.051);
   --color-accent-200: oklch(90.5% 0.093 164.15);
@@ -25,7 +25,6 @@
   --color-accent-800: oklch(43.2% 0.095 166.913);
   --color-accent-900: oklch(37.8% 0.077 168.94);
   --color-accent-950: oklch(26.2% 0.051 172.552);
-  --color-surface: #F5F3F4;
   /* BRAND:END */
   --font-heading: var(--font-barlow), "Arial Narrow", sans-serif;
   --font-body: var(--font-inter), system-ui, sans-serif;

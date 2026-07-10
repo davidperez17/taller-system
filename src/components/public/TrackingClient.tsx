@@ -642,7 +642,7 @@ function Shell({
   onRefresh?: () => void;
 }) {
   return (
-    <div className="min-h-dvh bg-surface flex flex-col">
+    <div className="min-h-dvh bg-slate-50 flex flex-col">
       <header className="bg-primary-950 text-white sticky top-0 z-20 shadow-md">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
           <Link

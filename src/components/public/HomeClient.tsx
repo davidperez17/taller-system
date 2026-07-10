@@ -47,7 +47,7 @@ export default function HomeClient() {
   }
 
   return (
-    <div className="min-h-dvh flex flex-col bg-surface">
+    <div className="min-h-dvh flex flex-col bg-slate-50">
       {/* Header */}
       <header className="bg-primary-950 text-white">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-3">
