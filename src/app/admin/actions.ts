@@ -564,6 +564,11 @@ export async function changeOwnPasswordAction(
   return { ok: true };
 }
 
+export async function completeTourAction() {
+  const user = await requireUser();
+  await run(`UPDATE users SET tour_done_at = ${NOW_SQL} WHERE id = ?`, [user.id]);
+}
+
 /* ---------------- Inventario (repuestos) ---------------- */
 
 export async function createPartAction(formData: FormData) {

@@ -193,4 +193,6 @@ export const MIGRATIONS: string[][] = [
   ],
   // v8 — fotos en anotaciones: array JSON de URLs de Vercel Blob (F3.5)
   [`ALTER TABLE order_events ADD COLUMN IF NOT EXISTS photo_urls TEXT`],
+  // v9 — tutorial de bienvenida del panel: NULL = aún no lo vio
+  [`ALTER TABLE users ADD COLUMN IF NOT EXISTS tour_done_at TEXT`],
 ];

@@ -87,6 +87,7 @@ export default function AdminNav({
               <Link
                 key={item.href}
                 href={item.href}
+                data-tour={item.href}
                 aria-current={isActive(item) ? "page" : undefined}
                 className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors ${
                   isActive(item)
@@ -219,6 +220,7 @@ export default function AdminNav({
               <li key={item.href} className="flex-1">
                 <Link
                   href={item.href}
+                  data-tour={item.href}
                   aria-current={isActive(item) ? "page" : undefined}
                   className={`relative flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium transition-colors ${
                     isActive(item) ? "text-primary-600" : "text-slate-400 hover:text-slate-600"
@@ -238,6 +240,7 @@ export default function AdminNav({
           <li className="flex-1">
             <button
               onClick={() => setMoreOpen(true)}
+              data-tour="nav-more"
               aria-label="Más secciones"
               className="relative w-full flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
             >

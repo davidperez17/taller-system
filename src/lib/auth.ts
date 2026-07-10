@@ -11,6 +11,7 @@ export type SessionUser = {
   name: string;
   username: string;
   role: "admin" | "asesor" | "mecanico";
+  tour_done_at: string | null;
 };
 
 export async function setSession(userId: number, tokenVersion: number) {
@@ -36,11 +37,17 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   const data = await verifyToken(token);
   if (!data) return null;
   const user = await one<SessionUser & { token_version: number }>(
-    "SELECT id, name, username, role, token_version FROM users WHERE id = ? AND active = 1",
+    "SELECT id, name, username, role, tour_done_at, token_version FROM users WHERE id = ? AND active = 1",
     [data.userId]
   );
   if (!user || user.token_version !== data.tokenVersion) return null;
-  return { id: user.id, name: user.name, username: user.username, role: user.role };
+  return {
+    id: user.id,
+    name: user.name,
+    username: user.username,
+    role: user.role,
+    tour_done_at: user.tour_done_at ?? null,
+  };
 }
 
 export async function requireUser(): Promise<SessionUser> {
