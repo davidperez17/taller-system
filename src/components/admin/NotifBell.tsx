@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   Bell, X, ClipboardList, Wrench, Ban, Wallet, CheckCircle2, XCircle, History,
 } from "lucide-react";
@@ -10,6 +9,9 @@ import { markNotifsSeenAction } from "@/app/admin/actions";
 import {
   activityMeta, timeAgo, ACTIVITY_TONE_CLASS, type ActivityItem,
 } from "@/lib/activity-meta";
+
+// Cada cuánto la campana consulta el servidor por notificaciones nuevas.
+const POLL_MS = 45 * 1000;
 
 const ICONS: Record<string, typeof Bell> = {
   clipboard: ClipboardList,
@@ -33,20 +35,53 @@ export default function NotifBell({
   items: ActivityItem[];
   placement: "bar" | "sidebar";
 }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [seen, setSeen] = useState(false);
-  const badge = seen ? 0 : unread;
+  // Estado vivo: arranca con lo del render del servidor y se refresca por polling.
+  const [count, setCount] = useState(unread);
+  const [list, setList] = useState<ActivityItem[]>(items);
+  const openRef = useRef(open);
+  openRef.current = open;
+
+  // Trae el conteo/lista del servidor. No pisa el badge mientras el panel está
+  // abierto (ya se está marcando como leído).
+  const refresh = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/notifs", { cache: "no-store" });
+      if (!res.ok) return;
+      const data = (await res.json()) as { unread: number; items: ActivityItem[] };
+      setList(data.items);
+      if (!openRef.current) setCount(data.unread);
+    } catch {
+      /* sin red: reintenta en el próximo ciclo */
+    }
+  }, []);
+
+  // Polling en vivo + al volver a la pestaña, para que el número suba solo.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") refresh();
+    }, POLL_MS);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [refresh]);
+
+  const badge = open ? 0 : count;
 
   async function openPanel() {
     setOpen(true);
-    if (unread > 0 && !seen) {
-      setSeen(true);
+    void refresh(); // lista fresca al abrir
+    if (count > 0) {
+      setCount(0);
       try {
         await markNotifsSeenAction();
-        router.refresh();
       } catch {
-        /* si falla, el badge vuelve en el próximo render del servidor */
+        /* si falla, el badge vuelve en el próximo polling */
       }
     }
   }
@@ -66,8 +101,11 @@ export default function NotifBell({
       >
         <Bell className="w-5 h-5" aria-hidden="true" />
         {badge > 0 && (
-          <span className="absolute top-0.5 right-0.5 min-w-4 h-4 px-1 flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold tabular-nums">
-            {badge > 9 ? "9+" : badge}
+          <span className="absolute -top-0.5 -right-0.5 flex">
+            <span className="absolute inline-flex w-full h-full rounded-full bg-red-400 opacity-75 animate-ping" aria-hidden="true" />
+            <span className="relative min-w-4 h-4 px-1 flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold tabular-nums">
+              {badge > 9 ? "9+" : badge}
+            </span>
           </span>
         )}
       </button>
@@ -96,13 +134,13 @@ export default function NotifBell({
             </div>
 
             <div className="overflow-y-auto flex-1 min-h-0">
-              {items.length === 0 ? (
+              {list.length === 0 ? (
                 <p className="px-4 py-10 text-center text-sm text-slate-400">
                   Sin actividad del equipo todavía.
                 </p>
               ) : (
                 <ul className="divide-y divide-slate-50">
-                  {items.map((it) => {
+                  {list.map((it) => {
                     const meta = activityMeta(it.type);
                     const Icon = ICONS[meta.icon] ?? Bell;
                     const Row = (

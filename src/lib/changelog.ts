@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 // marcar cuántas novedades hay sin ver.
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 11,
+    date: "2026-07-11",
+    title: "Contador de notificaciones en vivo",
+    description:
+      "La campana suma las notificaciones nuevas del equipo automáticamente, sin recargar, y avisa con un número.",
+  },
+  {
     id: 10,
     date: "2026-07-11",
     title: "Aviso de actualización en la app",
