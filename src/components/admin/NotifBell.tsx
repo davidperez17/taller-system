@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import {
   Bell, X, ClipboardList, Wrench, Ban, Wallet, CheckCircle2, XCircle, History,
@@ -36,6 +37,7 @@ export default function NotifBell({
   placement: "bar" | "sidebar";
 }) {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   // Estado vivo: arranca con lo del render del servidor y se refresca por polling.
   const [count, setCount] = useState(unread);
   const [list, setList] = useState<ActivityItem[]>(items);
@@ -55,6 +57,8 @@ export default function NotifBell({
       /* sin red: reintenta en el próximo ciclo */
     }
   }, []);
+
+  useEffect(() => setMounted(true), []);
 
   // Polling en vivo + al volver a la pestaña, para que el número suba solo.
   useEffect(() => {
@@ -110,7 +114,7 @@ export default function NotifBell({
         )}
       </button>
 
-      {open && (
+      {open && mounted && createPortal(
         <div className="fixed inset-0 z-[60]" role="dialog" aria-modal="true" aria-label="Notificaciones">
           <button
             type="button"
@@ -190,7 +194,8 @@ export default function NotifBell({
               <History className="w-4 h-4" aria-hidden="true" /> Ver historial completo
             </Link>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

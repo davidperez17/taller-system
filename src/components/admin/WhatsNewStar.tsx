@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Star, X, Sparkles } from "lucide-react";
 import { CHANGELOG, LATEST_CHANGELOG_ID } from "@/lib/changelog";
 
@@ -17,9 +18,11 @@ function fmt(iso: string): string {
 // dispositivo en localStorage. Al abrir marca todo como visto.
 export default function WhatsNewStar({ placement }: { placement: "bar" | "sidebar" }) {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [seenId, setSeenId] = useState<number | null>(null); // null hasta montar (evita mismatch)
 
   useEffect(() => {
+    setMounted(true);
     const raw = Number(localStorage.getItem(KEY));
     setSeenId(Number.isFinite(raw) ? raw : 0);
   }, []);
@@ -59,7 +62,7 @@ export default function WhatsNewStar({ placement }: { placement: "bar" | "sideba
         )}
       </button>
 
-      {open && (
+      {open && mounted && createPortal(
         <div
           className="fixed inset-0 z-[60]"
           role="dialog"
@@ -109,7 +112,8 @@ export default function WhatsNewStar({ placement }: { placement: "bar" | "sideba
               </ul>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
