@@ -189,7 +189,10 @@ export async function deleteVehicleAction(formData: FormData) {
   revalidatePath("/admin");
 }
 
-export async function createOrderAction(formData: FormData) {
+export async function createOrderAction(
+  _prev: { error?: string } | null,
+  formData: FormData
+): Promise<{ error?: string }> {
   const user = await requireUser();
 
   let vehicleId = Number(formData.get("vehicle_id")) || 0;
@@ -197,7 +200,9 @@ export async function createOrderAction(formData: FormData) {
   // Alta rápida: cliente y vehículo nuevos en el mismo formulario.
   if (!vehicleId) {
     const plate = normalizePlate(String(formData.get("new_plate") || ""));
-    if (!plate) return;
+    if (!plate) {
+      return { error: "Ingresa la placa del vehículo o elige uno ya registrado." };
+    }
     const existing = await one<{ id: number }>(
       "SELECT id FROM vehicles WHERE plate = ?",
       [plate]
@@ -208,7 +213,9 @@ export async function createOrderAction(formData: FormData) {
       let clientId = Number(formData.get("client_id")) || 0;
       if (!clientId) {
         const clientName = str(formData, "new_client_name");
-        if (!clientName) return;
+        if (!clientName) {
+          return { error: "Elige un cliente existente o escribe el nombre del cliente nuevo." };
+        }
         const c = await run(
           "INSERT INTO clients (name, phone) VALUES (?, ?) RETURNING id",
           [clientName, strOrNull(formData, "new_client_phone")]
