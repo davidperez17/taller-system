@@ -9,6 +9,13 @@ type BIPEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
 
+// El layout guarda aquí el evento capturado temprano en el <head>.
+declare global {
+  interface Window {
+    __deferredBIP?: BIPEvent | null;
+  }
+}
+
 type Tone = "primary" | "onDark";
 type Variant = "button" | "menu";
 
@@ -51,19 +58,31 @@ export default function InstallButton({
       (/Macintosh/i.test(ua) && "ontouchend" in document); // iPad reciente
     setIsIOS(iOS);
 
+    // El evento suele haberse disparado antes de que React montara: lo
+    // recuperamos del window donde lo dejó el script del <head>.
+    if (window.__deferredBIP) setDeferred(window.__deferredBIP);
+
     const onBIP = (e: Event) => {
       e.preventDefault();
       setDeferred(e as BIPEvent);
     };
+    const onAvailable = () => {
+      if (window.__deferredBIP) setDeferred(window.__deferredBIP);
+    };
     const onInstalled = () => {
+      window.__deferredBIP = null;
       setInstalled(true);
       setHelp(false);
     };
     window.addEventListener("beforeinstallprompt", onBIP);
+    window.addEventListener("bip-available", onAvailable);
     window.addEventListener("appinstalled", onInstalled);
+    window.addEventListener("bip-installed", onInstalled);
     return () => {
       window.removeEventListener("beforeinstallprompt", onBIP);
+      window.removeEventListener("bip-available", onAvailable);
       window.removeEventListener("appinstalled", onInstalled);
+      window.removeEventListener("bip-installed", onInstalled);
     };
   }, []);
 
@@ -89,6 +108,8 @@ export default function InstallButton({
       } catch {
         /* ignore */
       }
+      // El prompt nativo es de un solo uso: descartar el evento consumido.
+      window.__deferredBIP = null;
       setDeferred(null);
       return;
     }

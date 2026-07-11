@@ -41,6 +41,28 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" className={`${barlow.variable} ${inter.variable}`}>
+      <head>
+        {/* Captura `beforeinstallprompt` apenas se parsea el <head>. El evento se
+            dispara muy temprano (Android/Chrome) y suele llegar antes de que React
+            hidrate y adjunte su listener; si no lo guardamos aquí, el botón de
+            instalar no tendría el prompt nativo y caería en las instrucciones
+            manuales. Lo dejamos en window.__deferredBIP y avisamos con un evento. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){
+  window.addEventListener('beforeinstallprompt', function(e){
+    e.preventDefault();
+    window.__deferredBIP = e;
+    window.dispatchEvent(new Event('bip-available'));
+  });
+  window.addEventListener('appinstalled', function(){
+    window.__deferredBIP = null;
+    window.dispatchEvent(new Event('bip-installed'));
+  });
+})();`,
+          }}
+        />
+      </head>
       <body
         suppressHydrationWarning
         className="bg-slate-50 text-slate-900 antialiased min-h-dvh"
