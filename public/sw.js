@@ -1,10 +1,19 @@
-const CACHE = "sm96-v2";
+// Sube VERSION solo en actualizaciones que valga la pena anunciar: al cambiar
+// los bytes de este archivo el navegador detecta un SW nuevo, que queda en
+// espera (no llamamos skipWaiting aquí) hasta que el usuario toca "Aplicar"
+// en el pop de la app. Ese botón envía SKIP_WAITING (ver listener de abajo).
+const VERSION = "sm96-v3";
+const CACHE = VERSION;
 const OFFLINE_ASSETS = ["/", "/manifest.webmanifest", "/icons/icon-192.png"];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(OFFLINE_ASSETS)).then(() => self.skipWaiting())
-  );
+  // Sin skipWaiting: el SW nuevo espera a que el usuario acepte la actualización.
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(OFFLINE_ASSETS)));
+});
+
+// La app pide activar la versión en espera cuando el usuario toca "Aplicar".
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {

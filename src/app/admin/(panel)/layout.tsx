@@ -4,6 +4,7 @@ import { one } from "@/lib/db";
 import { getNotifCenter } from "@/lib/activity";
 import AdminNav from "@/components/admin/AdminNav";
 import AdminTour from "@/components/admin/AdminTour";
+import UpdatePrompt from "@/components/UpdatePrompt";
 
 export const metadata = { title: "Panel del taller" };
 
@@ -31,6 +32,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
         <div className="max-w-6xl mx-auto px-4 pt-5 lg:px-8 lg:pt-8">{children}</div>
       </main>
       <AdminTour autoStart={!user.tour_done_at} role={user.role} />
+      <UpdatePrompt />
     </div>
   );
 }
