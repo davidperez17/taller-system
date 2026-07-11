@@ -10,9 +10,10 @@ import { sendPushToPlate, sendPushToStaff } from "@/lib/push";
 import { hitLimit, clientIp } from "@/lib/rate-limit";
 import { str, strOrNull } from "@/lib/validate";
 import {
-  STATUS_META, RECEPTION_EVENT_TITLE, EXPENSE_CATEGORIES, type OrderStatus,
+  STATUS_META, RECEPTION_EVENT_TITLE, EXPENSE_CATEGORIES, formatMoney, type OrderStatus,
 } from "@/lib/status";
 import { CLIENT_PRESETS, STAFF_NOTIFS } from "@/lib/notifications";
+import { logActivity, markNotifsSeen } from "@/lib/activity";
 
 // Marca de tiempo en UTC con el mismo formato que datetime('now') de SQLite.
 const NOW_SQL = "to_char(now(),'YYYY-MM-DD HH24:MI:SS')";
@@ -299,6 +300,16 @@ export async function createOrderAction(formData: FormData) {
     });
   }
 
+  await logActivity({
+    type: "orden_nueva",
+    title: `Nueva orden ${folio}`,
+    detail: veh ? `${veh.plate}${veh.brand || veh.model ? ` · ${[veh.brand, veh.model].filter(Boolean).join(" ")}` : ""}` : null,
+    actorId: user.id,
+    actorName: user.name,
+    orderId,
+    url: `/admin/ordenes/${orderId}`,
+  });
+
   revalidatePath("/admin");
   revalidatePath("/admin/ordenes");
   redirect(`/admin/ordenes/${orderId}`);
@@ -345,6 +356,19 @@ export async function updateOrderStatusAction(formData: FormData) {
       url: `/admin/ordenes/${orderId}`,
     });
   }
+
+  await logActivity({
+    type: status === "cancelado" ? "cancelacion" : "estado",
+    title:
+      status === "cancelado"
+        ? `Canceló ${order.folio}`
+        : `${order.folio}: ${meta.label}`,
+    detail: status === "cancelado" ? note || null : `${order.plate} → ${meta.label}`,
+    actorId: user.id,
+    actorName: user.name,
+    orderId,
+    url: `/admin/ordenes/${orderId}`,
+  });
 
   revalidatePath(`/admin/ordenes/${orderId}`);
   revalidatePath("/admin/ordenes");
@@ -868,8 +892,8 @@ export async function addPaymentAction(formData: FormData) {
   if (!["efectivo", "tarjeta", "transferencia"].includes(method)) return;
 
   // No cobrar de más: el pago no puede exceder el saldo pendiente.
-  const row = await one<{ total: number; paid: number }>(
-    `SELECT
+  const row = await one<{ total: number; paid: number; folio: string }>(
+    `SELECT o.folio,
        (SELECT COALESCE(SUM(qty * unit_price), 0) FROM order_items WHERE order_id = o.id)::float8 AS total,
        (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE order_id = o.id)::float8 AS paid
      FROM orders o WHERE o.id = ?`,
@@ -891,6 +915,17 @@ export async function addPaymentAction(formData: FormData) {
       user.id,
     ]
   );
+
+  await logActivity({
+    type: "pago",
+    title: `Pago ${formatMoney(amount)} · ${row.folio}`,
+    detail: `Método: ${method}`,
+    actorId: user.id,
+    actorName: user.name,
+    orderId,
+    url: `/admin/ordenes/${orderId}`,
+  });
+
   revalidatePath(`/admin/ordenes/${orderId}`);
   revalidatePath("/admin/caja");
   revalidatePath("/admin/reportes");
@@ -947,4 +982,88 @@ export async function unsubscribeAdminPushAction(endpoint: string): Promise<{ ok
     endpoint,
   ]);
   return { ok: true };
+}
+
+/* ---------------- Centro de notificaciones internas ---------------- */
+
+// Marca todo lo visto: mueve la marca de agua del usuario a "ahora".
+export async function markNotifsSeenAction(): Promise<{ ok: boolean }> {
+  const user = await requireUser();
+  await markNotifsSeen(user.id);
+  return { ok: true };
+}
+
+/* ---------------- Novedades para clientes ---------------- */
+
+const ANNOUNCEMENT_TONES = ["info", "promo", "aviso"] as const;
+
+export async function createAnnouncementAction(formData: FormData) {
+  const user = await requireUser();
+  if (user.role === "mecanico") return;
+  const title = str(formData, "title", { max: 120 });
+  const body = str(formData, "body", { max: 2000 });
+  if (!title || !body) return;
+  const toneRaw = String(formData.get("tone") || "info");
+  const tone = (ANNOUNCEMENT_TONES as readonly string[]).includes(toneRaw) ? toneRaw : "info";
+
+  await run(
+    `INSERT INTO announcements (title, body, tone, active, starts_on, ends_on, created_by)
+     VALUES (?, ?, ?, 1, ?, ?, ?)`,
+    [
+      title,
+      body,
+      tone,
+      strOrNull(formData, "starts_on"),
+      strOrNull(formData, "ends_on"),
+      user.id,
+    ]
+  );
+  revalidatePath("/admin/novedades");
+}
+
+export async function updateAnnouncementAction(formData: FormData) {
+  const user = await requireUser();
+  if (user.role === "mecanico") return;
+  const id = Number(formData.get("id"));
+  const title = str(formData, "title", { max: 120 });
+  const body = str(formData, "body", { max: 2000 });
+  if (!id || !title || !body) return;
+  const toneRaw = String(formData.get("tone") || "info");
+  const tone = (ANNOUNCEMENT_TONES as readonly string[]).includes(toneRaw) ? toneRaw : "info";
+
+  await run(
+    `UPDATE announcements SET title = ?, body = ?, tone = ?, starts_on = ?, ends_on = ?,
+       updated_at = ${NOW_SQL} WHERE id = ?`,
+    [
+      title,
+      body,
+      tone,
+      strOrNull(formData, "starts_on"),
+      strOrNull(formData, "ends_on"),
+      id,
+    ]
+  );
+  revalidatePath("/admin/novedades");
+}
+
+// Publica/oculta sin borrar: el cliente deja de verla cuando active = 0.
+export async function toggleAnnouncementAction(formData: FormData) {
+  const user = await requireUser();
+  if (user.role === "mecanico") return;
+  const id = Number(formData.get("id"));
+  if (!id) return;
+  await run(
+    `UPDATE announcements SET active = 1 - active, updated_at = ${NOW_SQL} WHERE id = ?`,
+    [id]
+  );
+  revalidatePath("/admin/novedades");
+}
+
+export async function deleteAnnouncementAction(formData: FormData) {
+  const user = await requireUser();
+  if (user.role === "mecanico") return;
+  const id = Number(formData.get("id"));
+  if (!id) return;
+  await run("DELETE FROM announcements WHERE id = ?", [id]);
+  revalidatePath("/admin/novedades");
 }

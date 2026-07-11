@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getTracking } from "@/lib/tracking";
+import { getActiveAnnouncements } from "@/lib/announcements";
 import TrackingClient from "@/components/public/TrackingClient";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +18,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function TrackingPage({ params, searchParams }: Props) {
   const { placa } = await params;
   const { code } = await searchParams;
-  const initial = await getTracking(placa, code ?? null);
-  return <TrackingClient initial={initial} initialCode={code ?? ""} />;
+  const [initial, announcements] = await Promise.all([
+    getTracking(placa, code ?? null),
+    getActiveAnnouncements(),
+  ]);
+  return (
+    <TrackingClient initial={initial} initialCode={code ?? ""} announcements={announcements} />
+  );
 }

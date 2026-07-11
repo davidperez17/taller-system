@@ -6,12 +6,15 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, ClipboardList, Users, Car, UserCog, LogOut, Wrench, ExternalLink,
   Boxes, BarChart3, Bell, MoreHorizontal, X, BellRing, Wallet, Hammer, Receipt,
+  Megaphone, History,
 } from "lucide-react";
 import { logoutAction } from "@/app/admin/actions";
 import type { SessionUser } from "@/lib/auth";
 import { ROLES } from "@/lib/status";
+import type { ActivityItem } from "@/lib/activity-meta";
 import InstallButton from "@/components/InstallButton";
 import AdminPushToggle from "@/components/admin/AdminPushToggle";
+import NotifBell from "@/components/admin/NotifBell";
 
 type NavItem = {
   href: string;
@@ -34,6 +37,8 @@ const NAV: NavItem[] = [
   { href: "/admin/recordatorios", label: "Recordatorios", icon: Bell, alertKey: "recordatorios" },
   { href: "/admin/clientes", label: "Clientes", icon: Users },
   { href: "/admin/vehiculos", label: "Vehículos", icon: Car },
+  { href: "/admin/novedades", label: "Novedades", icon: Megaphone, noMechanic: true },
+  { href: "/admin/actividad", label: "Actividad", icon: History },
   { href: "/admin/notificaciones", label: "Notificaciones", icon: BellRing },
   { href: "/admin/usuarios", label: "Equipo", icon: UserCog, adminOnly: true },
 ];
@@ -46,9 +51,11 @@ export type NavAlerts = { inventario?: number; recordatorios?: number };
 export default function AdminNav({
   user,
   alerts = {},
+  notif = { unread: 0, items: [] },
 }: {
   user: SessionUser;
   alerts?: NavAlerts;
+  notif?: { unread: number; items: ActivityItem[] };
 }) {
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
@@ -118,6 +125,7 @@ export default function AdminNav({
         </nav>
         <div className="p-4 border-t border-primary-900">
           <div className="mb-3 flex items-center gap-2">
+            <NotifBell unread={notif.unread} items={notif.items} placement="sidebar" />
             <InstallButton tone="onDark" appName="SM96 Admin" label="Instalar app" />
             <AdminPushToggle compact />
           </div>
@@ -144,6 +152,7 @@ export default function AdminNav({
             <p className="font-heading font-bold tracking-wide text-sm truncate">SAN MIGUEL 96</p>
           </div>
           <div className="flex items-center gap-1">
+            <NotifBell unread={notif.unread} items={notif.items} placement="bar" />
             <AdminPushToggle compact />
             <form action={logoutAction}>
               <button

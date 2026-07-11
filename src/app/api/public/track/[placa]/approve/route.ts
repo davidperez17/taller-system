@@ -3,6 +3,7 @@ import { one, run } from "@/lib/db";
 import { verifyPlateCode } from "@/lib/tracking";
 import { sendPushToStaff } from "@/lib/push";
 import { STAFF_NOTIFS } from "@/lib/notifications";
+import { logActivity } from "@/lib/activity";
 import { formatMoney } from "@/lib/status";
 import { hitLimit, clientIp } from "@/lib/rate-limit";
 
@@ -76,6 +77,14 @@ export async function POST(
       ...STAFF_NOTIFS.aprobado({ folio: order.folio, total: formatMoney(total) }),
       url: `/admin/ordenes/${order.id}`,
     });
+    await logActivity({
+      type: "aprobacion",
+      title: `Cliente aprobó ${order.folio}`,
+      detail: `Presupuesto de ${formatMoney(total)}. Orden pasó a repuestos.`,
+      actorName: "Cliente",
+      orderId: order.id,
+      url: `/admin/ordenes/${order.id}`,
+    });
   } else {
     const updated = await run(
       `UPDATE orders SET approval_status = 'rechazado', approval_at = ${NOW_SQL},
@@ -97,6 +106,14 @@ export async function POST(
     );
     await sendPushToStaff({
       ...STAFF_NOTIFS.rechazado({ folio: order.folio }),
+      url: `/admin/ordenes/${order.id}`,
+    });
+    await logActivity({
+      type: "rechazo",
+      title: `Cliente rechazó ${order.folio}`,
+      detail: "El taller debe contactar al cliente para acordar cómo seguir.",
+      actorName: "Cliente",
+      orderId: order.id,
       url: `/admin/ordenes/${order.id}`,
     });
   }

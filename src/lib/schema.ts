@@ -209,4 +209,40 @@ export const MIGRATIONS: string[][] = [
     `CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(spent_on)`,
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS monthly_cost DOUBLE PRECISION NOT NULL DEFAULT 0`,
   ],
+  // v11 — actividad interna del equipo (centro de notificaciones). Registra
+  // quién hizo qué (crear orden, cambiar estado, cancelar, cobrar) y las
+  // respuestas del cliente. El "no leído" por usuario se resuelve con una
+  // marca de agua (users.notifs_seen_at): todo lo posterior cuenta como nuevo.
+  [
+    `CREATE TABLE IF NOT EXISTS activity_log (
+       id SERIAL PRIMARY KEY,
+       type TEXT NOT NULL,
+       title TEXT NOT NULL,
+       detail TEXT,
+       actor_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+       actor_name TEXT,
+       order_id INTEGER REFERENCES orders(id) ON DELETE SET NULL,
+       url TEXT,
+       created_at TEXT NOT NULL DEFAULT to_char(now(),'YYYY-MM-DD HH24:MI:SS')
+     )`,
+    `CREATE INDEX IF NOT EXISTS idx_activity_created ON activity_log(created_at DESC)`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS notifs_seen_at TEXT`,
+  ],
+  // v12 — novedades globales para clientes (banner en la app de seguimiento).
+  // Un solo mensaje lo ven todos los clientes; ventana opcional de vigencia.
+  [
+    `CREATE TABLE IF NOT EXISTS announcements (
+       id SERIAL PRIMARY KEY,
+       title TEXT NOT NULL,
+       body TEXT NOT NULL,
+       tone TEXT NOT NULL DEFAULT 'info' CHECK (tone IN ('info','promo','aviso')),
+       active INTEGER NOT NULL DEFAULT 1,
+       starts_on TEXT,
+       ends_on TEXT,
+       created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+       created_at TEXT NOT NULL DEFAULT to_char(now(),'YYYY-MM-DD HH24:MI:SS'),
+       updated_at TEXT NOT NULL DEFAULT to_char(now(),'YYYY-MM-DD HH24:MI:SS')
+     )`,
+    `CREATE INDEX IF NOT EXISTS idx_announcements_active ON announcements(active)`,
+  ],
 ];

@@ -9,16 +9,20 @@ import {
 } from "lucide-react";
 import { STATUS_FLOW, STATUS_META, type OrderStatus, formatMoney, formatDate, formatDateShort } from "@/lib/status";
 import type { TrackingResult } from "@/lib/tracking";
+import type { PublicAnnouncement } from "@/lib/announcements";
 import { subscribeToPush, saveVehicle, getSavedVehicles, registerSW } from "./pwa";
+import Novedades from "./Novedades";
 
 const VEHICLE_ICON: Record<string, typeof Car> = { auto: Car, moto: Bike, camion: Truck, otro: Wrench };
 
 export default function TrackingClient({
   initial,
   initialCode,
+  announcements = [],
 }: {
   initial: TrackingResult;
   initialCode: string;
+  announcements?: PublicAnnouncement[];
 }) {
   const [data, setData] = useState<TrackingResult>(initial);
   const [code, setCode] = useState(initialCode);
@@ -116,7 +120,7 @@ export default function TrackingClient({
   /* ---------- Placa no encontrada ---------- */
   if (!data.found) {
     return (
-      <Shell plate={data.plate}>
+      <Shell plate={data.plate} announcements={announcements}>
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center animate-slide-up">
           <SearchX className="w-12 h-12 text-slate-300 mx-auto" aria-hidden="true" />
           <h1 className="font-heading text-2xl font-bold text-slate-800 mt-4 tracking-wide">
@@ -143,7 +147,7 @@ export default function TrackingClient({
   const finished = order.status === "entregado" || order.status === "cancelado";
 
   return (
-    <Shell plate={data.plate} refreshing={refreshing} onRefresh={() => refresh()}>
+    <Shell plate={data.plate} refreshing={refreshing} onRefresh={() => refresh()} announcements={announcements}>
       {/* Tarjeta vehículo + estado actual */}
       <section className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden animate-slide-up">
         <div className="p-5 flex items-start gap-4">
@@ -660,11 +664,13 @@ function Shell({
   plate,
   refreshing,
   onRefresh,
+  announcements = [],
 }: {
   children: React.ReactNode;
   plate: string;
   refreshing?: boolean;
   onRefresh?: () => void;
+  announcements?: PublicAnnouncement[];
 }) {
   return (
     <div className="min-h-dvh bg-slate-50 flex flex-col">
@@ -695,7 +701,10 @@ function Shell({
           )}
         </div>
       </header>
-      <main className="flex-1 max-w-2xl w-full mx-auto px-4 py-5 space-y-5">{children}</main>
+      <main className="flex-1 max-w-2xl w-full mx-auto px-4 py-5 space-y-5">
+        <Novedades items={announcements} />
+        {children}
+      </main>
       <footer className="text-center text-xs text-slate-400 pb-6">
         Placa consultada: <span className="font-semibold">{plate}</span>
       </footer>
