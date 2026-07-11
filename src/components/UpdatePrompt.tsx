@@ -1,85 +1,120 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { RefreshCw, X, Loader2 } from "lucide-react";
 
-// Pop interno de actualización: cuando se despliega una versión nueva del
-// service worker (ver VERSION en public/sw.js), el navegador instala el SW
-// nuevo y lo deja en espera. Aquí lo detectamos y ofrecemos aplicarlo: al
-// tocar "Aplicar" mandamos SKIP_WAITING, el SW toma control y recargamos.
+// Build con el que se cargó esta pestaña (horneado en next.config.ts).
+const BUILD = process.env.NEXT_PUBLIC_BUILD_ID || "dev";
+
+// Pop interno de actualización. Se muestra automáticamente cuando:
+//  1) hay un deploy nuevo: /api/version devuelve un build distinto al cargado, o
+//  2) el service worker instaló una versión nueva y quedó en espera.
+// Al tocar "Aplicar" recargamos (y activamos el SW en espera si lo hay).
 export default function UpdatePrompt() {
-  const [waiting, setWaiting] = useState<ServiceWorker | null>(null);
+  const [show, setShow] = useState(false);
   const [applying, setApplying] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const waitingSW = useRef<ServiceWorker | null>(null);
+  const latestBuild = useRef<string>(BUILD);
+  const dismissedBuild = useRef<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
-    if (!("serviceWorker" in navigator)) return;
-
+    const hasSW = "serviceWorker" in navigator;
     let reg: ServiceWorkerRegistration | null = null;
     let reloading = false;
-    // Si no había SW controlando, este es el primer install: el controllerchange
-    // que dispara clients.claim() no debe recargar la página.
-    const hadController = !!navigator.serviceWorker.controller;
+    let stopped = false;
+    // Sin SW controlando = primera instalación: el controllerchange que dispara
+    // clients.claim() no debe recargar.
+    const hadController = hasSW ? !!navigator.serviceWorker.controller : false;
 
-    // Cuando el SW en espera toma control (actualización), recargar una sola vez.
     const onControllerChange = () => {
       if (reloading || !hadController) return;
       reloading = true;
       window.location.reload();
     };
-    navigator.serviceWorker.addEventListener("controllerchange", onControllerChange);
 
-    // Solo es "actualización" si ya había un SW controlando (no la 1ª instalación).
     const promote = (worker: ServiceWorker | null) => {
       if (!worker) return;
       const check = () => {
         if (worker.state === "installed" && navigator.serviceWorker.controller) {
-          setWaiting(worker);
+          waitingSW.current = worker;
+          setShow(true);
         }
       };
       check();
       worker.addEventListener("statechange", check);
     };
 
-    navigator.serviceWorker
-      .register("/sw.js")
-      .then((registration) => {
-        reg = registration;
-        // Puede haber quedado uno en espera de una carga anterior.
-        if (registration.waiting && navigator.serviceWorker.controller) {
-          setWaiting(registration.waiting);
-        }
-        registration.addEventListener("updatefound", () => {
-          promote(registration.installing);
-        });
-      })
-      .catch(() => {});
+    if (hasSW) {
+      navigator.serviceWorker.addEventListener("controllerchange", onControllerChange);
+      navigator.serviceWorker
+        .register("/sw.js")
+        .then((registration) => {
+          reg = registration;
+          if (registration.waiting && navigator.serviceWorker.controller) {
+            waitingSW.current = registration.waiting;
+            setShow(true);
+          }
+          registration.addEventListener("updatefound", () => promote(registration.installing));
+        })
+        .catch(() => {});
+    }
 
-    // Buscar versiones nuevas al volver a la app y periódicamente.
-    const checkForUpdate = () => {
-      if (document.visibilityState === "visible") reg?.update().catch(() => {});
+    // Deploy nuevo: comparar el build en runtime contra el cargado.
+    const checkBuild = async () => {
+      if (BUILD === "dev") return; // local/dev: sin pops
+      try {
+        const res = await fetch("/api/version", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = (await res.json()) as { build?: string };
+        if (stopped || !data.build) return;
+        latestBuild.current = data.build;
+        if (data.build !== BUILD && data.build !== dismissedBuild.current) setShow(true);
+      } catch {
+        /* offline: reintenta en el próximo ciclo */
+      }
     };
-    document.addEventListener("visibilitychange", checkForUpdate);
-    const interval = window.setInterval(checkForUpdate, 60 * 60 * 1000);
+
+    // Al volver a la app y cada 5 min: buscar deploy nuevo y actualizar el SW.
+    const poll = () => {
+      if (document.visibilityState !== "visible") return;
+      checkBuild();
+      reg?.update().catch(() => {});
+    };
+    checkBuild();
+    document.addEventListener("visibilitychange", poll);
+    const interval = window.setInterval(poll, 5 * 60 * 1000);
 
     return () => {
-      navigator.serviceWorker.removeEventListener("controllerchange", onControllerChange);
-      document.removeEventListener("visibilitychange", checkForUpdate);
+      stopped = true;
+      document.removeEventListener("visibilitychange", poll);
       window.clearInterval(interval);
+      if (hasSW) navigator.serviceWorker.removeEventListener("controllerchange", onControllerChange);
     };
   }, []);
 
   function apply() {
-    if (!waiting) return;
     setApplying(true);
-    waiting.postMessage({ type: "SKIP_WAITING" });
-    // El reload lo dispara controllerchange. Respaldo por si no llega el evento.
-    window.setTimeout(() => window.location.reload(), 3000);
+    const w = waitingSW.current;
+    if (w) {
+      // El SW en espera toma control y controllerchange dispara el reload.
+      w.postMessage({ type: "SKIP_WAITING" });
+      window.setTimeout(() => window.location.reload(), 3000); // respaldo
+    } else {
+      // Deploy nuevo sin SW en espera: recargar trae el HTML/JS frescos (red primero).
+      window.location.reload();
+    }
   }
 
-  if (!mounted || !waiting) return null;
+  function dismiss() {
+    // No volver a molestar por este build; reaparece en el próximo deploy.
+    dismissedBuild.current = latestBuild.current;
+    setShow(false);
+  }
+
+  if (!mounted || !show) return null;
 
   return createPortal(
     <div
@@ -107,7 +142,7 @@ export default function UpdatePrompt() {
         {!applying && (
           <button
             type="button"
-            onClick={() => setWaiting(null)}
+            onClick={dismiss}
             aria-label="Ahora no"
             className="shrink-0 p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
           >

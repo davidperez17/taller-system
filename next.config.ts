@@ -11,6 +11,12 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Identifica el build actual y lo hornea en el bundle del cliente. En cada
+  // deploy Vercel cambia VERCEL_GIT_COMMIT_SHA, así el cliente cargado detecta
+  // que hay una versión nueva comparándolo contra /api/version (pop automático).
+  env: {
+    NEXT_PUBLIC_BUILD_ID: process.env.VERCEL_GIT_COMMIT_SHA || "dev",
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
