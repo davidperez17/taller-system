@@ -7,15 +7,16 @@ import {
 import { waLink, WA_TEMPLATES } from "@/lib/whatsapp";
 import { one, many } from "@/lib/db";
 import {
-  STATUS_META, STATUS_FLOW, ROLES, formatMoney, formatDate, formatDateShort, type OrderStatus,
+  STATUS_META, ROLES, formatMoney, formatDate, formatDateShort, type OrderStatus,
 } from "@/lib/status";
 import {
-  updateOrderStatusAction, addOrderNoteAction,
+  addOrderNoteAction,
   deleteOrderItemAction, updateOrderInfoAction, addPaymentAction, deletePaymentAction,
 } from "@/app/admin/actions";
 import { getSessionUser } from "@/lib/auth";
 import ItemPicker from "@/components/admin/ItemPicker";
 import PhotoInput from "@/components/admin/PhotoInput";
+import StatusChangeForm from "@/components/admin/StatusChangeForm";
 import {
   StatusBadge, PlateBadge, VehicleTypeIcon, PageTitle, card, btnPrimary, btnSecondary, inputCls, labelCls,
 } from "@/components/admin/ui";
@@ -91,7 +92,6 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   );
 
   const meta = STATUS_META[order.status];
-  const nextStatuses = STATUS_FLOW.filter((s) => s !== order.status);
 
   // Enlaces de WhatsApp con mensaje prellenado según la situación de la orden.
   const h = await headers();
@@ -171,45 +171,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                   cliente ({formatMoney(order.approval_total)}).
                 </p>
               )}
-            <form action={updateOrderStatusAction} className="mt-4 space-y-3">
-              <input type="hidden" name="order_id" value={order.id} />
-              <div className="grid sm:grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor="status" className={labelCls}>
-                    Cambiar a
-                  </label>
-                  <select id="status" name="status" className={inputCls} defaultValue="">
-                    <option value="" disabled>
-                      Selecciona nueva etapa…
-                    </option>
-                    {nextStatuses.map((s) => (
-                      <option key={s} value={s}>
-                        {STATUS_META[s].label}
-                      </option>
-                    ))}
-                    <option value="cancelado">Cancelar orden</option>
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="status-note" className={labelCls}>
-                    Mensaje para el cliente (opcional)
-                  </label>
-                  <input
-                    id="status-note"
-                    name="note"
-                    placeholder="Ej. Encontramos la falla en el alternador."
-                    className={inputCls}
-                  />
-                </div>
-              </div>
-              <button type="submit" className={btnPrimary}>
-                Actualizar estado y notificar
-              </button>
-              <p className="text-xs text-slate-400">
-                Al cambiar la etapa se envía una notificación push al cliente y se registra en su
-                línea de tiempo.
-              </p>
-            </form>
+            <StatusChangeForm orderId={order.id} currentStatus={order.status} />
           </section>
 
           {/* Anotaciones */}

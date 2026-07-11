@@ -3,6 +3,7 @@ import { Plus, Search, ChevronRight } from "lucide-react";
 import { many, normalizePlate } from "@/lib/db";
 import { STATUS_META, formatDate, type OrderStatus } from "@/lib/status";
 import { StatusBadge, PlateBadge, VehicleTypeIcon, PageTitle, card, btnPrimary, inputCls } from "@/components/admin/ui";
+import CancelOrderButton from "@/components/admin/CancelOrderButton";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Órdenes" };
@@ -107,10 +108,10 @@ export default async function OrdersPage({
         ) : (
           <ul className="divide-y divide-slate-100">
             {orders.map((o) => (
-              <li key={o.id}>
+              <li key={o.id} className="flex items-center">
                 <Link
                   href={`/admin/ordenes/${o.id}`}
-                  className="flex items-center gap-3 px-4 lg:px-5 py-3.5 hover:bg-slate-50 transition-colors group"
+                  className="flex items-center gap-3 pl-4 lg:pl-5 pr-2 py-3.5 hover:bg-slate-50 transition-colors group flex-1 min-w-0"
                 >
                   <span className="text-slate-400 shrink-0">
                     <VehicleTypeIcon type={o.type} />
@@ -132,6 +133,9 @@ export default async function OrdersPage({
                     aria-hidden="true"
                   />
                 </Link>
+                {o.status !== "cancelado" && o.status !== "entregado" && (
+                  <CancelOrderButton orderId={o.id} label={`${o.plate} · ${o.folio}`} />
+                )}
               </li>
             ))}
           </ul>

@@ -310,6 +310,8 @@ export async function updateOrderStatusAction(formData: FormData) {
   const status = String(formData.get("status")) as OrderStatus;
   const note = str(formData, "note", { max: 2000 });
   if (!orderId || !STATUS_META[status]) return;
+  // Cancelar exige motivo: se registra en la línea de tiempo y se notifica.
+  if (status === "cancelado" && !note) return;
 
   const order = await one<{ id: number; status: string; folio: string; plate: string }>(
     `SELECT o.id, o.status, o.folio, v.plate FROM orders o
