@@ -73,8 +73,9 @@ export default function AdminNav({
 
   return (
     <>
-      {/* Sidebar escritorio */}
-      <aside className="hidden lg:flex flex-col w-64 shrink-0 bg-primary-950 text-white min-h-dvh sticky top-0">
+      {/* Sidebar escritorio — altura fija de viewport y sticky: la nav queda
+          pinchada y el contenido de la página hace scroll de forma independiente. */}
+      <aside className="hidden lg:flex flex-col w-64 shrink-0 bg-primary-950 text-white h-dvh sticky top-0 self-start">
         <div className="p-5 flex items-center gap-3 border-b border-primary-900">
           <div className="bg-primary-600 rounded-xl p-2" aria-hidden="true">
             <Wrench className="w-5 h-5" />
