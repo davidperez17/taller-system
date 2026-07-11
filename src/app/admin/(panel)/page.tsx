@@ -1,10 +1,13 @@
 import Link from "next/link";
 import {
-  ClipboardList, Car, CheckCircle2, Banknote, Plus, ChevronRight, AlertTriangle, Bell,
+  ClipboardList, Car, CheckCircle2, Banknote, Plus, ChevronRight, AlertTriangle, Bell, History,
 } from "lucide-react";
 import { one, many } from "@/lib/db";
+import { getActivityHistory } from "@/lib/activity";
+import { timeAgo } from "@/lib/activity-meta";
 import { STATUS_META, STATUS_FLOW, formatMoney, formatDate, type OrderStatus } from "@/lib/status";
 import { StatusBadge, PlateBadge, VehicleTypeIcon, PageTitle, card, btnPrimary } from "@/components/admin/ui";
+import ActivityRow from "@/components/admin/ActivityRow";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +46,8 @@ export default async function DashboardPage() {
        WHERE o.status NOT IN ('entregado','cancelado')
        ORDER BY o.updated_at DESC LIMIT 8`
   );
+
+  const activity = await getActivityHistory({ limit: 6 });
 
   const lowStock = (await one<{ n: number }>(
     `SELECT COUNT(*)::int AS n FROM parts WHERE active = 1 AND min_stock > 0 AND stock <= min_stock`
@@ -136,7 +141,33 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      {/* Actividad reciente */}
+      {/* Actividad del equipo */}
+      <section className={`${card} overflow-hidden`}>
+        <div className="p-5 pb-3 flex items-center justify-between">
+          <h2 className="font-heading font-semibold text-lg text-slate-800 tracking-wide flex items-center gap-2">
+            <History className="w-5 h-5 text-slate-400" aria-hidden="true" /> ACTIVIDAD DEL EQUIPO
+          </h2>
+          <Link
+            href="/admin/actividad"
+            className="text-sm font-medium text-primary-600 hover:text-primary-500"
+          >
+            Ver todo
+          </Link>
+        </div>
+        {activity.length === 0 ? (
+          <p className="px-5 pb-5 text-sm text-slate-400">Sin actividad del equipo todavía.</p>
+        ) : (
+          <ul className="divide-y divide-slate-100">
+            {activity.map((it) => (
+              <li key={it.id}>
+                <ActivityRow item={it} timeLabel={timeAgo(it.created_at)} className="px-5 py-3" />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* Órdenes activas recientes */}
       <section className={`${card} overflow-hidden`}>
         <div className="p-5 pb-3 flex items-center justify-between">
           <h2 className="font-heading font-semibold text-lg text-slate-800 tracking-wide">

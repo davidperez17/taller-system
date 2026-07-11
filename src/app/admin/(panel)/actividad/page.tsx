@@ -1,27 +1,13 @@
 import Link from "next/link";
-import {
-  ClipboardList, Wrench, Ban, Wallet, CheckCircle2, XCircle, Bell,
-} from "lucide-react";
 import { many } from "@/lib/db";
 import { getActivityHistory } from "@/lib/activity";
 import { formatDate } from "@/lib/status";
-import {
-  activityMeta, ACTIVITY_META, ACTIVITY_TONE_CLASS, type ActivityType,
-} from "@/lib/activity-meta";
+import { ACTIVITY_META, type ActivityType } from "@/lib/activity-meta";
 import { PageTitle, card } from "@/components/admin/ui";
+import ActivityRow from "@/components/admin/ActivityRow";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Actividad del equipo" };
-
-const ICONS: Record<string, typeof Bell> = {
-  clipboard: ClipboardList,
-  wrench: Wrench,
-  ban: Ban,
-  wallet: Wallet,
-  check: CheckCircle2,
-  x: XCircle,
-  bell: Bell,
-};
 
 export default async function ActivityPage({
   searchParams,
@@ -113,45 +99,11 @@ export default async function ActivityPage({
           </p>
         ) : (
           <ul className="divide-y divide-slate-50">
-            {items.map((it) => {
-              const meta = activityMeta(it.type);
-              const Icon = ICONS[meta.icon] ?? Bell;
-              const Row = (
-                <div className="flex gap-3 px-4 lg:px-5 py-3.5">
-                  <span
-                    className={`rounded-xl p-2 h-fit shrink-0 ${ACTIVITY_TONE_CLASS[meta.tone]}`}
-                    aria-hidden="true"
-                  >
-                    <Icon className="w-4 h-4" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-semibold text-slate-800">{it.title}</p>
-                      <span className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
-                        {meta.label}
-                      </span>
-                    </div>
-                    {it.detail && (
-                      <p className="text-sm text-slate-500 mt-0.5">{it.detail}</p>
-                    )}
-                    <p className="text-xs text-slate-400 mt-1">
-                      {it.actor_name ?? "Sistema"} · {formatDate(it.created_at)}
-                    </p>
-                  </div>
-                </div>
-              );
-              return (
-                <li key={it.id}>
-                  {it.url ? (
-                    <Link href={it.url} className="block hover:bg-slate-50 transition-colors">
-                      {Row}
-                    </Link>
-                  ) : (
-                    Row
-                  )}
-                </li>
-              );
-            })}
+            {items.map((it) => (
+              <li key={it.id}>
+                <ActivityRow item={it} timeLabel={formatDate(it.created_at)} showType />
+              </li>
+            ))}
           </ul>
         )}
       </section>
