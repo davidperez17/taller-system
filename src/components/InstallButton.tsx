@@ -10,6 +10,7 @@ type BIPEvent = Event & {
 };
 
 type Tone = "primary" | "onDark";
+type Variant = "button" | "menu";
 
 const TONES: Record<Tone, string> = {
   primary:
@@ -23,11 +24,13 @@ export default function InstallButton({
   label = "Instalar app",
   tone = "primary",
   className = "",
+  variant = "button",
 }: {
   appName?: string;
   label?: string;
   tone?: Tone;
   className?: string;
+  variant?: Variant;
 }) {
   const [deferred, setDeferred] = useState<BIPEvent | null>(null);
   const [installed, setInstalled] = useState(false);
@@ -95,14 +98,25 @@ export default function InstallButton({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={handleClick}
-        className={`w-full rounded-2xl py-3.5 px-4 flex items-center justify-center gap-2 font-semibold transition-colors cursor-pointer ${TONES[tone]} ${className}`}
-      >
-        <Download className="w-5 h-5" aria-hidden="true" />
-        {label}
-      </button>
+      {variant === "menu" ? (
+        <button
+          type="button"
+          onClick={handleClick}
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer text-left ${className}`}
+        >
+          <Download className="w-4 h-4 text-slate-500 shrink-0" aria-hidden="true" />
+          {label}
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={handleClick}
+          className={`w-full rounded-2xl py-3.5 px-4 flex items-center justify-center gap-2 font-semibold transition-colors cursor-pointer ${TONES[tone]} ${className}`}
+        >
+          <Download className="w-5 h-5" aria-hidden="true" />
+          {label}
+        </button>
+      )}
 
       {help && mounted &&
         createPortal(

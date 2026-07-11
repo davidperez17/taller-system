@@ -4,17 +4,15 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard, ClipboardList, Users, Car, UserCog, LogOut, Wrench, ExternalLink,
+  LayoutDashboard, ClipboardList, Users, Car, UserCog, Wrench, ExternalLink,
   Boxes, BarChart3, Bell, MoreHorizontal, X, BellRing, Wallet, Hammer, Receipt,
   Megaphone, History,
 } from "lucide-react";
-import { logoutAction } from "@/app/admin/actions";
 import type { SessionUser } from "@/lib/auth";
-import { ROLES } from "@/lib/status";
 import type { ActivityItem } from "@/lib/activity-meta";
 import InstallButton from "@/components/InstallButton";
-import AdminPushToggle from "@/components/admin/AdminPushToggle";
 import NotifBell from "@/components/admin/NotifBell";
+import UserMenu from "@/components/admin/UserMenu";
 
 type NavItem = {
   href: string;
@@ -81,12 +79,13 @@ export default function AdminNav({
           <div className="bg-primary-600 rounded-xl p-2" aria-hidden="true">
             <Wrench className="w-5 h-5" />
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="font-heading font-bold tracking-wide leading-tight text-sm">
               SAN MIGUEL 96
             </p>
             <p className="text-primary-300 text-xs">Panel del taller</p>
           </div>
+          <NotifBell unread={notif.unread} items={notif.items} placement="sidebar" />
         </div>
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto" aria-label="Navegación principal">
           {items.map((item) => {
@@ -123,22 +122,8 @@ export default function AdminNav({
             Ver app de clientes
           </a>
         </nav>
-        <div className="p-4 border-t border-primary-900">
-          <div className="mb-3 flex items-center gap-2">
-            <NotifBell unread={notif.unread} items={notif.items} placement="sidebar" />
-            <InstallButton tone="onDark" appName="SM96 Admin" label="Instalar app" />
-            <AdminPushToggle compact />
-          </div>
-          <p className="text-sm font-medium truncate">{user.name}</p>
-          <p className="text-xs text-primary-300">{ROLES[user.role]}</p>
-          <form action={logoutAction} className="mt-3">
-            <button
-              type="submit"
-              className="flex items-center gap-2 text-sm text-primary-200 hover:text-white transition-colors cursor-pointer"
-            >
-              <LogOut className="w-4 h-4" aria-hidden="true" /> Cerrar sesión
-            </button>
-          </form>
+        <div className="p-3 border-t border-primary-900">
+          <UserMenu user={user} placement="sidebar" />
         </div>
       </aside>
 
@@ -153,16 +138,7 @@ export default function AdminNav({
           </div>
           <div className="flex items-center gap-1">
             <NotifBell unread={notif.unread} items={notif.items} placement="bar" />
-            <AdminPushToggle compact />
-            <form action={logoutAction}>
-              <button
-                type="submit"
-                aria-label="Cerrar sesión"
-                className="p-2 rounded-lg hover:bg-primary-900 transition-colors cursor-pointer"
-              >
-                <LogOut className="w-5 h-5" aria-hidden="true" />
-              </button>
-            </form>
+            <UserMenu user={user} placement="bar" />
           </div>
         </div>
       </header>

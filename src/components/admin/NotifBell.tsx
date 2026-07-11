@@ -54,7 +54,7 @@ export default function NotifBell({
   const panelPos =
     placement === "bar"
       ? "inset-x-0 bottom-0 max-h-[80dvh] rounded-t-2xl pb-[calc(env(safe-area-inset-bottom)+0.5rem)]"
-      : "bottom-6 left-[17rem] w-[22rem] max-h-[70vh] rounded-2xl";
+      : "top-16 left-[17rem] w-[22rem] max-h-[70vh] rounded-2xl";
 
   return (
     <>
