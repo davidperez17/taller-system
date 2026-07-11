@@ -12,6 +12,7 @@ import type { SessionUser } from "@/lib/auth";
 import type { ActivityItem } from "@/lib/activity-meta";
 import InstallButton from "@/components/InstallButton";
 import NotifBell from "@/components/admin/NotifBell";
+import WhatsNewStar from "@/components/admin/WhatsNewStar";
 import UserMenu from "@/components/admin/UserMenu";
 
 type NavItem = {
@@ -86,7 +87,10 @@ export default function AdminNav({
             </p>
             <p className="text-primary-300 text-xs">Panel del taller</p>
           </div>
-          <NotifBell unread={notif.unread} items={notif.items} placement="sidebar" />
+          <div className="flex items-center gap-0.5">
+            <WhatsNewStar placement="sidebar" />
+            <NotifBell unread={notif.unread} items={notif.items} placement="sidebar" />
+          </div>
         </div>
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto" aria-label="Navegación principal">
           {items.map((item) => {
@@ -138,6 +142,7 @@ export default function AdminNav({
             <p className="font-heading font-bold tracking-wide text-sm truncate">SAN MIGUEL 96</p>
           </div>
           <div className="flex items-center gap-1">
+            <WhatsNewStar placement="bar" />
             <NotifBell unread={notif.unread} items={notif.items} placement="bar" />
             <UserMenu user={user} placement="bar" />
           </div>
