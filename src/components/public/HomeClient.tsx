@@ -100,16 +100,15 @@ export default function HomeClient() {
       {/* ============ HEADER ============ */}
       <header className="sticky top-0 z-50 bg-sm-graphite/95 backdrop-blur border-b border-white/10">
         <div className="mx-auto max-w-5xl px-4 h-16 flex items-center justify-between gap-4">
-          <a href="#inicio" className="flex items-center gap-2.5 text-white min-w-0">
-            <span className="grid place-items-center w-9 h-9 shrink-0 rounded-md bg-sm-red font-heading font-bold text-lg leading-none">
-              SM
-            </span>
-            <span className="flex flex-col leading-none min-w-0">
-              <span className="font-heading font-semibold text-[17px] tracking-wide uppercase truncate">
-                San Miguel 96
-              </span>
-              <span className="text-[11px] text-white/55 tracking-wide truncate">Taller automotriz</span>
-            </span>
+          <a href="#inicio" className="flex items-center min-w-0" aria-label="Multiservicios San Miguel 96 — inicio">
+            <img
+              src="/logo/logo-mts96.png"
+              alt="Multiservicios San Miguel 96"
+              width={1458}
+              height={381}
+              className="h-9 sm:h-10 w-auto shrink-0 select-none mix-blend-screen"
+              draggable={false}
+            />
           </a>
           <a
             href={WA_AGENDA}
@@ -486,9 +485,14 @@ export default function HomeClient() {
       {/* ============ FOOTER ============ */}
       <footer className="bg-sm-graphite text-white/55">
         <div className="mx-auto max-w-5xl px-4 py-6 flex flex-wrap items-center justify-between gap-3 text-[13px]">
-          <span className="font-heading font-semibold tracking-wide text-white/80 uppercase">
-            Multiservicios San Miguel 96
-          </span>
+          <img
+            src="/logo/logo-mts96.png"
+            alt="Multiservicios San Miguel 96"
+            width={1458}
+            height={381}
+            className="h-7 w-auto select-none mix-blend-screen"
+            draggable={false}
+          />
           <nav className="flex gap-5" aria-label="Secciones del pie">
             <a href="#como-funciona" className="hover:text-white transition-colors">Cómo funciona</a>
             <a href="#servicios" className="hover:text-white transition-colors">Servicios</a>
