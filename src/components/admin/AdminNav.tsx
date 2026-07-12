@@ -83,7 +83,7 @@ export default function AdminNav({
             alt="Multiservicios San Miguel 96"
             width={1458}
             height={381}
-            className="h-8 w-auto min-w-0 select-none mix-blend-screen"
+            className="h-8 w-auto min-w-0 select-none"
             draggable={false}
           />
           <div className="flex items-center gap-0.5 ml-auto">
@@ -140,7 +140,7 @@ export default function AdminNav({
               alt="Multiservicios San Miguel 96"
               width={1458}
               height={381}
-              className="h-7 w-auto select-none mix-blend-screen"
+              className="h-7 w-auto select-none"
               draggable={false}
             />
           </div>

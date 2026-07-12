@@ -106,7 +106,7 @@ export default function HomeClient() {
               alt="Multiservicios San Miguel 96"
               width={1458}
               height={381}
-              className="h-9 sm:h-10 w-auto shrink-0 select-none mix-blend-screen"
+              className="h-9 sm:h-10 w-auto shrink-0 select-none"
               draggable={false}
             />
           </a>
@@ -488,7 +488,7 @@ export default function HomeClient() {
             alt="Multiservicios San Miguel 96"
             width={1458}
             height={381}
-            className="h-7 w-auto select-none mix-blend-screen"
+            className="h-7 w-auto select-none"
             draggable={false}
           />
           <nav className="flex gap-5" aria-label="Secciones del pie">

@@ -20,7 +20,7 @@ export default function LoginForm() {
             alt="Multiservicios San Miguel 96"
             width={1458}
             height={381}
-            className="h-14 w-auto mx-auto select-none mix-blend-screen"
+            className="h-14 w-auto mx-auto select-none"
             draggable={false}
           />
           <p className="text-white/60 text-sm mt-3">Panel del taller</p>
