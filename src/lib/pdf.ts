@@ -95,14 +95,14 @@ export async function loadOrderDocData(orderId: number): Promise<OrderDocData | 
 
 /* ---------------- Maquetación ---------------- */
 
-const INK = "#0f172a"; // slate-900
-const MUTED = "#64748b"; // slate-500
-const FAINT = "#94a3b8"; // slate-400
-const LINE = "#e2e8f0"; // slate-200
-const HEAD = "#1e3a8a"; // primario oscuro de la marca
-const GREEN = "#047857"; // accent-700
-const AMBER = "#b45309";
-const RED = "#b91c1c";
+const INK = "#18181b"; // zinc-900 (neutro, sin tinte azul)
+const MUTED = "#52525b"; // sm-muted (~7:1)
+const FAINT = "#71717a"; // sm-faint (~4.8:1)
+const LINE = "#e4e4e7"; // sm-border
+const HEAD = "#1c1c20"; // grafito de la marca
+const GREEN = "#137a41"; // sm-ok (éxito/dinero)
+const AMBER = "#b45309"; // sm-warn
+const RED = "#c8102e"; // sm-red (acción/marca · montos negativos)
 
 const M = 48; // margen
 const PAGE_W = 612; // carta
@@ -160,7 +160,7 @@ export async function buildOrderPdf(
     width: 180,
     align: "right",
   });
-  doc.font("Helvetica-Bold").fontSize(11).fillColor(HEAD).text(`Orden ${data.folio}`, {
+  doc.font("Helvetica-Bold").fontSize(11).fillColor(RED).text(`Orden ${data.folio}`, {
     width: 180,
     align: "right",
   });
