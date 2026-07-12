@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 // marcar cuántas novedades hay sin ver.
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 12,
+    date: "2026-07-11",
+    title: "Confirmación antes de eliminar",
+    description:
+      "Eliminar o quitar (clientes, vehículos, pagos, gastos, servicios, repuestos, recordatorios y novedades) ahora pide confirmar, para evitar borrados por error.",
+  },
+  {
     id: 11,
     date: "2026-07-11",
     title: "Contador de notificaciones en vivo",

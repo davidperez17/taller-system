@@ -16,6 +16,7 @@ import {
   inputCls,
   labelCls,
 } from "@/components/admin/ui";
+import ConfirmSubmitButton from "@/components/admin/ConfirmSubmitButton";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Inventario" };
@@ -253,13 +254,15 @@ export default async function InventoryPage({
                                 Guardar
                               </button>
                               {me?.role === "admin" && (
-                                <button
-                                  formAction={deletePartAction}
+                                <ConfirmSubmitButton
+                                  submitAction={deletePartAction}
                                   className={btnSecondary}
-                                  aria-label={`Eliminar ${p.name}`}
+                                  ariaLabel={`Eliminar ${p.name}`}
+                                  confirmTitle={`¿Eliminar ${p.name}?`}
+                                  confirmMessage="Se elimina este repuesto del inventario. No se puede deshacer."
                                 >
                                   Eliminar
-                                </button>
+                                </ConfirmSubmitButton>
                               )}
                             </div>
                           </form>

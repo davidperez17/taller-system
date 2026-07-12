@@ -11,6 +11,7 @@ import {
 import {
   PageTitle, card, btnPrimary, btnSecondary, inputCls, labelCls,
 } from "@/components/admin/ui";
+import ConfirmSubmitButton from "@/components/admin/ConfirmSubmitButton";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Novedades" };
@@ -175,13 +176,14 @@ export default async function AnnouncementsPage() {
                   </form>
                   <form action={deleteAnnouncementAction}>
                     <input type="hidden" name="id" value={a.id} />
-                    <button
-                      type="submit"
-                      aria-label={`Eliminar novedad ${a.title}`}
+                    <ConfirmSubmitButton
+                      ariaLabel={`Eliminar novedad ${a.title}`}
                       className="p-2.5 text-slate-300 hover:text-red-500 transition-colors cursor-pointer"
+                      confirmTitle="¿Eliminar novedad?"
+                      confirmMessage={`Se elimina "${a.title}" para los clientes. No se puede deshacer.`}
                     >
                       <Trash2 className="w-4 h-4" aria-hidden="true" />
-                    </button>
+                    </ConfirmSubmitButton>
                   </form>
                 </div>
               </div>

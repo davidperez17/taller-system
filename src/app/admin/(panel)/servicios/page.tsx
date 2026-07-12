@@ -7,6 +7,7 @@ import {
   createServiceAction, updateServiceAction, deleteServiceAction,
 } from "@/app/admin/actions";
 import { PageTitle, card, btnPrimary, btnSecondary, inputCls, labelCls } from "@/components/admin/ui";
+import ConfirmSubmitButton from "@/components/admin/ConfirmSubmitButton";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Servicios" };
@@ -80,12 +81,14 @@ export default async function ServicesPage() {
                           {me?.role === "admin" && (
                             <form action={deleteServiceAction} className="inline">
                               <input type="hidden" name="id" value={s.id} />
-                              <button
-                                type="submit"
+                              <ConfirmSubmitButton
                                 className="text-xs font-medium text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
+                                confirmTitle={`¿Quitar ${s.name}?`}
+                                confirmMessage="Se elimina este servicio del catálogo. No se puede deshacer."
+                                confirmLabel="Quitar"
                               >
                                 Quitar
-                              </button>
+                              </ConfirmSubmitButton>
                             </form>
                           )}
                         </td>

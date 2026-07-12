@@ -15,6 +15,7 @@ import {
   labelCls,
   PlateBadge,
 } from "@/components/admin/ui";
+import ConfirmSubmitButton from "@/components/admin/ConfirmSubmitButton";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Recordatorios" };
@@ -148,13 +149,14 @@ export default async function RemindersPage() {
         </form>
         <form action={deleteReminderAction}>
           <input type="hidden" name="id" value={r.id} />
-          <button
-            type="submit"
+          <ConfirmSubmitButton
             className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-red-600 transition-colors cursor-pointer shrink-0"
-            aria-label="Eliminar recordatorio"
+            ariaLabel="Eliminar recordatorio"
+            confirmTitle="¿Eliminar recordatorio?"
+            confirmMessage="Se elimina este recordatorio. No se puede deshacer."
           >
             <Trash2 className="w-4 h-4" />
-          </button>
+          </ConfirmSubmitButton>
         </form>
       </li>
     );

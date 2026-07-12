@@ -17,6 +17,7 @@ import { getSessionUser } from "@/lib/auth";
 import ItemPicker from "@/components/admin/ItemPicker";
 import PhotoInput from "@/components/admin/PhotoInput";
 import StatusChangeForm from "@/components/admin/StatusChangeForm";
+import ConfirmSubmitButton from "@/components/admin/ConfirmSubmitButton";
 import {
   StatusBadge, PlateBadge, VehicleTypeIcon, PageTitle, card, btnPrimary, btnSecondary, inputCls, labelCls,
 } from "@/components/admin/ui";
@@ -306,13 +307,14 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                           <form action={deleteOrderItemAction} className="inline">
                             <input type="hidden" name="id" value={it.id} />
                             <input type="hidden" name="order_id" value={order.id} />
-                            <button
-                              type="submit"
-                              aria-label={`Eliminar ${it.description}`}
+                            <ConfirmSubmitButton
+                              ariaLabel={`Eliminar ${it.description}`}
                               className="p-1.5 text-slate-300 hover:text-red-500 transition-colors cursor-pointer"
+                              confirmTitle="¿Eliminar concepto?"
+                              confirmMessage={`Se quita "${it.description}" de la orden.`}
                             >
                               <Trash2 className="w-4 h-4" aria-hidden="true" />
-                            </button>
+                            </ConfirmSubmitButton>
                           </form>
                         </td>
                       </tr>
@@ -379,13 +381,14 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                     {me?.role === "admin" && (
                       <form action={deletePaymentAction}>
                         <input type="hidden" name="id" value={p.id} />
-                        <button
-                          type="submit"
-                          aria-label={`Eliminar pago de ${formatMoney(p.amount)}`}
+                        <ConfirmSubmitButton
+                          ariaLabel={`Eliminar pago de ${formatMoney(p.amount)}`}
                           className="p-1.5 text-slate-300 hover:text-red-500 transition-colors cursor-pointer"
+                          confirmTitle="¿Eliminar pago?"
+                          confirmMessage={`Se elimina el pago de ${formatMoney(p.amount)} de la orden. No se puede deshacer.`}
                         >
                           <Trash2 className="w-4 h-4" aria-hidden="true" />
-                        </button>
+                        </ConfirmSubmitButton>
                       </form>
                     )}
                   </li>

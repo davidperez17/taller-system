@@ -13,6 +13,7 @@ import { VEHICLE_TYPES } from "@/lib/status";
 import {
   StatusBadge, PlateBadge, VehicleTypeIcon, PageTitle, card, btnPrimary, btnSecondary, inputCls, labelCls,
 } from "@/components/admin/ui";
+import ConfirmSubmitButton from "@/components/admin/ConfirmSubmitButton";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Cliente" };
@@ -113,13 +114,15 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                         <form action={deleteVehicleAction} className="shrink-0">
                           <input type="hidden" name="id" value={v.id} />
                           <input type="hidden" name="client_id" value={client.id} />
-                          <button
-                            type="submit"
-                            aria-label={`Quitar ${v.plate} y todo su historial`}
+                          <ConfirmSubmitButton
+                            ariaLabel={`Quitar ${v.plate} y todo su historial`}
                             className="text-xs font-medium text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
+                            confirmTitle={`¿Quitar ${v.plate}?`}
+                            confirmMessage="Se borran también sus órdenes, historial y pagos. No se puede deshacer."
+                            confirmLabel="Quitar"
                           >
                             Quitar
-                          </button>
+                          </ConfirmSubmitButton>
                         </form>
                       ))}
                   </li>
@@ -286,12 +289,14 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           </form>
           <form action={deleteClientAction} className="mt-3">
             <input type="hidden" name="id" value={client.id} />
-            <button
-              type="submit"
+            <ConfirmSubmitButton
               className="w-full text-sm text-red-500 hover:text-red-600 font-medium py-2 cursor-pointer"
+              confirmTitle={`¿Eliminar a ${client.name}?`}
+              confirmMessage="Se eliminan el cliente y todos sus vehículos, órdenes, historial y pagos. No se puede deshacer."
+              confirmLabel="Eliminar cliente"
             >
               Eliminar cliente y sus vehículos
-            </button>
+            </ConfirmSubmitButton>
           </form>
         </section>
       </div>

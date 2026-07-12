@@ -5,6 +5,7 @@ import { getSessionUser } from "@/lib/auth";
 import { EXPENSE_CATEGORIES, formatMoney } from "@/lib/status";
 import { createExpenseAction, deleteExpenseAction } from "@/app/admin/actions";
 import { PageTitle, card, btnPrimary, inputCls, labelCls } from "@/components/admin/ui";
+import ConfirmSubmitButton from "@/components/admin/ConfirmSubmitButton";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Gastos" };
@@ -127,12 +128,14 @@ export default async function ExpensesPage({
                   </span>
                   <form action={deleteExpenseAction} className="shrink-0">
                     <input type="hidden" name="id" value={e.id} />
-                    <button
-                      type="submit"
+                    <ConfirmSubmitButton
                       className="text-xs font-medium text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
+                      confirmTitle="¿Quitar gasto?"
+                      confirmMessage={`Se elimina el gasto de ${formatMoney(e.amount)} del registro. No se puede deshacer.`}
+                      confirmLabel="Quitar"
                     >
                       Quitar
-                    </button>
+                    </ConfirmSubmitButton>
                   </form>
                 </li>
               ))}
