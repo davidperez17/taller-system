@@ -63,18 +63,21 @@ export default async function InventoryPage({
   ))!;
 
   const kpis = [
-    { label: "Repuestos", value: totals.n, icon: Package, tone: "bg-sm-bg text-sm-red" },
+    { label: "Repuestos", value: totals.n, icon: Package, tone: "bg-sm-bg text-sm-red", cls: "" },
     {
       label: "Valor en bodega",
       value: formatMoney(totals.value),
       icon: Boxes,
       tone: "bg-accent-50 text-accent-700",
+      // Móvil: fila completa arriba; escritorio: vuelve a su lugar (3 columnas).
+      cls: "col-span-2 order-first sm:col-span-1 sm:order-none",
     },
     {
       label: "Stock bajo",
       value: totals.low,
       icon: AlertTriangle,
-      tone: totals.low > 0 ? "bg-red-50 text-red-700" : "bg-slate-50 text-slate-500",
+      tone: totals.low > 0 ? "bg-red-50 text-red-700" : "bg-sm-bg text-sm-faint",
+      cls: "",
     },
   ];
 
@@ -82,16 +85,16 @@ export default async function InventoryPage({
     <div className="space-y-5">
       <PageTitle title="INVENTARIO" subtitle="Control de repuestos y stock" />
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {kpis.map((k) => (
-          <div key={k.label} className={`${card} p-4`}>
+          <div key={k.label} className={`${card} p-4 ${k.cls}`}>
             <div className={`rounded-xl p-2 w-fit ${k.tone}`} aria-hidden="true">
               <k.icon className="w-5 h-5" />
             </div>
-            <p className="text-2xl font-bold text-slate-900 mt-2 tabular-nums font-heading tracking-wide">
+            <p className="text-2xl font-bold text-sm-ink mt-2 tabular-nums font-heading tracking-wide">
               {k.value}
             </p>
-            <p className="text-xs text-slate-500 mt-0.5">{k.label}</p>
+            <p className="text-xs text-sm-muted mt-0.5">{k.label}</p>
           </div>
         ))}
       </div>
