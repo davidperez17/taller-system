@@ -61,25 +61,34 @@ writeManifest("admin.webmanifest", {
 });
 
 // 3) Iconos PWA
-const logoPath = path.join(root, "public/icons/logo.svg");
-const hasLogo = existsSync(logoPath);
+// Preferencia: si existe el wordmark del taller (public/logo/logo-mts96.png),
+// se compone centrado sobre un cuadrado iconBg (negro, como el arte original).
+// El wordmark es ancho, así que en maskable se escala más chico para caber en
+// la zona segura circular. Si no hay wordmark, se cae al monograma shortName.
+const iconBg = brand.iconBg ?? "#000000";
+const wordmarkPath = path.join(root, "public/logo/logo-mts96.png");
+const hasWordmark = existsSync(wordmarkPath);
 
-function iconSvg(size, { maskable = false } = {}) {
-  // Con logo: se centra al 62% del lienzo. Sin logo: monograma con shortName.
-  const pad = maskable ? size * 0.19 : size * 0.12; // zona segura maskable
-  const inner = size - pad * 2;
-  const art = hasLogo
-    ? `<image href="data:image/svg+xml;base64,${readFileSync(logoPath).toString("base64")}"
-         x="${pad}" y="${pad}" width="${inner}" height="${inner}"/>`
-    : `<text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle"
-         font-family="Arial Narrow, Arial, sans-serif" font-weight="700"
-         font-size="${inner * 0.42}" fill="#ffffff">${brand.shortName}</text>`;
+function monogramSvg(size, { maskable = false } = {}) {
+  const inner = size - (maskable ? size * 0.19 : size * 0.12) * 2;
   return Buffer.from(
     `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
        <rect width="100%" height="100%" rx="${maskable ? 0 : size * 0.18}" fill="${brand.iconColor ?? brand.themeColor}"/>
-       ${art}
+       <text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle"
+         font-family="Arial Narrow, Arial, sans-serif" font-weight="700"
+         font-size="${inner * 0.42}" fill="#ffffff">${brand.shortName}</text>
      </svg>`
   );
+}
+
+async function makeIcon(size, { maskable = false } = {}) {
+  if (!hasWordmark) return sharp(monogramSvg(size, { maskable })).png().toBuffer();
+  const targetW = Math.round(size * (maskable ? 0.66 : 0.84)); // ancho del wordmark
+  const mark = await sharp(wordmarkPath).resize({ width: targetW }).png().toBuffer();
+  return sharp({ create: { width: size, height: size, channels: 4, background: iconBg } })
+    .composite([{ input: mark, gravity: "center" }])
+    .png()
+    .toBuffer();
 }
 
 for (const [file, size, opts] of [
@@ -87,7 +96,7 @@ for (const [file, size, opts] of [
   ["icon-512.png", 512, {}],
   ["icon-maskable-512.png", 512, { maskable: true }],
 ]) {
-  await sharp(iconSvg(size, opts)).png().toFile(path.join(root, "public/icons", file));
+  await sharp(await makeIcon(size, opts)).png().toFile(path.join(root, "public/icons", file));
   console.log(`✔ icons/${file}`);
 }
 
