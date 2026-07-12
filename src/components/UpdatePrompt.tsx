@@ -122,19 +122,19 @@ export default function UpdatePrompt() {
       aria-label="Actualización disponible"
       className="fixed inset-x-0 bottom-0 z-[9998] flex justify-center px-4 pb-[calc(env(safe-area-inset-bottom)+5.5rem)] lg:pb-6 pointer-events-none"
     >
-      <div className="pointer-events-auto w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 p-4 flex items-center gap-3 animate-slide-up">
-        <span className="shrink-0 rounded-xl bg-primary-100 text-primary-700 p-2" aria-hidden="true">
+      <div className="pointer-events-auto w-full max-w-md bg-white rounded-2xl shadow-2xl border border-sm-border p-4 flex items-center gap-3 animate-slide-up">
+        <span className="shrink-0 rounded-xl bg-sm-red/10 text-sm-red p-2" aria-hidden="true">
           <RefreshCw className="w-5 h-5" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-slate-800">Actualización disponible</p>
-          <p className="text-xs text-slate-500">Hay una versión nueva de la app lista para usarse.</p>
+          <p className="text-sm font-semibold text-sm-graphite">Actualización disponible</p>
+          <p className="text-xs text-sm-muted">Hay una versión nueva de la app lista para usarse.</p>
         </div>
         <button
           type="button"
           onClick={apply}
           disabled={applying}
-          className="shrink-0 inline-flex items-center gap-1.5 bg-primary-600 hover:bg-primary-500 active:bg-primary-700 disabled:opacity-60 text-white rounded-xl px-3.5 py-2 text-sm font-semibold transition-colors cursor-pointer"
+          className="shrink-0 inline-flex items-center gap-1.5 bg-sm-red hover:bg-sm-red-hover active:bg-sm-red-active disabled:opacity-60 text-white rounded-xl px-3.5 py-2 text-sm font-semibold transition-colors cursor-pointer"
         >
           {applying ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : null}
           {applying ? "Aplicando…" : "Aplicar"}
@@ -144,7 +144,7 @@ export default function UpdatePrompt() {
             type="button"
             onClick={dismiss}
             aria-label="Ahora no"
-            className="shrink-0 p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
+            className="shrink-0 p-1.5 rounded-lg text-sm-faint hover:bg-sm-bg cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>

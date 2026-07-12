@@ -21,7 +21,7 @@ type Variant = "button" | "menu";
 
 const TONES: Record<Tone, string> = {
   primary:
-    "bg-primary-600 hover:bg-primary-500 active:bg-primary-700 text-white shadow-sm",
+    "bg-sm-red hover:bg-sm-red-hover active:bg-sm-red-active text-white shadow-sm",
   onDark:
     "bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur",
 };
@@ -123,9 +123,9 @@ export default function InstallButton({
         <button
           type="button"
           onClick={handleClick}
-          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer text-left ${className}`}
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-sm-ink hover:bg-sm-bg transition-colors cursor-pointer text-left ${className}`}
         >
-          <Download className="w-4 h-4 text-slate-500 shrink-0" aria-hidden="true" />
+          <Download className="w-4 h-4 text-sm-muted shrink-0" aria-hidden="true" />
           {label}
         </button>
       ) : (
@@ -154,41 +154,41 @@ export default function InstallButton({
           />
           <div className="relative bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md p-5 shadow-2xl pb-[calc(env(safe-area-inset-bottom)+1.25rem)] sm:pb-5">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-heading font-bold text-lg text-slate-900 tracking-wide">
+              <h3 className="font-heading font-bold text-lg text-sm-ink tracking-wide">
                 INSTALAR {appName.toUpperCase()}
               </h3>
               <button
                 onClick={() => setHelp(false)}
                 aria-label="Cerrar"
-                className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100"
+                className="p-1.5 rounded-lg text-sm-faint hover:bg-sm-bg"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {isIOS ? (
-              <ol className="space-y-3 text-sm text-slate-700">
+              <ol className="space-y-3 text-sm text-sm-ink">
                 <li className="flex items-start gap-3">
-                  <span className="shrink-0 w-6 h-6 rounded-full bg-primary-100 text-primary-700 font-bold text-xs flex items-center justify-center">
+                  <span className="shrink-0 w-6 h-6 rounded-full bg-sm-red/10 text-sm-red font-bold text-xs flex items-center justify-center">
                     1
                   </span>
                   <span className="flex items-center gap-1.5 flex-wrap">
                     Toca el botón <b>Compartir</b>
-                    <Share className="w-4 h-4 text-primary-600 inline" aria-hidden="true" />
+                    <Share className="w-4 h-4 text-sm-red inline" aria-hidden="true" />
                     en la barra de Safari.
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="shrink-0 w-6 h-6 rounded-full bg-primary-100 text-primary-700 font-bold text-xs flex items-center justify-center">
+                  <span className="shrink-0 w-6 h-6 rounded-full bg-sm-red/10 text-sm-red font-bold text-xs flex items-center justify-center">
                     2
                   </span>
                   <span className="flex items-center gap-1.5 flex-wrap">
                     Elige <b>Agregar a inicio</b>
-                    <SquarePlus className="w-4 h-4 text-primary-600 inline" aria-hidden="true" />
+                    <SquarePlus className="w-4 h-4 text-sm-red inline" aria-hidden="true" />
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="shrink-0 w-6 h-6 rounded-full bg-primary-100 text-primary-700 font-bold text-xs flex items-center justify-center">
+                  <span className="shrink-0 w-6 h-6 rounded-full bg-sm-red/10 text-sm-red font-bold text-xs flex items-center justify-center">
                     3
                   </span>
                   <span>
@@ -198,18 +198,18 @@ export default function InstallButton({
                 </li>
               </ol>
             ) : (
-              <ol className="space-y-3 text-sm text-slate-700">
+              <ol className="space-y-3 text-sm text-sm-ink">
                 <li className="flex items-start gap-3">
-                  <span className="shrink-0 w-6 h-6 rounded-full bg-primary-100 text-primary-700 font-bold text-xs flex items-center justify-center">
+                  <span className="shrink-0 w-6 h-6 rounded-full bg-sm-red/10 text-sm-red font-bold text-xs flex items-center justify-center">
                     1
                   </span>
                   <span className="flex items-center gap-1.5 flex-wrap">
                     Abre el menú del navegador
-                    <MoreVertical className="w-4 h-4 text-slate-600 inline" aria-hidden="true" />
+                    <MoreVertical className="w-4 h-4 text-sm-muted inline" aria-hidden="true" />
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="shrink-0 w-6 h-6 rounded-full bg-primary-100 text-primary-700 font-bold text-xs flex items-center justify-center">
+                  <span className="shrink-0 w-6 h-6 rounded-full bg-sm-red/10 text-sm-red font-bold text-xs flex items-center justify-center">
                     2
                   </span>
                   <span>
@@ -217,7 +217,7 @@ export default function InstallButton({
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="shrink-0 w-6 h-6 rounded-full bg-primary-100 text-primary-700 font-bold text-xs flex items-center justify-center">
+                  <span className="shrink-0 w-6 h-6 rounded-full bg-sm-red/10 text-sm-red font-bold text-xs flex items-center justify-center">
                     3
                   </span>
                   <span>
@@ -227,7 +227,7 @@ export default function InstallButton({
               </ol>
             )}
 
-            <p className="text-xs text-slate-400 mt-4">
+            <p className="text-xs text-sm-faint mt-4">
               Debe abrirse en el navegador (Safari o Chrome), no dentro de otra app.
             </p>
           </div>
