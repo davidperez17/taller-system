@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard, ClipboardList, Users, Car, UserCog, Wrench, ExternalLink,
+  LayoutDashboard, ClipboardList, Users, Car, UserCog, ExternalLink,
   Boxes, BarChart3, Bell, MoreHorizontal, X, BellRing, Wallet, Hammer, Receipt,
   Megaphone, History,
 } from "lucide-react";
@@ -78,16 +78,15 @@ export default function AdminNav({
           pinchada y el contenido de la página hace scroll de forma independiente. */}
       <aside className="hidden lg:flex flex-col w-64 shrink-0 bg-sm-graphite text-white h-dvh sticky top-0 self-start">
         <div className="p-5 flex items-center gap-3 border-b border-white/10">
-          <div className="bg-sm-red rounded-xl p-2" aria-hidden="true">
-            <Wrench className="w-5 h-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="font-heading font-bold tracking-wide leading-tight text-sm">
-              SAN MIGUEL 96
-            </p>
-            <p className="text-white/60 text-xs">Panel del taller</p>
-          </div>
-          <div className="flex items-center gap-0.5">
+          <img
+            src="/logo/logo-mts96.png"
+            alt="Multiservicios San Miguel 96"
+            width={1458}
+            height={381}
+            className="h-8 w-auto min-w-0 select-none mix-blend-screen"
+            draggable={false}
+          />
+          <div className="flex items-center gap-0.5 ml-auto">
             <WhatsNewStar placement="sidebar" />
             <NotifBell unread={notif.unread} items={notif.items} placement="sidebar" />
           </div>
@@ -136,10 +135,14 @@ export default function AdminNav({
       <header className="lg:hidden bg-sm-graphite text-white sticky top-0 z-30 shadow-md">
         <div className="px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="bg-sm-red rounded-lg p-1.5" aria-hidden="true">
-              <Wrench className="w-4 h-4" />
-            </div>
-            <p className="font-heading font-bold tracking-wide text-sm truncate">SAN MIGUEL 96</p>
+            <img
+              src="/logo/logo-mts96.png"
+              alt="Multiservicios San Miguel 96"
+              width={1458}
+              height={381}
+              className="h-7 w-auto select-none mix-blend-screen"
+              draggable={false}
+            />
           </div>
           <div className="flex items-center gap-1">
             <WhatsNewStar placement="bar" />
@@ -157,13 +160,13 @@ export default function AdminNav({
             aria-label="Cerrar"
             onClick={() => setMoreOpen(false)}
           />
-          <div className="absolute bottom-0 inset-x-0 bg-white rounded-t-2xl p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-2xl">
+          <div className="absolute bottom-0 inset-x-0 bg-sm-graphite text-white rounded-t-2xl p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-2xl">
             <div className="flex items-center justify-between mb-3">
-              <p className="font-heading font-semibold text-slate-800 tracking-wide">MÁS</p>
+              <p className="font-heading font-semibold text-white tracking-wide">MÁS</p>
               <button
                 onClick={() => setMoreOpen(false)}
                 aria-label="Cerrar"
-                className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100"
+                className="p-1.5 rounded-lg text-white/60 hover:bg-white/10"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -178,8 +181,8 @@ export default function AdminNav({
                     onClick={() => setMoreOpen(false)}
                     className={`relative flex flex-col items-center gap-1.5 rounded-xl py-3 text-xs font-medium ${
                       isActive(item)
-                        ? "bg-sm-bg text-sm-red"
-                        : "text-slate-600 hover:bg-slate-50"
+                        ? "bg-sm-red text-white"
+                        : "text-white/70 hover:bg-white/10"
                     }`}
                   >
                     <item.icon className="w-6 h-6" aria-hidden="true" />
@@ -203,7 +206,7 @@ export default function AdminNav({
       {/* Bottom nav móvil */}
       <nav
         aria-label="Navegación principal"
-        className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-slate-200 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] pb-[env(safe-area-inset-bottom)]"
+        className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-sm-graphite text-white border-t border-white/10 shadow-[0_-2px_10px_rgba(0,0,0,0.25)] pb-[env(safe-area-inset-bottom)]"
       >
         <ul className="flex">
           {bottomPrimary.map((item) => {
@@ -215,7 +218,7 @@ export default function AdminNav({
                   data-tour={item.href}
                   aria-current={isActive(item) ? "page" : undefined}
                   className={`relative flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium transition-colors ${
-                    isActive(item) ? "text-sm-red" : "text-slate-400 hover:text-slate-600"
+                    isActive(item) ? "text-sm-red" : "text-white/60 hover:text-white"
                   }`}
                 >
                   <item.icon className="w-5 h-5" aria-hidden="true" />
@@ -234,7 +237,7 @@ export default function AdminNav({
               onClick={() => setMoreOpen(true)}
               data-tour="nav-more"
               aria-label="Más secciones"
-              className="relative w-full flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+              className="relative w-full flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium text-white/60 hover:text-white transition-colors cursor-pointer"
             >
               <MoreHorizontal className="w-5 h-5" aria-hidden="true" />
               Más

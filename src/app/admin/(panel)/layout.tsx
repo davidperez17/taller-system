@@ -22,7 +22,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
   const notif = await getNotifCenter(user.id);
 
   return (
-    <div className="min-h-dvh bg-slate-100 lg:flex">
+    <div className="min-h-dvh bg-sm-bg lg:flex">
       <AdminNav
         user={user}
         alerts={{ inventario: lowStock, recordatorios: dueReminders }}

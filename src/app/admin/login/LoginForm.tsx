@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Wrench, Eye, EyeOff, LogIn, Loader2 } from "lucide-react";
+import { Eye, EyeOff, LogIn, Loader2 } from "lucide-react";
 import { loginAction } from "../actions";
 import InstallButton from "@/components/InstallButton";
 
@@ -15,13 +15,15 @@ export default function LoginForm() {
     <div className="min-h-dvh bg-sm-graphite flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="text-center text-white mb-8">
-          <div className="bg-sm-red rounded-2xl p-3 w-fit mx-auto" aria-hidden="true">
-            <Wrench className="w-8 h-8" />
-          </div>
-          <h1 className="font-heading text-2xl font-bold tracking-wide mt-4">
-            MULTISERVICIOS SAN MIGUEL 96
-          </h1>
-          <p className="text-white/60 text-sm mt-1">Panel del taller</p>
+          <img
+            src="/logo/logo-mts96.png"
+            alt="Multiservicios San Miguel 96"
+            width={1458}
+            height={381}
+            className="h-14 w-auto mx-auto select-none mix-blend-screen"
+            draggable={false}
+          />
+          <p className="text-white/60 text-sm mt-3">Panel del taller</p>
         </div>
 
         <form
@@ -30,7 +32,7 @@ export default function LoginForm() {
         >
           <input type="hidden" name="next" value={searchParams.get("next") ?? "/admin"} />
           <div>
-            <label htmlFor="username" className="block text-sm font-medium text-slate-700">
+            <label htmlFor="username" className="block text-sm font-medium text-sm-ink">
               Usuario
             </label>
             <input
@@ -39,11 +41,11 @@ export default function LoginForm() {
               autoComplete="username"
               autoCapitalize="none"
               required
-              className="mt-1 w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-sm-red focus:border-sm-red"
+              className="mt-1 w-full border border-sm-border rounded-xl px-3.5 py-2.5 text-sm-ink focus:outline-none focus:ring-2 focus:ring-sm-red focus:border-sm-red"
             />
           </div>
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-slate-700">
+            <label htmlFor="password" className="block text-sm font-medium text-sm-ink">
               Contraseña
             </label>
             <div className="relative mt-1">
@@ -53,13 +55,13 @@ export default function LoginForm() {
                 type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
                 required
-                className="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 pr-11 text-slate-900 focus:outline-none focus:ring-2 focus:ring-sm-red focus:border-sm-red"
+                className="w-full border border-sm-border rounded-xl px-3.5 py-2.5 pr-11 text-sm-ink focus:outline-none focus:ring-2 focus:ring-sm-red focus:border-sm-red"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
                 aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-sm-faint hover:text-sm-muted cursor-pointer"
               >
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
