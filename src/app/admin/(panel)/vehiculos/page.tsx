@@ -79,7 +79,7 @@ export default async function VehiclesPage({
                     {[v.brand, v.model, v.year, v.color].filter(Boolean).join(" ") || "Sin datos"} ·{" "}
                     <Link
                       href={`/admin/clientes/${v.client_id}`}
-                      className="text-primary-600 hover:text-primary-500"
+                      className="text-sm-red hover:text-sm-red-hover"
                     >
                       {v.client}
                     </Link>

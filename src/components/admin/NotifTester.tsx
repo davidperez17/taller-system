@@ -23,7 +23,7 @@ const ICONS: Record<NotifIcon, typeof Search> = {
 };
 
 const TONE_ICON: Record<NotifTone, string> = {
-  blue: "bg-primary-100 text-primary-700",
+  blue: "bg-sm-bg text-sm-red",
   amber: "bg-amber-100 text-amber-800",
   green: "bg-accent-100 text-accent-700",
   violet: "bg-violet-100 text-violet-700",
@@ -32,7 +32,7 @@ const TONE_ICON: Record<NotifTone, string> = {
 };
 
 const TONE_BAR: Record<NotifTone, string> = {
-  blue: "bg-primary-500",
+  blue: "bg-sm-red",
   amber: "bg-amber-500",
   green: "bg-accent-500",
   violet: "bg-violet-500",
@@ -99,7 +99,7 @@ export default function NotifTester({
       {/* ── Vista cliente ── */}
       <section className="space-y-4">
         <div className="flex items-center gap-2">
-          <Smartphone className="w-5 h-5 text-primary-600" aria-hidden="true" />
+          <Smartphone className="w-5 h-5 text-sm-red" aria-hidden="true" />
           <h2 className="font-heading font-semibold text-lg text-slate-800 tracking-wide">
             AVISOS AL CLIENTE
           </h2>
@@ -129,7 +129,7 @@ export default function NotifTester({
                   key={s.plate}
                   type="button"
                   onClick={() => setPlate(s.plate)}
-                  className="text-xs font-medium bg-slate-100 hover:bg-primary-100 text-slate-600 hover:text-primary-700 rounded-full px-2.5 py-1 transition-colors cursor-pointer"
+                  className="text-xs font-medium bg-slate-100 hover:bg-sm-bg text-slate-600 hover:text-sm-red rounded-full px-2.5 py-1 transition-colors cursor-pointer"
                   title={`${s.n} dispositivo(s) suscrito(s)`}
                 >
                   {s.plate} · {s.n}
@@ -153,7 +153,7 @@ export default function NotifTester({
                 {/* Mockup de push en celular */}
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                   <div className="flex items-start gap-3">
-                    <div className="bg-primary-600 rounded-lg p-1.5 shrink-0" aria-hidden="true">
+                    <div className="bg-sm-red rounded-lg p-1.5 shrink-0" aria-hidden="true">
                       <Wrench className="w-4 h-4 text-white" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -192,7 +192,7 @@ export default function NotifTester({
       {/* ── Vista admin ── */}
       <section className="space-y-4">
         <div className="flex items-center gap-2">
-          <Monitor className="w-5 h-5 text-primary-600" aria-hidden="true" />
+          <Monitor className="w-5 h-5 text-sm-red" aria-hidden="true" />
           <h2 className="font-heading font-semibold text-lg text-slate-800 tracking-wide">
             AVISOS EN EL PANEL
           </h2>

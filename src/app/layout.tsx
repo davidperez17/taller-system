@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Barlow_Condensed, Inter } from "next/font/google";
+import { Barlow_Condensed, Barlow, Inter } from "next/font/google";
 import brand from "@/lib/brand.json";
 import "./globals.css";
 
@@ -7,6 +7,14 @@ const barlow = Barlow_Condensed({
   subsets: ["latin"],
   weight: ["500", "600", "700"],
   variable: "--font-barlow",
+});
+
+// Cuerpo de las páginas públicas (se aplica solo bajo `.pub`); el panel admin
+// sigue usando Inter. Barlow + Barlow Condensed = pareja "acción/atlética".
+const barlowText = Barlow({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-barlow-text",
 });
 
 const inter = Inter({
@@ -40,7 +48,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={`${barlow.variable} ${inter.variable}`}>
+    <html lang="es" className={`${barlow.variable} ${barlowText.variable} ${inter.variable}`}>
       <head>
         {/* Captura `beforeinstallprompt` apenas se parsea el <head>. El evento se
             dispara muy temprano (Android/Chrome) y suele llegar antes de que React

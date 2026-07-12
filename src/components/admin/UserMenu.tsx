@@ -44,16 +44,16 @@ export default function UserMenu({
           onClick={() => setOpen((v) => !v)}
           aria-haspopup="menu"
           aria-expanded={open}
-          className="w-full flex items-center gap-3 rounded-xl p-2 hover:bg-primary-900 transition-colors cursor-pointer text-left"
+          className="w-full flex items-center gap-3 rounded-xl p-2 hover:bg-white/10 transition-colors cursor-pointer text-left"
         >
-          <span className="w-9 h-9 rounded-full bg-primary-600 text-white font-semibold text-sm flex items-center justify-center shrink-0">
+          <span className="w-9 h-9 rounded-full bg-sm-red text-white font-semibold text-sm flex items-center justify-center shrink-0">
             {avatar}
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-medium text-white truncate">{user.name}</span>
-            <span className="block text-xs text-primary-300">{ROLES[user.role]}</span>
+            <span className="block text-xs text-white/60">{ROLES[user.role]}</span>
           </span>
-          <ChevronsUpDown className="w-4 h-4 text-primary-300 shrink-0" aria-hidden="true" />
+          <ChevronsUpDown className="w-4 h-4 text-white/60 shrink-0" aria-hidden="true" />
         </button>
       ) : (
         <button
@@ -62,9 +62,9 @@ export default function UserMenu({
           aria-haspopup="menu"
           aria-expanded={open}
           aria-label="Menú de usuario"
-          className="p-1 rounded-full hover:bg-primary-900 transition-colors cursor-pointer"
+          className="p-1 rounded-full hover:bg-white/10 transition-colors cursor-pointer"
         >
-          <span className="w-8 h-8 rounded-full bg-primary-600 text-white font-semibold text-xs flex items-center justify-center">
+          <span className="w-8 h-8 rounded-full bg-sm-red text-white font-semibold text-xs flex items-center justify-center">
             {avatar}
           </span>
         </button>

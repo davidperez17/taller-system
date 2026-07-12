@@ -45,7 +45,7 @@ export default async function ActivityPage({
             id="f-actor"
             name="actor"
             defaultValue={actor}
-            className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-sm-red"
           >
             <option value="">Todo el equipo</option>
             {users.map((u) => (
@@ -63,7 +63,7 @@ export default async function ActivityPage({
             id="f-type"
             name="type"
             defaultValue={type}
-            className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-sm-red"
           >
             <option value="">Todos los tipos</option>
             {typeOptions.map(([key, m]) => (
@@ -76,7 +76,7 @@ export default async function ActivityPage({
         <div className="flex gap-2">
           <button
             type="submit"
-            className="inline-flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-500 text-white rounded-xl px-4 py-2 text-sm font-semibold transition-colors cursor-pointer"
+            className="inline-flex items-center justify-center gap-2 bg-sm-red hover:bg-sm-red-hover text-white rounded-xl px-4 py-2 text-sm font-semibold transition-colors cursor-pointer"
           >
             Filtrar
           </button>

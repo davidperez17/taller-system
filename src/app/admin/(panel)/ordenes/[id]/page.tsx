@@ -207,7 +207,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                     type="checkbox"
                     name="is_public"
                     defaultChecked
-                    className="w-4 h-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                    className="w-4 h-4 rounded border-slate-300 text-sm-red focus:ring-sm-red"
                   />
                   Visible para el cliente (envía notificación)
                 </label>
@@ -223,7 +223,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                   <div
                     className={`rounded-xl p-2 h-fit shrink-0 ${
                       ev.type === "estado"
-                        ? "bg-primary-50 text-primary-600"
+                        ? "bg-sm-bg text-sm-red"
                         : ev.is_public
                           ? "bg-slate-100 text-slate-500"
                           : "bg-amber-50 text-amber-600"
@@ -468,7 +468,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 <dd>
                   <Link
                     href={`/admin/clientes/${order.client_id}`}
-                    className="font-medium text-primary-600 hover:text-primary-500"
+                    className="font-medium text-sm-red hover:text-sm-red-hover"
                   >
                     {order.client_name}
                   </Link>
@@ -524,9 +524,9 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           </section>
 
           {/* Acceso del cliente */}
-          <section className={`${card} p-5 bg-primary-50/50`}>
+          <section className={`${card} p-5 bg-sm-bg/50`}>
             <h2 className="font-heading font-semibold text-slate-800 tracking-wide flex items-center gap-2">
-              <KeyRound className="w-4 h-4 text-primary-600" aria-hidden="true" /> ACCESO DEL CLIENTE
+              <KeyRound className="w-4 h-4 text-sm-red" aria-hidden="true" /> ACCESO DEL CLIENTE
             </h2>
             <p className="text-xs text-slate-500 mt-1">
               Entrega estos datos al cliente para que siga su reparación:
@@ -538,7 +538,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               </div>
               <div className="flex justify-between items-center gap-2">
                 <span className="text-slate-400">Código de acceso</span>
-                <span className="plate-badge bg-white border border-primary-200 rounded-md px-2.5 py-0.5 text-primary-700">
+                <span className="plate-badge bg-white border border-sm-border rounded-md px-2.5 py-0.5 text-sm-red">
                   {order.tracking_code}
                 </span>
               </div>

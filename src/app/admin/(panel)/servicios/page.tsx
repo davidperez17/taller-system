@@ -96,7 +96,7 @@ export default async function ServicesPage() {
                       <tr>
                         <td colSpan={6} className="pb-3 px-5">
                           <details>
-                            <summary className="text-xs font-medium text-primary-600 cursor-pointer w-fit">
+                            <summary className="text-xs font-medium text-sm-red cursor-pointer w-fit">
                               Editar
                             </summary>
                             <form
@@ -175,7 +175,7 @@ export default async function ServicesPage() {
 
         <section className={`${card} p-5`}>
           <h2 className="font-heading font-semibold text-slate-800 tracking-wide flex items-center gap-2">
-            <Plus className="w-4 h-4 text-primary-600" aria-hidden="true" /> NUEVO SERVICIO
+            <Plus className="w-4 h-4 text-sm-red" aria-hidden="true" /> NUEVO SERVICIO
           </h2>
           <form action={createServiceAction} className="mt-3 space-y-3">
             <div>

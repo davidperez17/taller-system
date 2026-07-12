@@ -52,11 +52,11 @@ export default function WhatsNewStar({ placement }: { placement: "bar" | "sideba
         type="button"
         onClick={openPanel}
         aria-label={`Novedades de la app${unseen > 0 ? ` (${unseen} sin ver)` : ""}`}
-        className="relative p-2 rounded-lg text-primary-100 hover:bg-primary-900 hover:text-white transition-colors cursor-pointer"
+        className="relative p-2 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
       >
         <Star className="w-5 h-5" aria-hidden="true" />
         {unseen > 0 && (
-          <span className="absolute top-0.5 right-0.5 min-w-4 h-4 px-1 flex items-center justify-center rounded-full bg-amber-400 text-primary-950 text-[10px] font-bold tabular-nums">
+          <span className="absolute top-0.5 right-0.5 min-w-4 h-4 px-1 flex items-center justify-center rounded-full bg-amber-400 text-sm-graphite text-[10px] font-bold tabular-nums">
             {unseen > 9 ? "9+" : unseen}
           </span>
         )}

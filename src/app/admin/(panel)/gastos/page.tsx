@@ -146,7 +146,7 @@ export default async function ExpensesPage({
         {/* Nuevo gasto */}
         <section className={`${card} p-5`}>
           <h2 className="font-heading font-semibold text-slate-800 tracking-wide flex items-center gap-2">
-            <Plus className="w-4 h-4 text-primary-600" aria-hidden="true" /> NUEVO GASTO
+            <Plus className="w-4 h-4 text-sm-red" aria-hidden="true" /> NUEVO GASTO
           </h2>
           <form action={createExpenseAction} className="mt-3 space-y-3">
             <div className="grid grid-cols-2 gap-3">

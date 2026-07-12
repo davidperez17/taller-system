@@ -232,7 +232,7 @@ export default function AdminTour({ autoStart, role }: { autoStart: boolean; rol
       </div>
       <p className="mt-2 text-sm text-slate-600 leading-relaxed">{step.body}</p>
       {usedFallback && step.fallbackNote && (
-        <p className="mt-2 text-sm text-primary-700 font-medium">{step.fallbackNote}</p>
+        <p className="mt-2 text-sm text-sm-red font-medium">{step.fallbackNote}</p>
       )}
 
       <div className="mt-4 flex items-center gap-1.5" aria-hidden="true">
@@ -240,7 +240,7 @@ export default function AdminTour({ autoStart, role }: { autoStart: boolean; rol
           <span
             key={i}
             className={`h-1.5 rounded-full transition-all duration-300 ${
-              i === idx ? "w-5 bg-primary-600" : "w-1.5 bg-slate-200"
+              i === idx ? "w-5 bg-sm-red" : "w-1.5 bg-slate-200"
             }`}
           />
         ))}

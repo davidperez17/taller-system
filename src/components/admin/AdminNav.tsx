@@ -76,16 +76,16 @@ export default function AdminNav({
     <>
       {/* Sidebar escritorio — altura fija de viewport y sticky: la nav queda
           pinchada y el contenido de la página hace scroll de forma independiente. */}
-      <aside className="hidden lg:flex flex-col w-64 shrink-0 bg-primary-950 text-white h-dvh sticky top-0 self-start">
-        <div className="p-5 flex items-center gap-3 border-b border-primary-900">
-          <div className="bg-primary-600 rounded-xl p-2" aria-hidden="true">
+      <aside className="hidden lg:flex flex-col w-64 shrink-0 bg-sm-graphite text-white h-dvh sticky top-0 self-start">
+        <div className="p-5 flex items-center gap-3 border-b border-white/10">
+          <div className="bg-sm-red rounded-xl p-2" aria-hidden="true">
             <Wrench className="w-5 h-5" />
           </div>
           <div className="min-w-0 flex-1">
             <p className="font-heading font-bold tracking-wide leading-tight text-sm">
               SAN MIGUEL 96
             </p>
-            <p className="text-primary-300 text-xs">Panel del taller</p>
+            <p className="text-white/60 text-xs">Panel del taller</p>
           </div>
           <div className="flex items-center gap-0.5">
             <WhatsNewStar placement="sidebar" />
@@ -103,8 +103,8 @@ export default function AdminNav({
                 aria-current={isActive(item) ? "page" : undefined}
                 className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors ${
                   isActive(item)
-                    ? "bg-primary-600 text-white"
-                    : "text-primary-200 hover:bg-primary-900 hover:text-white"
+                    ? "bg-sm-red text-white"
+                    : "text-white/70 hover:bg-white/10 hover:text-white"
                 }`}
               >
                 <item.icon className="w-5 h-5 shrink-0" aria-hidden="true" />
@@ -121,22 +121,22 @@ export default function AdminNav({
             href="/"
             target="_blank"
             rel="noopener"
-            className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-primary-200 hover:bg-primary-900 hover:text-white transition-colors"
+            className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-white/70 hover:bg-white/10 hover:text-white transition-colors"
           >
             <ExternalLink className="w-5 h-5 shrink-0" aria-hidden="true" />
             Ver app de clientes
           </a>
         </nav>
-        <div className="p-3 border-t border-primary-900">
+        <div className="p-3 border-t border-white/10">
           <UserMenu user={user} placement="sidebar" />
         </div>
       </aside>
 
       {/* Barra superior móvil */}
-      <header className="lg:hidden bg-primary-950 text-white sticky top-0 z-30 shadow-md">
+      <header className="lg:hidden bg-sm-graphite text-white sticky top-0 z-30 shadow-md">
         <div className="px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="bg-primary-600 rounded-lg p-1.5" aria-hidden="true">
+            <div className="bg-sm-red rounded-lg p-1.5" aria-hidden="true">
               <Wrench className="w-4 h-4" />
             </div>
             <p className="font-heading font-bold tracking-wide text-sm truncate">SAN MIGUEL 96</p>
@@ -178,7 +178,7 @@ export default function AdminNav({
                     onClick={() => setMoreOpen(false)}
                     className={`relative flex flex-col items-center gap-1.5 rounded-xl py-3 text-xs font-medium ${
                       isActive(item)
-                        ? "bg-primary-50 text-primary-600"
+                        ? "bg-sm-bg text-sm-red"
                         : "text-slate-600 hover:bg-slate-50"
                     }`}
                   >
@@ -215,7 +215,7 @@ export default function AdminNav({
                   data-tour={item.href}
                   aria-current={isActive(item) ? "page" : undefined}
                   className={`relative flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium transition-colors ${
-                    isActive(item) ? "text-primary-600" : "text-slate-400 hover:text-slate-600"
+                    isActive(item) ? "text-sm-red" : "text-slate-400 hover:text-slate-600"
                   }`}
                 >
                   <item.icon className="w-5 h-5" aria-hidden="true" />

@@ -121,18 +121,18 @@ export default function TrackingClient({
   if (!data.found) {
     return (
       <Shell plate={data.plate} announcements={announcements}>
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center animate-slide-up">
-          <SearchX className="w-12 h-12 text-slate-300 mx-auto" aria-hidden="true" />
-          <h1 className="font-heading text-2xl font-bold text-slate-800 mt-4 tracking-wide">
+        <div className="bg-white rounded-2xl border border-sm-border shadow-sm p-8 text-center animate-slide-up">
+          <SearchX className="w-12 h-12 text-sm-faint mx-auto" aria-hidden="true" />
+          <h1 className="font-heading text-2xl font-bold text-sm-graphite mt-4 tracking-wide">
             NO ENCONTRAMOS LA PLACA {data.plate}
           </h1>
-          <p className="text-slate-500 mt-2 max-w-sm mx-auto">
+          <p className="text-sm-muted mt-2 max-w-sm mx-auto">
             Verifica que esté bien escrita. Si tu vehículo acaba de ingresar al taller,
             espera unos minutos a que lo registremos.
           </p>
           <Link
             href="/"
-            className="inline-flex items-center gap-2 mt-6 bg-primary-600 hover:bg-primary-500 text-white rounded-xl px-5 py-2.5 font-semibold transition-colors"
+            className="inline-flex items-center gap-2 mt-6 bg-sm-red hover:bg-sm-red-hover text-white rounded-xl px-5 py-2.5 font-semibold transition-colors"
           >
             <ArrowLeft className="w-4 h-4" aria-hidden="true" /> Buscar otra placa
           </Link>
@@ -149,19 +149,19 @@ export default function TrackingClient({
   return (
     <Shell plate={data.plate} refreshing={refreshing} onRefresh={() => refresh()} announcements={announcements}>
       {/* Tarjeta vehículo + estado actual */}
-      <section className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden animate-slide-up">
+      <section className="bg-white rounded-2xl border border-sm-border shadow-sm overflow-hidden animate-slide-up">
         <div className="p-5 flex items-start gap-4">
-          <div className="bg-primary-50 text-primary-700 rounded-2xl p-3 shrink-0" aria-hidden="true">
+          <div className="bg-sm-bg text-sm-red rounded-2xl p-3 shrink-0" aria-hidden="true">
             <VehicleIcon className="w-8 h-8" />
           </div>
           <div className="min-w-0 flex-1">
-            <span className="plate-badge inline-block bg-slate-100 border border-slate-300 rounded-lg px-3 py-1 text-slate-800">
+            <span className="plate-badge inline-block bg-sm-bg border border-sm-border-strong rounded-lg px-3 py-1 text-sm-graphite">
               {data.plate}
             </span>
             {data.vehicle && (
-              <p className="text-slate-700 font-medium mt-1.5 truncate">{vehicleLabel(data)}</p>
+              <p className="text-sm-graphite font-medium mt-1.5 truncate">{vehicleLabel(data)}</p>
             )}
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-sm-faint mt-0.5">
               Orden {order.folio} · Ingresó el {formatDateShort(order.created_at)}
             </p>
           </div>
@@ -188,8 +188,8 @@ export default function TrackingClient({
             disabled={notifState === "on" || notifState === "loading"}
             className={`rounded-2xl py-3 px-3 flex items-center justify-center gap-2 text-sm font-semibold transition-colors cursor-pointer disabled:cursor-default ${
               notifState === "on"
-                ? "bg-accent-50 text-accent-700 border border-accent-200"
-                : "bg-primary-600 hover:bg-primary-500 active:bg-primary-700 text-white shadow-sm"
+                ? "bg-sm-ok-bg text-sm-ok border border-sm-ok-border"
+                : "bg-sm-red hover:bg-sm-red-hover active:bg-sm-red-active text-white shadow-sm"
             }`}
           >
             {notifState === "on" ? (
@@ -212,8 +212,8 @@ export default function TrackingClient({
           disabled={savedLocal}
           className={`rounded-2xl py-3 px-3 flex items-center justify-center gap-2 text-sm font-semibold transition-colors cursor-pointer disabled:cursor-default border ${
             savedLocal
-              ? "bg-accent-50 text-accent-700 border-accent-200"
-              : "bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-sm"
+              ? "bg-sm-ok-bg text-sm-ok border-sm-ok-border"
+              : "bg-white hover:bg-sm-bg text-sm-graphite border-sm-border shadow-sm"
           }`}
         >
           {savedLocal ? (
@@ -228,15 +228,15 @@ export default function TrackingClient({
         </button>
       </section>
       {notifState === "denied" && (
-        <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 -mt-3">
+        <p className="text-xs text-sm-warn bg-sm-warn-bg border border-sm-warn-border rounded-xl px-3 py-2 -mt-3">
           No se pudieron activar las notificaciones. Revisa los permisos de tu navegador.
         </p>
       )}
 
       {/* Progreso */}
       {order.status !== "cancelado" && (
-        <section className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-          <h2 className="font-heading font-semibold text-lg text-slate-800 tracking-wide">
+        <section className="bg-white rounded-2xl border border-sm-border shadow-sm p-5">
+          <h2 className="font-heading font-semibold text-lg text-sm-graphite tracking-wide">
             AVANCE DE LA REPARACIÓN
           </h2>
           <ol className="mt-4 space-y-0">
@@ -248,15 +248,15 @@ export default function TrackingClient({
                 <li key={s} className="flex gap-3">
                   <div className="flex flex-col items-center">
                     {done ? (
-                      <CheckCircle2 className="w-6 h-6 text-accent-600 shrink-0" aria-hidden="true" />
+                      <CheckCircle2 className="w-6 h-6 text-sm-ok shrink-0" aria-hidden="true" />
                     ) : current ? (
-                      <CircleDot className="w-6 h-6 text-primary-600 shrink-0 live-dot" aria-hidden="true" />
+                      <CircleDot className="w-6 h-6 text-sm-red shrink-0 live-dot" aria-hidden="true" />
                     ) : (
-                      <Circle className="w-6 h-6 text-slate-200 shrink-0" aria-hidden="true" />
+                      <Circle className="w-6 h-6 text-sm-faint shrink-0" aria-hidden="true" />
                     )}
                     {i < STATUS_FLOW.length - 1 && (
                       <span
-                        className={`w-0.5 flex-1 min-h-5 ${done ? "bg-accent-500" : "bg-slate-200"}`}
+                        className={`w-0.5 flex-1 min-h-5 ${done ? "bg-sm-ok" : "bg-sm-border"}`}
                         aria-hidden="true"
                       />
                     )}
@@ -264,17 +264,17 @@ export default function TrackingClient({
                   <div className={`pb-5 ${i === STATUS_FLOW.length - 1 ? "pb-0" : ""}`}>
                     <p
                       className={`font-semibold text-sm ${
-                        current ? "text-primary-700" : done ? "text-slate-700" : "text-slate-400"
+                        current ? "text-sm-red" : done ? "text-sm-graphite" : "text-sm-faint"
                       }`}
                     >
                       {sMeta.client}
                       {current && (
-                        <span className="ml-2 text-[11px] font-bold uppercase tracking-wider bg-primary-100 text-primary-700 rounded-full px-2 py-0.5">
+                        <span className="ml-2 text-[11px] font-bold uppercase tracking-wider bg-sm-red text-white rounded-full px-2 py-0.5">
                           Ahora
                         </span>
                       )}
                     </p>
-                    {current && <p className="text-xs text-slate-500 mt-0.5">{sMeta.description}</p>}
+                    {current && <p className="text-xs text-sm-muted mt-0.5">{sMeta.description}</p>}
                   </div>
                 </li>
               );
@@ -285,13 +285,13 @@ export default function TrackingClient({
 
       {/* Anotaciones — solo con código (el modo básico no expone eventos) */}
       {data.detailed && (
-        <section className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+        <section className="bg-white rounded-2xl border border-sm-border shadow-sm p-5">
           <div className="flex items-center justify-between gap-2">
-            <h2 className="font-heading font-semibold text-lg text-slate-800 tracking-wide">
+            <h2 className="font-heading font-semibold text-lg text-sm-graphite tracking-wide">
               ANOTACIONES DEL TALLER
             </h2>
-            <span className="flex items-center gap-1.5 text-xs text-slate-400">
-              <span className="w-2 h-2 rounded-full bg-accent-500 live-dot" aria-hidden="true" />
+            <span className="flex items-center gap-1.5 text-xs text-sm-faint">
+              <span className="w-2 h-2 rounded-full bg-sm-ok live-dot" aria-hidden="true" />
               Actualizado {agoLabel(updatedAt)}
             </span>
           </div>
@@ -301,7 +301,7 @@ export default function TrackingClient({
                 <li key={ev.id} className="flex gap-3">
                   <div
                     className={`rounded-xl p-2 h-fit shrink-0 ${
-                      ev.type === "estado" ? "bg-primary-50 text-primary-600" : "bg-slate-100 text-slate-500"
+                      ev.type === "estado" ? "bg-sm-bg text-sm-red" : "bg-sm-bg text-sm-muted"
                     }`}
                     aria-hidden="true"
                   >
@@ -312,9 +312,9 @@ export default function TrackingClient({
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-slate-800">{ev.title}</p>
+                    <p className="text-sm font-semibold text-sm-graphite">{ev.title}</p>
                     {ev.detail && (
-                      <p className="text-sm text-slate-600 mt-0.5 whitespace-pre-wrap">{ev.detail}</p>
+                      <p className="text-sm text-sm-muted mt-0.5 whitespace-pre-wrap">{ev.detail}</p>
                     )}
                     {ev.photos && ev.photos.length > 0 && (
                       <div className="mt-2 flex gap-2 flex-wrap">
@@ -325,19 +325,19 @@ export default function TrackingClient({
                               src={url}
                               alt="Foto del taller"
                               loading="lazy"
-                              className="w-20 h-20 object-cover rounded-lg border border-slate-200"
+                              className="w-20 h-20 object-cover rounded-lg border border-sm-border"
                             />
                           </a>
                         ))}
                       </div>
                     )}
-                    <p className="text-xs text-slate-400 mt-1">{formatDate(ev.created_at)}</p>
+                    <p className="text-xs text-sm-faint mt-1">{formatDate(ev.created_at)}</p>
                   </div>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-slate-400 mt-3">
+            <p className="text-sm text-sm-faint mt-3">
               Aún no hay anotaciones. Aquí verás cada avance que registre el equipo del taller.
             </p>
           )}
@@ -346,68 +346,68 @@ export default function TrackingClient({
 
       {/* Detalle con código */}
       {data.detailed ? (
-        <section className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-          <h2 className="font-heading font-semibold text-lg text-slate-800 tracking-wide flex items-center gap-2">
-            <Receipt className="w-5 h-5 text-primary-600" aria-hidden="true" /> DETALLE DE LA ORDEN
+        <section className="bg-white rounded-2xl border border-sm-border shadow-sm p-5">
+          <h2 className="font-heading font-semibold text-lg text-sm-graphite tracking-wide flex items-center gap-2">
+            <Receipt className="w-5 h-5 text-sm-red" aria-hidden="true" /> DETALLE DE LA ORDEN
           </h2>
           {order.diagnosis && (
-            <div className="mt-3 bg-slate-50 rounded-xl p-3">
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            <div className="mt-3 bg-sm-bg rounded-xl p-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-sm-faint">
                 Diagnóstico
               </p>
-              <p className="text-sm text-slate-700 mt-1 whitespace-pre-wrap">{order.diagnosis}</p>
+              <p className="text-sm text-sm-graphite mt-1 whitespace-pre-wrap">{order.diagnosis}</p>
             </div>
           )}
           {data.items && data.items.length > 0 ? (
             <div className="mt-4 overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-xs uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                  <tr className="text-left text-xs uppercase tracking-wider text-sm-faint border-b border-sm-border">
                     <th className="py-2 pr-2 font-semibold">Concepto</th>
                     <th className="py-2 px-2 font-semibold text-right">Cant.</th>
                     <th className="py-2 pl-2 font-semibold text-right">Importe</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody className="divide-y divide-sm-border">
                   {data.items.map((it, i) => (
                     <tr key={i}>
-                      <td className="py-2.5 pr-2 text-slate-700">
+                      <td className="py-2.5 pr-2 text-sm-graphite">
                         {it.description}
-                        <span className="ml-2 text-[11px] uppercase tracking-wide text-slate-400">
+                        <span className="ml-2 text-[11px] uppercase tracking-wide text-sm-faint">
                           {it.kind}
                         </span>
                       </td>
-                      <td className="py-2.5 px-2 text-right text-slate-500 tabular-nums">{it.qty}</td>
-                      <td className="py-2.5 pl-2 text-right text-slate-700 tabular-nums">
+                      <td className="py-2.5 px-2 text-right text-sm-muted tabular-nums">{it.qty}</td>
+                      <td className="py-2.5 pl-2 text-right text-sm-graphite tabular-nums">
                         {formatMoney(it.qty * it.unit_price)}
                       </td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr className="border-t border-slate-200">
-                    <td colSpan={2} className="py-3 font-semibold text-slate-800">
+                  <tr className="border-t border-sm-border">
+                    <td colSpan={2} className="py-3 font-semibold text-sm-graphite">
                       Total
                     </td>
-                    <td className="py-3 text-right font-bold text-slate-900 tabular-nums">
+                    <td className="py-3 text-right font-bold text-sm-graphite tabular-nums">
                       {formatMoney(data.total ?? 0)}
                     </td>
                   </tr>
                   {(data.paid ?? 0) > 0 && (
                     <>
                       <tr>
-                        <td colSpan={2} className="py-1 text-sm text-slate-500">
+                        <td colSpan={2} className="py-1 text-sm text-sm-muted">
                           Pagado
                         </td>
-                        <td className="py-1 text-right text-sm font-semibold text-accent-700 tabular-nums">
+                        <td className="py-1 text-right text-sm font-semibold text-sm-ok tabular-nums">
                           {formatMoney(data.paid ?? 0)}
                         </td>
                       </tr>
                       <tr>
-                        <td colSpan={2} className="pb-3 text-sm text-slate-500">
+                        <td colSpan={2} className="pb-3 text-sm text-sm-muted">
                           Saldo
                         </td>
-                        <td className="pb-3 text-right text-sm font-semibold text-slate-800 tabular-nums">
+                        <td className="pb-3 text-right text-sm font-semibold text-sm-graphite tabular-nums">
                           {formatMoney((data.total ?? 0) - (data.paid ?? 0))}
                         </td>
                       </tr>
@@ -417,7 +417,7 @@ export default function TrackingClient({
               </table>
             </div>
           ) : (
-            <p className="text-sm text-slate-400 mt-3">
+            <p className="text-sm text-sm-faint mt-3">
               El presupuesto aún no está cargado. Te avisaremos cuando esté listo.
             </p>
           )}
@@ -428,9 +428,9 @@ export default function TrackingClient({
                 href={`/api/public/pdf/${encodeURIComponent(data.plate)}?code=${encodeURIComponent(codeRef.current)}&doc=cotizacion`}
                 target="_blank"
                 rel="noopener"
-                className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 transition-colors"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-sm-graphite bg-white hover:bg-sm-bg border border-sm-border-strong rounded-xl px-4 py-2.5 transition-colors"
               >
-                <FileDown className="w-4 h-4 text-primary-600" aria-hidden="true" />
+                <FileDown className="w-4 h-4 text-sm-red" aria-hidden="true" />
                 Descargar cotización (PDF)
               </a>
               {order.status === "entregado" && (
@@ -438,9 +438,9 @@ export default function TrackingClient({
                   href={`/api/public/pdf/${encodeURIComponent(data.plate)}?code=${encodeURIComponent(codeRef.current)}&doc=informe`}
                   target="_blank"
                   rel="noopener"
-                  className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 transition-colors"
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-sm-graphite bg-white hover:bg-sm-bg border border-sm-border-strong rounded-xl px-4 py-2.5 transition-colors"
                 >
-                  <FileDown className="w-4 h-4 text-accent-600" aria-hidden="true" />
+                  <FileDown className="w-4 h-4 text-sm-ok" aria-hidden="true" />
                   Informe de servicio (PDF)
                 </a>
               )}
@@ -459,14 +459,14 @@ export default function TrackingClient({
               />
             )}
           {order.approval_status === "aprobado" && order.approval_at && (
-            <p className="mt-4 flex items-center gap-2 text-sm font-medium text-accent-700 bg-accent-50 border border-accent-200 rounded-xl px-3 py-2.5">
+            <p className="mt-4 flex items-center gap-2 text-sm font-medium text-sm-ok bg-sm-ok-bg border border-sm-ok-border rounded-xl px-3 py-2.5">
               <CheckCircle2 className="w-4 h-4 shrink-0" aria-hidden="true" />
               Aprobaste este presupuesto el {formatDate(order.approval_at)}
               {order.approval_total != null && <> por {formatMoney(order.approval_total)}</>}.
             </p>
           )}
           {order.approval_status === "rechazado" && order.approval_at && (
-            <p className="mt-4 text-sm font-medium text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+            <p className="mt-4 text-sm font-medium text-sm-warn bg-sm-warn-bg border border-sm-warn-border rounded-xl px-3 py-2.5">
               Rechazaste este presupuesto el {formatDate(order.approval_at)}. El taller se
               pondrá en contacto contigo para acordar cómo continuar.
             </p>
@@ -474,16 +474,16 @@ export default function TrackingClient({
 
           {data.history && data.history.length > 0 && (
             <div className="mt-5">
-              <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
-                <History className="w-4 h-4 text-slate-400" aria-hidden="true" /> Visitas anteriores
+              <h3 className="text-sm font-semibold text-sm-graphite flex items-center gap-1.5">
+                <History className="w-4 h-4 text-sm-faint" aria-hidden="true" /> Visitas anteriores
               </h3>
               <ul className="mt-2 space-y-1.5">
                 {data.history.map((h) => (
-                  <li key={h.folio} className="text-sm text-slate-500 flex justify-between gap-2">
+                  <li key={h.folio} className="text-sm text-sm-muted flex justify-between gap-2">
                     <span className="truncate">
                       {h.folio} · {h.description || STATUS_META[h.status]?.label}
                     </span>
-                    <span className="shrink-0 text-slate-400">{formatDateShort(h.created_at)}</span>
+                    <span className="shrink-0 text-sm-faint">{formatDateShort(h.created_at)}</span>
                   </li>
                 ))}
               </ul>
@@ -491,11 +491,11 @@ export default function TrackingClient({
           )}
         </section>
       ) : (
-        <section className="bg-primary-50 border border-primary-100 rounded-2xl p-5">
-          <h2 className="font-heading font-semibold text-lg text-primary-900 tracking-wide flex items-center gap-2">
+        <section className="bg-sm-bg border border-sm-border rounded-2xl p-5">
+          <h2 className="font-heading font-semibold text-lg text-sm-graphite tracking-wide flex items-center gap-2">
             <LockKeyhole className="w-5 h-5" aria-hidden="true" /> ¿QUIERES VER EL DETALLE COMPLETO?
           </h2>
-          <p className="text-sm text-primary-800/80 mt-1">
+          <p className="text-sm text-sm-muted mt-1">
             Con el código de acceso de tu orden de servicio puedes ver las anotaciones del
             taller, el presupuesto, el diagnóstico y tu historial de visitas, y activar
             las notificaciones.
@@ -511,17 +511,17 @@ export default function TrackingClient({
               placeholder="Ej. K7PM"
               maxLength={8}
               autoComplete="off"
-              className="plate-badge flex-1 min-w-0 bg-white border border-primary-200 rounded-xl px-4 py-2.5 text-center text-lg text-slate-800 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-primary-400"
+              className="plate-badge flex-1 min-w-0 bg-white border border-sm-border-strong rounded-xl px-4 py-2.5 text-center text-lg text-sm-graphite placeholder:text-sm-faint focus:outline-none focus:ring-2 focus:ring-sm-red"
             />
             <button
               type="submit"
-              className="bg-primary-600 hover:bg-primary-500 active:bg-primary-700 text-white rounded-xl px-4 font-semibold text-sm transition-colors cursor-pointer flex items-center gap-1.5"
+              className="bg-sm-red hover:bg-sm-red-hover active:bg-sm-red-active text-white rounded-xl px-4 font-semibold text-sm transition-colors cursor-pointer flex items-center gap-1.5"
             >
               <KeyRound className="w-4 h-4" aria-hidden="true" /> Ver
             </button>
           </form>
-          {codeError && <p className="text-sm text-red-600 mt-2">{codeError}</p>}
-          <p className="flex items-start gap-1.5 text-xs text-primary-700/70 mt-3">
+          {codeError && <p className="text-sm text-sm-red mt-2">{codeError}</p>}
+          <p className="flex items-start gap-1.5 text-xs text-sm-faint mt-3">
             <HelpCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden="true" />
             El código viene impreso en tu orden de servicio. Si lo perdiste, pídelo en el taller
             mostrando una identificación.
@@ -573,16 +573,16 @@ function ApprovalBox({
   }
 
   return (
-    <div className="mt-4 bg-primary-50 border border-primary-100 rounded-xl p-4">
-      <p className="text-sm font-semibold text-primary-900">
+    <div className="mt-4 bg-sm-bg border border-sm-border rounded-xl p-4">
+      <p className="text-sm font-semibold text-sm-graphite">
         ¿Autorizas la reparación por {formatMoney(total)}?
       </p>
-      <p className="text-xs text-primary-800/70 mt-0.5">
+      <p className="text-xs text-sm-muted mt-0.5">
         Al aprobar, el taller continúa con los repuestos y la reparación.
       </p>
       {confirming ? (
         <div className="mt-3">
-          <p className="text-sm font-medium text-slate-700">
+          <p className="text-sm font-medium text-sm-graphite">
             {confirming === "aprobado"
               ? `Confirma: apruebas el presupuesto de ${formatMoney(total)}.`
               : "Confirma: rechazas este presupuesto."}
@@ -593,8 +593,8 @@ function ApprovalBox({
               disabled={busy}
               className={`flex-1 rounded-xl py-2.5 text-sm font-semibold text-white transition-colors cursor-pointer ${
                 confirming === "aprobado"
-                  ? "bg-accent-600 hover:bg-accent-500"
-                  : "bg-amber-600 hover:bg-amber-500"
+                  ? "bg-sm-ok hover:bg-sm-ok-hover"
+                  : "bg-sm-warn hover:bg-sm-warn-hover"
               }`}
             >
               {busy ? "Enviando…" : "Sí, confirmar"}
@@ -602,7 +602,7 @@ function ApprovalBox({
             <button
               onClick={() => setConfirming(null)}
               disabled={busy}
-              className="flex-1 rounded-xl py-2.5 text-sm font-semibold bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
+              className="flex-1 rounded-xl py-2.5 text-sm font-semibold bg-white border border-sm-border text-sm-muted hover:bg-sm-bg transition-colors cursor-pointer"
             >
               Volver
             </button>
@@ -612,19 +612,19 @@ function ApprovalBox({
         <div className="mt-3 flex gap-2">
           <button
             onClick={() => setConfirming("aprobado")}
-            className="flex-1 rounded-xl py-2.5 text-sm font-semibold bg-accent-600 hover:bg-accent-500 text-white transition-colors cursor-pointer"
+            className="flex-1 rounded-xl py-2.5 text-sm font-semibold bg-sm-ok hover:bg-sm-ok-hover text-white transition-colors cursor-pointer"
           >
             Aprobar presupuesto
           </button>
           <button
             onClick={() => setConfirming("rechazado")}
-            className="flex-1 rounded-xl py-2.5 text-sm font-semibold bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
+            className="flex-1 rounded-xl py-2.5 text-sm font-semibold bg-white border border-sm-border text-sm-muted hover:bg-sm-bg transition-colors cursor-pointer"
           >
             Rechazar
           </button>
         </div>
       )}
-      {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
+      {error && <p className="text-sm text-sm-red mt-2">{error}</p>}
     </div>
   );
 }
@@ -645,17 +645,17 @@ function agoLabel(ts: number): string {
 function statusTone(color: string): string {
   switch (color) {
     case "green":
-      return "bg-accent-50 border-accent-100 text-accent-900";
+      return "bg-sm-ok-bg border-sm-ok-border text-sm-ok";
     case "amber":
-      return "bg-amber-50 border-amber-100 text-amber-900";
+      return "bg-sm-warn-bg border-sm-warn-border text-sm-warn";
     case "violet":
       return "bg-violet-50 border-violet-100 text-violet-900";
     case "red":
-      return "bg-red-50 border-red-100 text-red-900";
+      return "bg-sm-bg border-sm-border text-sm-red";
     case "blue":
-      return "bg-primary-50 border-primary-100 text-primary-900";
+      return "bg-sm-bg border-sm-border text-sm-graphite";
     default:
-      return "bg-slate-50 border-slate-100 text-slate-800";
+      return "bg-sm-bg border-sm-border text-sm-graphite";
   }
 }
 
@@ -673,25 +673,30 @@ function Shell({
   announcements?: PublicAnnouncement[];
 }) {
   return (
-    <div className="min-h-dvh bg-slate-50 flex flex-col">
-      <header className="bg-primary-950 text-white sticky top-0 z-20 shadow-md">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
+    <div className="pub min-h-dvh bg-sm-bg flex flex-col">
+      <header className="bg-sm-graphite text-white sticky top-0 z-50 border-b border-white/10">
+        <div className="max-w-2xl mx-auto px-4 h-16 flex items-center gap-2.5">
           <Link
             href="/"
             aria-label="Volver al inicio"
-            className="p-2 -ml-2 rounded-xl hover:bg-primary-900 transition-colors"
+            className="grid place-items-center w-9 h-9 -ml-1.5 rounded-lg hover:bg-white/10 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" aria-hidden="true" />
           </Link>
+          <span className="grid place-items-center w-9 h-9 shrink-0 rounded-md bg-sm-red font-heading font-bold text-lg leading-none">
+            SM
+          </span>
           <div className="flex-1 min-w-0">
-            <p className="font-heading font-bold tracking-wide leading-tight">SEGUIMIENTO</p>
-            <p className="text-primary-300 text-xs truncate">Multiservicios San Miguel 96</p>
+            <p className="font-heading font-semibold text-[17px] tracking-wide uppercase leading-none">
+              Seguimiento
+            </p>
+            <p className="text-white/55 text-[11px] tracking-wide truncate mt-0.5">San Miguel 96</p>
           </div>
           {onRefresh && (
             <button
               onClick={onRefresh}
               aria-label="Actualizar ahora"
-              className="p-2 rounded-xl hover:bg-primary-900 transition-colors cursor-pointer"
+              className="p-2 rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
             >
               <RefreshCw
                 className={`w-5 h-5 ${refreshing ? "animate-spin" : ""}`}
@@ -705,7 +710,7 @@ function Shell({
         <Novedades items={announcements} />
         {children}
       </main>
-      <footer className="text-center text-xs text-slate-400 pb-6">
+      <footer className="text-center text-xs text-sm-faint pb-6">
         Placa consultada: <span className="font-semibold">{plate}</span>
       </footer>
     </div>

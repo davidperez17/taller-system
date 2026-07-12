@@ -137,7 +137,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             )}
 
             <details className="mt-4">
-              <summary className="text-sm font-medium text-primary-600 cursor-pointer">
+              <summary className="text-sm font-medium text-sm-red cursor-pointer">
                 Agregar vehículo
               </summary>
               <form action={createVehicleAction} className="mt-3 grid grid-cols-2 gap-3">
@@ -225,7 +225,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                       </div>
                       <StatusBadge status={o.status} />
                       <ChevronRight
-                        className="w-4 h-4 text-slate-300 group-hover:text-primary-600 shrink-0"
+                        className="w-4 h-4 text-slate-300 group-hover:text-sm-red shrink-0"
                         aria-hidden="true"
                       />
                     </Link>

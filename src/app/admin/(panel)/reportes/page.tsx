@@ -228,7 +228,7 @@ export default async function ReportsPage({
       label: "Facturado",
       value: formatMoney(facturado),
       icon: Banknote,
-      tone: "bg-primary-50 text-primary-700",
+      tone: "bg-sm-bg text-sm-red",
       hint: `${deliveredTotal} órdenes entregadas · ticket ${formatMoney(avgTicket)}`,
     },
     {
@@ -278,7 +278,7 @@ export default async function ReportsPage({
   const chip = (active: boolean) =>
     `inline-flex items-center rounded-full px-3.5 py-2 text-sm font-semibold transition-colors ${
       active
-        ? "bg-primary-600 text-white"
+        ? "bg-sm-red text-white"
         : "bg-white border border-slate-300 text-slate-600 hover:bg-slate-50"
     }`;
 
@@ -409,7 +409,7 @@ export default async function ReportsPage({
               {expensesTotal === 0 && (
                 <>
                   Aún no hay gastos en el período —{" "}
-                  <Link href="/admin/gastos" className="text-primary-600 font-medium">
+                  <Link href="/admin/gastos" className="text-sm-red font-medium">
                     regístralos en Gastos
                   </Link>
                   .{" "}
@@ -418,7 +418,7 @@ export default async function ReportsPage({
               {payrollMonthly === 0 && (
                 <>
                   Sin costos del equipo —{" "}
-                  <Link href="/admin/usuarios" className="text-primary-600 font-medium">
+                  <Link href="/admin/usuarios" className="text-sm-red font-medium">
                     agrégalos en Equipo
                   </Link>
                   .
@@ -442,7 +442,7 @@ export default async function ReportsPage({
             <ul className="mt-4 space-y-4">
               {(
                 [
-                  ["Servicios", byKind.servicio, "bg-primary-600"],
+                  ["Servicios", byKind.servicio, "bg-sm-red"],
                   ["Repuestos", byKind.repuesto, "bg-violet-500"],
                 ] as const
               ).map(([label, k, color]) => (
@@ -486,7 +486,7 @@ export default async function ReportsPage({
           </div>
           <div className="flex items-center gap-3 text-xs text-slate-500">
             <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-sm bg-primary-600" aria-hidden="true" /> Facturado
+              <span className="w-2.5 h-2.5 rounded-sm bg-sm-red" aria-hidden="true" /> Facturado
             </span>
             <span className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-sm bg-accent-500" aria-hidden="true" /> Ganancia bruta
@@ -501,7 +501,7 @@ export default async function ReportsPage({
               </span>
               <div className="w-full max-w-[48px] flex items-end gap-1 h-full justify-center">
                 <div
-                  className="w-1/2 rounded-t-lg bg-primary-600 transition-all"
+                  className="w-1/2 rounded-t-lg bg-sm-red transition-all"
                   style={{ height: `${Math.max(2, (r.total / maxRev) * 100)}%` }}
                   title={`${r.orders} órdenes · facturado ${formatMoney(r.total)}`}
                 />
@@ -551,7 +551,7 @@ export default async function ReportsPage({
         {/* Desempeño por mecánico */}
         <section className={`${card} p-5`}>
           <h2 className="font-heading font-semibold text-lg text-slate-800 tracking-wide flex items-center gap-2">
-            <Wrench className="w-4 h-4 text-primary-600" aria-hidden="true" /> DESEMPEÑO POR MECÁNICO
+            <Wrench className="w-4 h-4 text-sm-red" aria-hidden="true" /> DESEMPEÑO POR MECÁNICO
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
             Órdenes entregadas en el período, con costo y utilidad si su salario está registrado

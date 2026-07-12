@@ -22,7 +22,7 @@ function todayGT(): string {
 
 const METHOD_META = {
   efectivo: { label: "Efectivo", icon: Banknote, tone: "bg-accent-50 text-accent-700" },
-  tarjeta: { label: "Tarjeta", icon: CreditCard, tone: "bg-primary-50 text-primary-700" },
+  tarjeta: { label: "Tarjeta", icon: CreditCard, tone: "bg-sm-bg text-sm-red" },
   transferencia: { label: "Transferencia", icon: Landmark, tone: "bg-violet-50 text-violet-700" },
 } as const;
 
@@ -172,7 +172,7 @@ export default async function CajaPage({
                     <td className="py-2.5 px-2">
                       <Link
                         href={`/admin/ordenes/${p.order_id}`}
-                        className="font-medium text-primary-600 hover:underline"
+                        className="font-medium text-sm-red hover:underline"
                       >
                         {p.folio}
                       </Link>
@@ -230,7 +230,7 @@ export default async function CajaPage({
                     <td className="py-2.5 pl-5 pr-2">
                       <Link
                         href={`/admin/ordenes/${o.id}`}
-                        className="font-medium text-primary-600 hover:underline"
+                        className="font-medium text-sm-red hover:underline"
                       >
                         {o.folio}
                       </Link>

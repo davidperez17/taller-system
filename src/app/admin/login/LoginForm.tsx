@@ -12,16 +12,16 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
 
   return (
-    <div className="min-h-dvh bg-primary-950 flex items-center justify-center px-4">
+    <div className="min-h-dvh bg-sm-graphite flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="text-center text-white mb-8">
-          <div className="bg-primary-600 rounded-2xl p-3 w-fit mx-auto" aria-hidden="true">
+          <div className="bg-sm-red rounded-2xl p-3 w-fit mx-auto" aria-hidden="true">
             <Wrench className="w-8 h-8" />
           </div>
           <h1 className="font-heading text-2xl font-bold tracking-wide mt-4">
             MULTISERVICIOS SAN MIGUEL 96
           </h1>
-          <p className="text-primary-300 text-sm mt-1">Panel del taller</p>
+          <p className="text-white/60 text-sm mt-1">Panel del taller</p>
         </div>
 
         <form
@@ -39,7 +39,7 @@ export default function LoginForm() {
               autoComplete="username"
               autoCapitalize="none"
               required
-              className="mt-1 w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              className="mt-1 w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-sm-red focus:border-sm-red"
             />
           </div>
           <div>
@@ -53,7 +53,7 @@ export default function LoginForm() {
                 type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
                 required
-                className="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 pr-11 text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                className="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 pr-11 text-slate-900 focus:outline-none focus:ring-2 focus:ring-sm-red focus:border-sm-red"
               />
               <button
                 type="button"
@@ -73,7 +73,7 @@ export default function LoginForm() {
           <button
             type="submit"
             disabled={pending}
-            className="w-full bg-primary-600 hover:bg-primary-500 active:bg-primary-700 disabled:opacity-60 text-white rounded-xl py-3 font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer"
+            className="w-full bg-sm-red hover:bg-sm-red-hover active:bg-sm-red-active disabled:opacity-60 text-white rounded-xl py-3 font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer"
           >
             {pending ? (
               <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />

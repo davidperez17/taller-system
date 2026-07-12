@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Novedades" };
 
 const TONE_CLASS: Record<AnnouncementTone, string> = {
-  info: "bg-primary-100 text-primary-700",
+  info: "bg-sm-bg text-sm-red",
   promo: "bg-accent-100 text-accent-700",
   aviso: "bg-amber-100 text-amber-800",
 };
@@ -55,7 +55,7 @@ export default async function AnnouncementsPage() {
       {/* Crear */}
       <section className={`${card} p-5`}>
         <h2 className="font-heading font-semibold text-slate-800 tracking-wide flex items-center gap-2">
-          <Megaphone className="w-4 h-4 text-primary-600" aria-hidden="true" /> NUEVA NOVEDAD
+          <Megaphone className="w-4 h-4 text-sm-red" aria-hidden="true" /> NUEVA NOVEDAD
         </h2>
         <form action={createAnnouncementAction} className="mt-3 space-y-3">
           <div>
@@ -190,7 +190,7 @@ export default async function AnnouncementsPage() {
 
               {/* Editar (disclosure nativo, sin JS) */}
               <details className="mt-3 group">
-                <summary className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:text-primary-500 cursor-pointer list-none">
+                <summary className="inline-flex items-center gap-1.5 text-sm font-medium text-sm-red hover:text-sm-red-hover cursor-pointer list-none">
                   <Pencil className="w-3.5 h-3.5" aria-hidden="true" /> Editar
                 </summary>
                 <form action={updateAnnouncementAction} className="mt-3 space-y-3 border-t border-slate-100 pt-3">

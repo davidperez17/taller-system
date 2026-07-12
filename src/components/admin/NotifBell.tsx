@@ -101,7 +101,7 @@ export default function NotifBell({
         type="button"
         onClick={openPanel}
         aria-label={`Notificaciones${badge > 0 ? ` (${badge} sin leer)` : ""}`}
-        className="relative p-2 rounded-lg text-primary-100 hover:bg-primary-900 hover:text-white transition-colors cursor-pointer"
+        className="relative p-2 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
       >
         <Bell className="w-5 h-5" aria-hidden="true" />
         {badge > 0 && (
@@ -189,7 +189,7 @@ export default function NotifBell({
             <Link
               href="/admin/actividad"
               onClick={() => setOpen(false)}
-              className="flex items-center justify-center gap-2 px-4 py-3 border-t border-slate-100 text-sm font-semibold text-primary-600 hover:bg-slate-50 transition-colors shrink-0"
+              className="flex items-center justify-center gap-2 px-4 py-3 border-t border-slate-100 text-sm font-semibold text-sm-red hover:bg-slate-50 transition-colors shrink-0"
             >
               <History className="w-4 h-4" aria-hidden="true" /> Ver historial completo
             </Link>

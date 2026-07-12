@@ -6,7 +6,7 @@ export function StatusBadge({ status }: { status: string }) {
   if (!meta) return null;
   const tones: Record<string, string> = {
     slate: "bg-slate-100 text-slate-700",
-    blue: "bg-primary-100 text-primary-700",
+    blue: "bg-blue-100 text-blue-700",
     amber: "bg-amber-100 text-amber-800",
     violet: "bg-violet-100 text-violet-700",
     green: "bg-accent-100 text-accent-700",
@@ -58,10 +58,10 @@ export function PageTitle({ title, subtitle, action }: { title: string; subtitle
 }
 
 export const inputCls =
-  "w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500";
+  "w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-sm-red focus:border-sm-red";
 export const labelCls = "block text-sm font-medium text-slate-700 mb-1";
 export const btnPrimary =
-  "inline-flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-500 active:bg-primary-700 text-white rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors cursor-pointer disabled:opacity-60";
+  "inline-flex items-center justify-center gap-2 bg-sm-red hover:bg-sm-red-hover active:bg-sm-red-active text-white rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors cursor-pointer disabled:opacity-60";
 export const btnSecondary =
   "inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors cursor-pointer";
 export const card = "bg-white rounded-2xl border border-slate-200 shadow-sm";

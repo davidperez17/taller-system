@@ -28,6 +28,37 @@
   /* BRAND:END */
   --font-heading: var(--font-barlow), "Arial Narrow", sans-serif;
   --font-body: var(--font-inter), system-ui, sans-serif;
+
+  /* Sistema público SM96 — grafito + rojo racing. Acotado a las páginas
+     públicas (landing + seguimiento); NO toca los tokens primary/accent del
+     panel admin. Contraste sobre blanco: ink 16:1, muted 7.4:1, faint 4.8:1. */
+  --color-sm-bg: #f4f4f5;
+  --color-sm-surface: #ffffff;
+  --color-sm-surface-2: #fafafa;
+  --color-sm-border: #e4e4e7;
+  --color-sm-border-strong: #d4d4d8;
+  --color-sm-ink: #18181b;
+  --color-sm-muted: #52525b;
+  --color-sm-faint: #71717a;
+  --color-sm-graphite: #1c1c20;
+  --color-sm-graphite-2: #26262b;
+  --color-sm-red: #c8102e;
+  --color-sm-red-hover: #a50d26;
+  --color-sm-red-active: #8f0b21;
+  --color-sm-ok: #137a41;
+  --color-sm-ok-hover: #0f6234;
+  --color-sm-ok-bg: #eaf6ee;
+  --color-sm-ok-border: #bfe3cc;
+  --color-sm-warn: #b45309;
+  --color-sm-warn-hover: #96460b;
+  --color-sm-warn-bg: #fff7ed;
+  --color-sm-warn-border: #fed7aa;
+}
+
+/* Cuerpo de las páginas públicas: Barlow (headings siguen en Barlow Condensed
+   por la regla h1–h3). El panel admin conserva Inter. */
+.pub {
+  font-family: var(--font-barlow-text), var(--font-inter), system-ui, sans-serif;
 }
 
 html {

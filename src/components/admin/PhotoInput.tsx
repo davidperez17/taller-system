@@ -75,7 +75,7 @@ export default function PhotoInput() {
           type="button"
           onClick={() => pickerRef.current?.click()}
           disabled={busy}
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:text-primary-500 transition-colors cursor-pointer disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-sm-red hover:text-sm-red-hover transition-colors cursor-pointer disabled:opacity-50"
         >
           <Camera className="w-4 h-4" aria-hidden="true" />
           {busy ? "Procesando…" : previews.length > 0 ? "Cambiar fotos" : "Agregar fotos"}

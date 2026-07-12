@@ -63,7 +63,7 @@ export default async function InventoryPage({
   ))!;
 
   const kpis = [
-    { label: "Repuestos", value: totals.n, icon: Package, tone: "bg-primary-50 text-primary-700" },
+    { label: "Repuestos", value: totals.n, icon: Package, tone: "bg-sm-bg text-sm-red" },
     {
       label: "Valor en bodega",
       value: formatMoney(totals.value),
@@ -133,7 +133,7 @@ export default async function InventoryPage({
           </form>
 
           {onlyLow && (
-            <a href="/admin/inventario" className="inline-block text-sm text-primary-600 hover:text-primary-500">
+            <a href="/admin/inventario" className="inline-block text-sm text-sm-red hover:text-sm-red-hover">
               ← Ver todo el inventario
             </a>
           )}
@@ -193,7 +193,7 @@ export default async function InventoryPage({
                       <div className="px-4 lg:px-5 pb-3 flex flex-wrap gap-4">
                         {/* Ajustar stock */}
                         <details className="text-sm">
-                          <summary className="text-xs font-medium text-primary-600 cursor-pointer">
+                          <summary className="text-xs font-medium text-sm-red cursor-pointer">
                             Ajustar stock
                           </summary>
                           <form action={adjustStockAction} className="mt-2 flex items-end gap-2 flex-wrap">
@@ -230,7 +230,7 @@ export default async function InventoryPage({
 
                         {/* Editar */}
                         <details className="text-sm">
-                          <summary className="text-xs font-medium text-primary-600 cursor-pointer">
+                          <summary className="text-xs font-medium text-sm-red cursor-pointer">
                             Editar
                           </summary>
                           <form action={updatePartAction} className="mt-2 grid sm:grid-cols-2 gap-2 max-w-xl">
@@ -279,7 +279,7 @@ export default async function InventoryPage({
         {/* Nuevo repuesto */}
         <section className={`${card} p-5 min-w-0`}>
           <h2 className="font-heading font-semibold text-slate-800 tracking-wide flex items-center gap-2">
-            <PackagePlus className="w-4 h-4 text-primary-600" aria-hidden="true" /> NUEVO REPUESTO
+            <PackagePlus className="w-4 h-4 text-sm-red" aria-hidden="true" /> NUEVO REPUESTO
           </h2>
           <form action={createPartAction} className="mt-3 space-y-3">
             <div>

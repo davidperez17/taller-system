@@ -58,7 +58,7 @@ export default async function DashboardPage() {
   ))!;
 
   const kpis = [
-    { label: "En el taller", value: active.n, icon: Car, tone: "bg-primary-50 text-primary-700" },
+    { label: "En el taller", value: active.n, icon: Car, tone: "bg-sm-bg text-sm-red" },
     { label: "Listos para entrega", value: ready.n, icon: CheckCircle2, tone: "bg-accent-50 text-accent-700" },
     { label: "Entregados este mes", value: deliveredMonth.n, icon: ClipboardList, tone: "bg-violet-50 text-violet-700" },
     { label: "Facturado este mes", value: formatMoney(revenueMonth.total), icon: Banknote, tone: "bg-amber-50 text-amber-700" },
@@ -149,7 +149,7 @@ export default async function DashboardPage() {
           </h2>
           <Link
             href="/admin/actividad"
-            className="text-sm font-medium text-primary-600 hover:text-primary-500"
+            className="text-sm font-medium text-sm-red hover:text-sm-red-hover"
           >
             Ver todo
           </Link>
@@ -175,7 +175,7 @@ export default async function DashboardPage() {
           </h2>
           <Link
             href="/admin/ordenes"
-            className="text-sm font-medium text-primary-600 hover:text-primary-500"
+            className="text-sm font-medium text-sm-red hover:text-sm-red-hover"
           >
             Ver todas
           </Link>
@@ -206,7 +206,7 @@ export default async function DashboardPage() {
                   </div>
                   <StatusBadge status={o.status} />
                   <ChevronRight
-                    className="w-4 h-4 text-slate-300 group-hover:text-primary-600 shrink-0"
+                    className="w-4 h-4 text-slate-300 group-hover:text-sm-red shrink-0"
                     aria-hidden="true"
                   />
                 </Link>
