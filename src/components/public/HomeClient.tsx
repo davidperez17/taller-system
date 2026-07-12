@@ -62,15 +62,15 @@ const DIFERENCIA = [
 
 const SPECIALTIES = ["Mecánica", "Electricidad", "Aire acondicionado", "Diagnóstico Mazda", "Control de calidad"];
 
-const TEAM = [
-  { initials: "JM", role: "Jefe de taller" },
-  { initials: "CR", role: "Mecánico Mazda" },
-  { initials: "LP", role: "Electromecánico" },
-  { initials: "AG", role: "Técnico A/C" },
-  { initials: "RS", role: "Mecánico de motos" },
-  { initials: "DV", role: "Técnico de camiones" },
-  { initials: "MH", role: "Mecánico general" },
-  { initials: "KT", role: "Control de calidad" },
+const ROLES = [
+  "Jefe de taller",
+  "Mecánico Mazda",
+  "Electromecánico",
+  "Técnico A/C",
+  "Mecánico de motos",
+  "Técnico de camiones",
+  "Mecánico general",
+  "Control de calidad",
 ];
 
 export default function HomeClient() {
@@ -395,13 +395,11 @@ export default function HomeClient() {
                 ))}
               </div>
             </div>
-            <ul className="grid grid-cols-4 gap-x-3 gap-y-6">
-              {TEAM.map((tm) => (
-                <li key={tm.role} className="flex flex-col items-center gap-2 text-center">
-                  <span className="grid place-items-center w-12 h-12 rounded-full bg-sm-graphite text-white font-heading font-bold text-lg" aria-hidden="true">
-                    {tm.initials}
-                  </span>
-                  <span className="text-[12px] leading-tight font-medium text-sm-muted">{tm.role}</span>
+            <ul className="grid grid-cols-2 gap-x-6 gap-y-3.5">
+              {ROLES.map((role) => (
+                <li key={role} className="flex items-center gap-2.5 text-sm font-medium text-sm-ink">
+                  <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-sm-red" aria-hidden="true" />
+                  {role}
                 </li>
               ))}
             </ul>
