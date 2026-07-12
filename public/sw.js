@@ -2,7 +2,7 @@
 // los bytes de este archivo el navegador detecta un SW nuevo, que queda en
 // espera (no llamamos skipWaiting aquí) hasta que el usuario toca "Aplicar"
 // en el pop de la app. Ese botón envía SKIP_WAITING (ver listener de abajo).
-const VERSION = "sm96-v3";
+const VERSION = "sm96-v4";
 const CACHE = VERSION;
 const OFFLINE_ASSETS = ["/", "/manifest.webmanifest", "/icons/icon-192.png"];
 

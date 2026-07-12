@@ -76,7 +76,7 @@ function iconSvg(size, { maskable = false } = {}) {
          font-size="${inner * 0.42}" fill="#ffffff">${brand.shortName}</text>`;
   return Buffer.from(
     `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
-       <rect width="100%" height="100%" rx="${maskable ? 0 : size * 0.18}" fill="${brand.themeColor}"/>
+       <rect width="100%" height="100%" rx="${maskable ? 0 : size * 0.18}" fill="${brand.iconColor ?? brand.themeColor}"/>
        ${art}
      </svg>`
   );
@@ -95,7 +95,7 @@ for (const [file, size, opts] of [
 const swPath = path.join(root, "public/sw.js");
 let sw = readFileSync(swPath, "utf8");
 sw = sw.replace(/title: "[^"]*", body: "Hay novedades/, `title: "${brand.name}", body: "Hay novedades`);
-sw = sw.replace(/const CACHE = "sm96-v(\d+)";/, (_, n) => `const CACHE = "sm96-v${Number(n) + 1}";`);
+sw = sw.replace(/const VERSION = "sm96-v(\d+)";/, (_, n) => `const VERSION = "sm96-v${Number(n) + 1}";`);
 writeFileSync(swPath, sw);
 console.log("✔ sw.js (título push + versión de caché)");
 
