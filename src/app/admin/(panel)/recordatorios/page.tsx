@@ -6,6 +6,7 @@ import {
   toggleReminderAction,
   deleteReminderAction,
 } from "@/app/admin/actions";
+import SubmitButton from "@/components/admin/SubmitButton";
 import { formatDay, daysUntil } from "@/lib/status";
 import {
   PageTitle,
@@ -138,14 +139,13 @@ export default async function RemindersPage() {
         )}
         <form action={toggleReminderAction}>
           <input type="hidden" name="id" value={r.id} />
-          <button
-            type="submit"
-            className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-accent-600 transition-colors cursor-pointer shrink-0"
-            aria-label={r.done ? "Marcar como pendiente" : "Marcar como hecho"}
+          <SubmitButton
+            className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-accent-600 transition-colors cursor-pointer shrink-0 disabled:opacity-60"
+            ariaLabel={r.done ? "Marcar como pendiente" : "Marcar como hecho"}
             title={r.done ? "Reabrir" : "Marcar hecho"}
           >
             {r.done ? <RotateCcw className="w-4 h-4" /> : <Check className="w-4 h-4" />}
-          </button>
+          </SubmitButton>
         </form>
         <form action={deleteReminderAction}>
           <input type="hidden" name="id" value={r.id} />
@@ -292,9 +292,9 @@ export default async function RemindersPage() {
                 </label>
                 <input id="r-notes" name="notes" className={inputCls} />
               </div>
-              <button type="submit" className={`${btnPrimary} w-full`}>
+              <SubmitButton className={`${btnPrimary} w-full`} pendingText="Programando…">
                 Programar recordatorio
-              </button>
+              </SubmitButton>
             </form>
           )}
         </section>

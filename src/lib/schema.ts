@@ -245,4 +245,17 @@ export const MIGRATIONS: string[][] = [
      )`,
     `CREATE INDEX IF NOT EXISTS idx_announcements_active ON announcements(active)`,
   ],
+  // v13 — modalidad de la orden: 'taller' (por defecto) vs 'domicilio'. Reusa
+  // toda la lógica de cotización/pagos/ganancia; solo separa el canal en reportes.
+  // service_location guarda dónde fue la visita (opcional, solo domicilio). Se
+  // pre-carga un servicio "Visita a domicilio" para cotizar el traslado en un
+  // toque; el taller edita su precio/costo cuando quiera.
+  [
+    `ALTER TABLE orders ADD COLUMN IF NOT EXISTS modality TEXT NOT NULL DEFAULT 'taller'`,
+    `ALTER TABLE orders ADD COLUMN IF NOT EXISTS service_location TEXT`,
+    `CREATE INDEX IF NOT EXISTS idx_orders_modality ON orders(modality)`,
+    `INSERT INTO services (name, category, price, est_cost)
+       SELECT 'Visita a domicilio', 'Domicilio', 0, 0
+        WHERE NOT EXISTS (SELECT 1 FROM services WHERE name = 'Visita a domicilio')`,
+  ],
 ];

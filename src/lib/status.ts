@@ -109,6 +109,13 @@ export const ROLES: Record<string, string> = {
   mecanico: "Mecánico",
 };
 
+// Modalidad del servicio: en el taller vs a domicilio (el equipo va al cliente).
+export type OrderModality = "taller" | "domicilio";
+export const ORDER_MODALITIES: Record<OrderModality, string> = {
+  taller: "En taller",
+  domicilio: "A domicilio",
+};
+
 export const PART_CATEGORIES: string[] = [
   "Motor",
   "Frenos",

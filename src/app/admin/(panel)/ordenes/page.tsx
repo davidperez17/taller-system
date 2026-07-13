@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Search, ChevronRight } from "lucide-react";
+import { Plus, Search, ChevronRight, MapPin } from "lucide-react";
 import { many, normalizePlate } from "@/lib/db";
 import { STATUS_META, formatDate, type OrderStatus } from "@/lib/status";
 import { StatusBadge, PlateBadge, VehicleTypeIcon, PageTitle, card, btnPrimary, inputCls } from "@/components/admin/ui";
@@ -14,12 +14,18 @@ const FILTERS: { key: string; label: string }[] = [
   ...Object.entries(STATUS_META).map(([key, m]) => ({ key, label: m.label })),
 ];
 
+const MODALITY_FILTERS: { key: string; label: string }[] = [
+  { key: "", label: "Todas" },
+  { key: "taller", label: "En taller" },
+  { key: "domicilio", label: "A domicilio" },
+];
+
 export default async function OrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ estado?: string; q?: string }>;
+  searchParams: Promise<{ estado?: string; q?: string; modalidad?: string }>;
 }) {
-  const { estado = "activas", q = "" } = await searchParams;
+  const { estado = "activas", q = "", modalidad = "" } = await searchParams;
 
   let where = "1=1";
   const args: (string | number)[] = [];
@@ -28,6 +34,10 @@ export default async function OrdersPage({
   } else if (estado !== "todas" && STATUS_META[estado as OrderStatus]) {
     where += " AND o.status = ?";
     args.push(estado);
+  }
+  if (modalidad === "taller" || modalidad === "domicilio") {
+    where += " AND o.modality = ?";
+    args.push(modalidad);
   }
   if (q.trim()) {
     where += " AND (v.plate LIKE ? OR c.name LIKE ? OR o.folio LIKE ?)";
@@ -39,10 +49,10 @@ export default async function OrdersPage({
   const orders = await many<{
     id: number; folio: string; status: string; description: string; updated_at: string;
     created_at: string; plate: string; type: string; brand: string | null;
-    model: string | null; client: string;
+    model: string | null; client: string; modality: string;
   }>(
     `SELECT o.id, o.folio, o.status, o.description, o.updated_at, o.created_at,
-              v.plate, v.type, v.brand, v.model, c.name AS client
+              v.plate, v.type, v.brand, v.model, c.name AS client, o.modality
        FROM orders o
        JOIN vehicles v ON v.id = o.vehicle_id
        JOIN clients c ON c.id = v.client_id
@@ -65,6 +75,7 @@ export default async function OrdersPage({
 
       <form className="flex gap-2" action="/admin/ordenes" method="GET">
         <input type="hidden" name="estado" value={estado} />
+        {modalidad && <input type="hidden" name="modalidad" value={modalidad} />}
         <div className="relative flex-1">
           <Search
             className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"
@@ -87,7 +98,7 @@ export default async function OrdersPage({
         {FILTERS.map((f) => (
           <Link
             key={f.key}
-            href={`/admin/ordenes?estado=${f.key}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
+            href={`/admin/ordenes?estado=${f.key}${modalidad ? `&modalidad=${modalidad}` : ""}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
             aria-current={estado === f.key ? "page" : undefined}
             className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
               estado === f.key
@@ -96,6 +107,27 @@ export default async function OrdersPage({
             }`}
           >
             {f.label}
+          </Link>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-2 -mx-4 px-4 lg:mx-0 lg:px-0 overflow-x-auto pb-0.5">
+        <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+          Modalidad
+        </span>
+        {MODALITY_FILTERS.map((mf) => (
+          <Link
+            key={mf.key}
+            href={`/admin/ordenes?estado=${estado}${mf.key ? `&modalidad=${mf.key}` : ""}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
+            aria-current={modalidad === mf.key ? "page" : undefined}
+            className={`shrink-0 inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+              modalidad === mf.key
+                ? "bg-slate-800 text-white"
+                : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+            }`}
+          >
+            {mf.key === "domicilio" && <MapPin className="w-3 h-3" aria-hidden="true" />}
+            {mf.label}
           </Link>
         ))}
       </div>
@@ -122,6 +154,11 @@ export default async function OrdersPage({
                       <span className="text-sm font-medium text-slate-700 truncate">
                         {[o.brand, o.model].filter(Boolean).join(" ") || "—"}
                       </span>
+                      {o.modality === "domicilio" && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide bg-sm-red/10 text-sm-red border border-sm-red/25 rounded-full px-1.5 py-0.5">
+                          <MapPin className="w-2.5 h-2.5" aria-hidden="true" /> Domicilio
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-slate-400 mt-0.5 truncate">
                       {o.folio} · {o.client} · Actualizada {formatDate(o.updated_at)}

@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   ArrowLeft, Bell, BellRing, BookmarkPlus, BookmarkCheck, Car, Bike, Truck,
   CheckCircle2, Circle, CircleDot, HelpCircle, KeyRound, MessageSquareText,
-  RefreshCw, SearchX, Wrench, CalendarClock, Receipt, History, LockKeyhole, FileDown,
+  RefreshCw, SearchX, Wrench, CalendarClock, Receipt, History, LockKeyhole, FileDown, MapPin,
 } from "lucide-react";
 import { STATUS_FLOW, STATUS_META, type OrderStatus, formatMoney, formatDate, formatDateShort } from "@/lib/status";
 import type { TrackingResult } from "@/lib/tracking";
@@ -158,6 +158,11 @@ export default function TrackingClient({
             <span className="plate-badge inline-block bg-sm-bg border border-sm-border-strong rounded-lg px-3 py-1 text-sm-graphite">
               {data.plate}
             </span>
+            {order.modality === "domicilio" && (
+              <span className="inline-flex items-center gap-1 ml-2 align-middle text-[11px] font-semibold uppercase tracking-wide bg-sm-red/10 text-sm-red border border-sm-red/25 rounded-full px-2 py-0.5">
+                <MapPin className="w-3 h-3" aria-hidden="true" /> A domicilio
+              </span>
+            )}
             {data.vehicle && (
               <p className="text-sm-graphite font-medium mt-1.5 truncate">{vehicleLabel(data)}</p>
             )}

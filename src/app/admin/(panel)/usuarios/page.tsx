@@ -5,6 +5,7 @@ import { getSessionUser } from "@/lib/auth";
 import {
   createUserAction, toggleUserAction, resetPasswordAction, setUserCostAction,
 } from "@/app/admin/actions";
+import SubmitButton from "@/components/admin/SubmitButton";
 import { ROLES, formatDate, formatMoney } from "@/lib/status";
 import { PageTitle, card, btnPrimary, btnSecondary, inputCls, labelCls } from "@/components/admin/ui";
 
@@ -66,10 +67,10 @@ export default async function UsersPage() {
                   {u.id !== me.id && (
                     <form action={toggleUserAction}>
                       <input type="hidden" name="id" value={u.id} />
-                      <button
-                        type="submit"
+                      <SubmitButton
                         className={btnSecondary}
-                        aria-label={u.active ? `Desactivar a ${u.name}` : `Activar a ${u.name}`}
+                        ariaLabel={u.active ? `Desactivar a ${u.name}` : `Activar a ${u.name}`}
+                        pendingText="Guardando…"
                       >
                         {u.active ? (
                           <>
@@ -80,7 +81,7 @@ export default async function UsersPage() {
                             <ShieldCheck className="w-4 h-4" aria-hidden="true" /> Activar
                           </>
                         )}
-                      </button>
+                      </SubmitButton>
                     </form>
                   )}
                 </div>
@@ -107,9 +108,9 @@ export default async function UsersPage() {
                         className={inputCls}
                       />
                     </div>
-                    <button type="submit" className={btnSecondary}>
+                    <SubmitButton className={btnSecondary} pendingText="Guardando…">
                       Guardar
-                    </button>
+                    </SubmitButton>
                   </form>
                   <p className="mt-1 text-[11px] text-slate-400">
                     Se usa en Reportes para calcular la ganancia neta y el costo por trabajador.
@@ -134,9 +135,9 @@ export default async function UsersPage() {
                         placeholder="Nueva contraseña (mín. 8)"
                         className={inputCls}
                       />
-                      <button type="submit" className={btnPrimary}>
+                      <SubmitButton className={btnPrimary} pendingText="Cambiando…">
                         Cambiar
-                      </button>
+                      </SubmitButton>
                     </form>
                   </details>
                 ) : (
@@ -199,9 +200,9 @@ export default async function UsersPage() {
                 ))}
               </select>
             </div>
-            <button type="submit" className={`${btnPrimary} w-full`}>
+            <SubmitButton className={`${btnPrimary} w-full`} pendingText="Creando…">
               Crear usuario
-            </button>
+            </SubmitButton>
           </form>
         </section>
       </div>

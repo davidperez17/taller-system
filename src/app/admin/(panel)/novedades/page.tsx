@@ -8,6 +8,7 @@ import {
   createAnnouncementAction, updateAnnouncementAction,
   toggleAnnouncementAction, deleteAnnouncementAction,
 } from "@/app/admin/actions";
+import SubmitButton from "@/components/admin/SubmitButton";
 import {
   PageTitle, card, btnPrimary, btnSecondary, inputCls, labelCls,
 } from "@/components/admin/ui";
@@ -108,9 +109,9 @@ export default async function AnnouncementsPage() {
           <p className="text-xs text-slate-400">
             Sin fechas, la novedad se muestra hasta que la ocultes. Con fechas, solo dentro del rango.
           </p>
-          <button type="submit" className={btnPrimary}>
+          <SubmitButton className={btnPrimary} pendingText="Publicando…">
             Publicar novedad
-          </button>
+          </SubmitButton>
         </form>
       </section>
 
@@ -158,10 +159,10 @@ export default async function AnnouncementsPage() {
                 <div className="flex items-center gap-1 shrink-0">
                   <form action={toggleAnnouncementAction}>
                     <input type="hidden" name="id" value={a.id} />
-                    <button
-                      type="submit"
+                    <SubmitButton
                       className={btnSecondary}
-                      aria-label={a.active ? "Ocultar novedad" : "Publicar novedad"}
+                      ariaLabel={a.active ? "Ocultar novedad" : "Publicar novedad"}
+                      pendingText="Guardando…"
                     >
                       {a.active ? (
                         <>
@@ -172,7 +173,7 @@ export default async function AnnouncementsPage() {
                           <Eye className="w-4 h-4" aria-hidden="true" /> Publicar
                         </>
                       )}
-                    </button>
+                    </SubmitButton>
                   </form>
                   <form action={deleteAnnouncementAction}>
                     <input type="hidden" name="id" value={a.id} />
@@ -217,9 +218,9 @@ export default async function AnnouncementsPage() {
                       <input name="ends_on" type="date" defaultValue={a.ends_on ?? ""} className={inputCls} />
                     </div>
                   </div>
-                  <button type="submit" className={`${btnPrimary} w-full sm:w-auto`}>
+                  <SubmitButton className={`${btnPrimary} w-full sm:w-auto`} pendingText="Guardando…">
                     Guardar cambios
-                  </button>
+                  </SubmitButton>
                 </form>
               </details>
             </article>

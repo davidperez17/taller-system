@@ -7,6 +7,7 @@ import brand from "@/lib/brand.json";
 import {
   updateClientAction, createVehicleAction, deleteClientAction, deleteVehicleAction,
 } from "@/app/admin/actions";
+import SubmitButton from "@/components/admin/SubmitButton";
 import { getSessionUser } from "@/lib/auth";
 import { formatDate } from "@/lib/status";
 import { VEHICLE_TYPES } from "@/lib/status";
@@ -190,9 +191,9 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                   </label>
                   <input id="v-color" name="color" className={inputCls} />
                 </div>
-                <button type="submit" className={`${btnPrimary} col-span-2`}>
+                <SubmitButton className={`${btnPrimary} col-span-2`} pendingText="Guardando…">
                   Guardar vehículo
-                </button>
+                </SubmitButton>
               </form>
             </details>
           </section>
@@ -283,9 +284,9 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
               </label>
               <textarea id="e-notes" name="notes" rows={3} defaultValue={client.notes ?? ""} className={inputCls} />
             </div>
-            <button type="submit" className={`${btnPrimary} w-full`}>
+            <SubmitButton className={`${btnPrimary} w-full`} pendingText="Guardando…">
               Guardar cambios
-            </button>
+            </SubmitButton>
           </form>
           <form action={deleteClientAction} className="mt-3">
             <input type="hidden" name="id" value={client.id} />

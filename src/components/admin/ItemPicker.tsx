@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Boxes, Hammer, PenLine } from "lucide-react";
 import { addOrderItemAction } from "@/app/admin/actions";
 import { btnPrimary, inputCls, labelCls } from "@/components/admin/ui";
+import SubmitButton from "@/components/admin/SubmitButton";
 
 export type PickerPart = {
   id: number;
@@ -11,27 +12,32 @@ export type PickerPart = {
   sku: string | null;
   stock: number;
   unit_price: number;
+  cost: number;
 };
 export type PickerService = {
   id: number;
   name: string;
   category: string | null;
   price: number;
+  est_cost: number;
 };
 
 type Tab = "repuesto" | "servicio" | "libre";
 
 // Selector de ítems del presupuesto: repuesto de inventario (descuenta stock),
-// servicio del catálogo, o ítem libre. Los precios se pueden sobreescribir;
-// el costo lo asigna el server action (snapshot del catálogo/inventario).
+// servicio del catálogo, o ítem libre. Precio y costo se pueden sobreescribir;
+// el campo de costo solo lo ve el admin (rentabilidad). Si se deja vacío, el
+// server action toma el costo del catálogo/inventario como respaldo.
 export default function ItemPicker({
   orderId,
   parts,
   services,
+  isAdmin,
 }: {
   orderId: number;
   parts: PickerPart[];
   services: PickerService[];
+  isAdmin: boolean;
 }) {
   const [tab, setTab] = useState<Tab>(services.length > 0 ? "servicio" : "libre");
   const [partId, setPartId] = useState("");
@@ -55,6 +61,20 @@ export default function ItemPicker({
     { id: "libre", label: "Libre", icon: PenLine },
   ];
 
+  // Ayuda contextual según la pestaña y el rol. El costo solo lo ve el admin.
+  const hint =
+    tab === "repuesto"
+      ? `Deja precio vacío para usar el de inventario; se descuenta del stock al agregar.${
+          isAdmin ? " El costo se rellena del inventario si lo dejas vacío." : ""
+        }`
+      : tab === "servicio"
+        ? `Deja precio vacío para usar el del catálogo.${
+            isAdmin ? " El costo se rellena del catálogo si lo dejas vacío." : ""
+          }`
+        : isAdmin
+          ? "El costo es solo tuyo (rentabilidad); el cliente solo ve el precio de venta."
+          : "";
+
   return (
     <div className="mt-4">
       <div className="flex gap-1 bg-slate-100 rounded-xl p-1 w-fit" role="tablist">
@@ -75,7 +95,11 @@ export default function ItemPicker({
 
       <form
         action={addOrderItemAction}
-        className="mt-3 grid grid-cols-2 sm:grid-cols-[1fr_5rem_7rem_auto] gap-2 items-end"
+        className={`mt-3 grid grid-cols-2 gap-2 items-end ${
+          isAdmin
+            ? "sm:grid-cols-[1fr_5rem_7rem_7rem_auto]"
+            : "sm:grid-cols-[1fr_5rem_7rem_auto]"
+        }`}
       >
         <input type="hidden" name="order_id" value={orderId} />
 
@@ -180,9 +204,32 @@ export default function ItemPicker({
             className={inputCls}
           />
         </div>
-        <div>
+        {isAdmin && (
+          <div>
+            <label htmlFor="item-cost" className={labelCls}>
+              Costo
+            </label>
+            <input
+              id="item-cost"
+              name="unit_cost"
+              type="number"
+              step="0.01"
+              min="0"
+              inputMode="decimal"
+              placeholder={
+                tab === "repuesto" && selectedPart
+                  ? String(selectedPart.cost)
+                  : tab === "servicio" && selectedService
+                    ? String(selectedService.est_cost)
+                    : undefined
+              }
+              className={inputCls}
+            />
+          </div>
+        )}
+        <div className={isAdmin ? "col-span-2 sm:col-span-1" : undefined}>
           <label htmlFor="item-price" className={labelCls}>
-            P. unitario
+            Precio venta
           </label>
           <input
             id="item-price"
@@ -201,14 +248,19 @@ export default function ItemPicker({
             className={inputCls}
           />
         </div>
-        <button type="submit" className={`${btnPrimary} col-span-2 sm:col-span-1`}>
+        <SubmitButton
+          className={`${btnPrimary} col-span-2 sm:col-span-1`}
+          pendingText="Agregando…"
+        >
           Agregar
-        </button>
-        {tab !== "libre" && (
-          <p className="col-span-2 sm:col-span-4 text-xs text-slate-400">
-            {tab === "repuesto"
-              ? "Deja el precio vacío para usar el de inventario. Al agregar se descuenta del stock."
-              : "Deja el precio vacío para usar el del catálogo."}
+        </SubmitButton>
+        {hint && (
+          <p
+            className={`col-span-2 text-xs text-slate-400 ${
+              isAdmin ? "sm:col-span-5" : "sm:col-span-4"
+            }`}
+          >
+            {hint}
           </p>
         )}
       </form>

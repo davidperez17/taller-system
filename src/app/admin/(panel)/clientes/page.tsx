@@ -3,6 +3,7 @@ import { Search, ChevronRight, UserPlus, Phone } from "lucide-react";
 import { many } from "@/lib/db";
 import { createClientAction } from "@/app/admin/actions";
 import { PageTitle, card, btnPrimary, inputCls, labelCls } from "@/components/admin/ui";
+import SubmitButton from "@/components/admin/SubmitButton";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Clientes" };
@@ -113,9 +114,9 @@ export default async function ClientsPage({
               </label>
               <input id="c-address" name="address" className={inputCls} />
             </div>
-            <button type="submit" className={`${btnPrimary} w-full`}>
+            <SubmitButton className={`${btnPrimary} w-full`} pendingText="Guardando…">
               Guardar cliente
-            </button>
+            </SubmitButton>
           </form>
         </section>
       </div>

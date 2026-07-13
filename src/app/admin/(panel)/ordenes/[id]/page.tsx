@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import {
-  ArrowLeft, MessageSquareText, MessageCircle, Wrench, Eye, EyeOff, Trash2, Phone, KeyRound, ExternalLink, Printer, FileDown,
+  ArrowLeft, MessageSquareText, MessageCircle, Wrench, Eye, EyeOff, Trash2, Phone, KeyRound, ExternalLink, Printer, FileDown, MapPin,
 } from "lucide-react";
 import { waLink, WA_TEMPLATES } from "@/lib/whatsapp";
 import { one, many } from "@/lib/db";
@@ -15,6 +15,8 @@ import {
 } from "@/app/admin/actions";
 import { getSessionUser } from "@/lib/auth";
 import ItemPicker from "@/components/admin/ItemPicker";
+import ItemCostCell from "@/components/admin/ItemCostCell";
+import SubmitButton from "@/components/admin/SubmitButton";
 import PhotoInput from "@/components/admin/PhotoInput";
 import StatusChangeForm from "@/components/admin/StatusChangeForm";
 import ConfirmSubmitButton from "@/components/admin/ConfirmSubmitButton";
@@ -37,6 +39,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
     client_phone: string | null;
     approval_status: "pendiente" | "aprobado" | "rechazado";
     approval_at: string | null; approval_total: number | null;
+    modality: string; service_location: string | null;
   }>(
     `SELECT o.*, v.plate, v.type, v.brand, v.model, v.year, v.color,
               c.id AS client_id, c.name AS client_name, c.phone AS client_phone
@@ -51,8 +54,13 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
   const items = await many<{
     id: number; kind: string; description: string; qty: number; unit_price: number;
+    unit_cost: number;
   }>("SELECT * FROM order_items WHERE order_id = ? ORDER BY id", [order.id]);
   const total = items.reduce((s, i) => s + i.qty * i.unit_price, 0);
+  const costTotal = items.reduce((s, i) => s + i.qty * i.unit_cost, 0);
+  const profit = total - costTotal;
+  const margin = total > 0 ? profit / total : 0;
+  const hasCost = costTotal > 0.009;
 
   const events = await many<{
     id: number; type: string; title: string; detail: string | null; is_public: number;
@@ -80,16 +88,17 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   const paid = payments.reduce((s, p) => s + p.amount, 0);
   const saldo = total - paid;
   const me = await getSessionUser();
+  const isAdmin = me?.role === "admin";
 
   const pickerParts = await many<{
-    id: number; name: string; sku: string | null; stock: number; unit_price: number;
+    id: number; name: string; sku: string | null; stock: number; unit_price: number; cost: number;
   }>(
-    "SELECT id, name, sku, stock, unit_price FROM parts WHERE active = 1 ORDER BY name LIMIT 200"
+    "SELECT id, name, sku, stock, unit_price, cost FROM parts WHERE active = 1 ORDER BY name LIMIT 200"
   );
   const pickerServices = await many<{
-    id: number; name: string; category: string | null; price: number;
+    id: number; name: string; category: string | null; price: number; est_cost: number;
   }>(
-    "SELECT id, name, category, price FROM services WHERE active = 1 ORDER BY category NULLS LAST, name LIMIT 200"
+    "SELECT id, name, category, price, est_cost FROM services WHERE active = 1 ORDER BY category NULLS LAST, name LIMIT 200"
   );
 
   const meta = STATUS_META[order.status];
@@ -143,6 +152,11 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 </p>
                 <div className="mt-1 flex items-center gap-2 flex-wrap">
                   <StatusBadge status={order.status} />
+                  {order.modality === "domicilio" && (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide bg-sm-red/10 text-sm-red border border-sm-red/25 rounded-full px-2 py-0.5">
+                      <MapPin className="w-3 h-3" aria-hidden="true" /> A domicilio
+                    </span>
+                  )}
                   {order.approval_status === "aprobado" && (
                     <span className="text-[11px] font-semibold uppercase tracking-wide bg-accent-50 text-accent-700 border border-accent-200 rounded-full px-2 py-0.5">
                       Presupuesto aprobado
@@ -211,9 +225,9 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                   />
                   Visible para el cliente (envía notificación)
                 </label>
-                <button type="submit" className={btnPrimary}>
+                <SubmitButton className={btnPrimary} pendingText="Agregando…">
                   Agregar anotación
-                </button>
+                </SubmitButton>
               </div>
             </form>
 
@@ -284,58 +298,92 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                       <th className="py-2 pr-2 font-semibold">Concepto</th>
                       <th className="py-2 px-2 font-semibold hidden sm:table-cell">Tipo</th>
                       <th className="py-2 px-2 font-semibold text-right">Cant.</th>
-                      <th className="py-2 px-2 font-semibold text-right hidden md:table-cell">P. unitario</th>
+                      {isAdmin && <th className="py-2 px-2 font-semibold text-right">Costo unit.</th>}
+                      <th className="py-2 px-2 font-semibold text-right hidden md:table-cell">P. venta</th>
                       <th className="py-2 px-2 font-semibold text-right">Importe</th>
+                      {isAdmin && <th className="py-2 px-2 font-semibold text-right">Ganancia</th>}
                       <th className="py-2 pl-2" aria-label="Acciones" />
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
-                    {items.map((it) => (
-                      <tr key={it.id}>
-                        <td className="py-2.5 pr-2 text-slate-700">{it.description}</td>
-                        <td className="py-2.5 px-2 text-slate-500 capitalize hidden sm:table-cell">
-                          {it.kind}
-                        </td>
-                        <td className="py-2.5 px-2 text-right tabular-nums text-slate-500">{it.qty}</td>
-                        <td className="py-2.5 px-2 text-right tabular-nums text-slate-500 hidden md:table-cell">
-                          {formatMoney(it.unit_price)}
-                        </td>
-                        <td className="py-2.5 px-2 text-right tabular-nums font-medium text-slate-700">
-                          {formatMoney(it.qty * it.unit_price)}
-                        </td>
-                        <td className="py-2.5 pl-2 text-right">
-                          <form action={deleteOrderItemAction} className="inline">
-                            <input type="hidden" name="id" value={it.id} />
-                            <input type="hidden" name="order_id" value={order.id} />
-                            <ConfirmSubmitButton
-                              ariaLabel={`Eliminar ${it.description}`}
-                              className="p-1.5 text-slate-300 hover:text-red-500 transition-colors cursor-pointer"
-                              confirmTitle="¿Eliminar concepto?"
-                              confirmMessage={`Se quita "${it.description}" de la orden.`}
+                    {items.map((it) => {
+                      const lineProfit = it.qty * (it.unit_price - it.unit_cost);
+                      return (
+                        <tr key={it.id}>
+                          <td className="py-2.5 pr-2 text-slate-700">{it.description}</td>
+                          <td className="py-2.5 px-2 text-slate-500 capitalize hidden sm:table-cell">
+                            {it.kind}
+                          </td>
+                          <td className="py-2.5 px-2 text-right tabular-nums text-slate-500">{it.qty}</td>
+                          {isAdmin && (
+                            <td className="py-2.5 px-2 text-right">
+                              <ItemCostCell
+                                itemId={it.id}
+                                orderId={order.id}
+                                cost={it.unit_cost}
+                                label={it.description}
+                              />
+                            </td>
+                          )}
+                          <td className="py-2.5 px-2 text-right tabular-nums text-slate-500 hidden md:table-cell">
+                            {formatMoney(it.unit_price)}
+                          </td>
+                          <td className="py-2.5 px-2 text-right tabular-nums font-medium text-slate-700">
+                            {formatMoney(it.qty * it.unit_price)}
+                          </td>
+                          {isAdmin && (
+                            <td
+                              className={`py-2.5 px-2 text-right tabular-nums font-medium ${
+                                lineProfit < -0.009 ? "text-red-600" : "text-accent-700"
+                              }`}
                             >
-                              <Trash2 className="w-4 h-4" aria-hidden="true" />
-                            </ConfirmSubmitButton>
-                          </form>
-                        </td>
-                      </tr>
-                    ))}
+                              {formatMoney(lineProfit)}
+                            </td>
+                          )}
+                          <td className="py-2.5 pl-2 text-right">
+                            <form action={deleteOrderItemAction} className="inline">
+                              <input type="hidden" name="id" value={it.id} />
+                              <input type="hidden" name="order_id" value={order.id} />
+                              <ConfirmSubmitButton
+                                ariaLabel={`Eliminar ${it.description}`}
+                                className="p-1.5 text-slate-300 hover:text-red-500 transition-colors cursor-pointer"
+                                confirmTitle="¿Eliminar concepto?"
+                                confirmMessage={`Se quita "${it.description}" de la orden.`}
+                              >
+                                <Trash2 className="w-4 h-4" aria-hidden="true" />
+                              </ConfirmSubmitButton>
+                            </form>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                   <tfoot>
                     <tr className="border-t border-slate-200">
                       <td className="py-3 font-semibold text-slate-800">Total</td>
                       <td className="hidden sm:table-cell" />
                       <td />
+                      {isAdmin && <td />}
                       <td className="hidden md:table-cell" />
                       <td className="py-3 text-right font-bold text-slate-900 tabular-nums">
                         {formatMoney(total)}
                       </td>
+                      {isAdmin && (
+                        <td
+                          className={`py-3 text-right font-bold tabular-nums ${
+                            profit < -0.009 ? "text-red-600" : "text-accent-700"
+                          }`}
+                        >
+                          {formatMoney(profit)}
+                        </td>
+                      )}
                       <td />
                     </tr>
                   </tfoot>
                 </table>
               </div>
             )}
-            <ItemPicker orderId={order.id} parts={pickerParts} services={pickerServices} />
+            <ItemPicker orderId={order.id} parts={pickerParts} services={pickerServices} isAdmin={isAdmin} />
           </section>
 
           {/* Pagos */}
@@ -357,6 +405,50 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 <p className={`font-heading font-bold text-base sm:text-lg tabular-nums ${saldo > 0.009 ? "text-amber-700" : "text-slate-500"}`}>{formatMoney(saldo)}</p>
               </div>
             </div>
+
+            {/* Rentabilidad — solo admin. El cliente nunca ve costo ni ganancia. */}
+            {isAdmin && items.length > 0 && (
+              <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                  <EyeOff className="w-3.5 h-3.5" aria-hidden="true" />
+                  Rentabilidad · solo el equipo la ve
+                </p>
+                <div className="mt-2.5 grid grid-cols-3 gap-3 text-center">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Costo</p>
+                    <p className="font-heading font-bold text-base sm:text-lg tabular-nums text-slate-700">
+                      {formatMoney(costTotal)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Ganancia</p>
+                    <p
+                      className={`font-heading font-bold text-base sm:text-lg tabular-nums ${
+                        profit < -0.009 ? "text-red-600" : "text-accent-700"
+                      }`}
+                    >
+                      {formatMoney(profit)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Margen</p>
+                    <p
+                      className={`font-heading font-bold text-base sm:text-lg tabular-nums ${
+                        profit < -0.009 ? "text-red-600" : "text-slate-700"
+                      }`}
+                    >
+                      {total > 0 ? `${Math.round(margin * 100)}%` : "—"}
+                    </p>
+                  </div>
+                </div>
+                {!hasCost && (
+                  <p className="mt-2.5 text-xs text-slate-400">
+                    Sin costos registrados: la ganancia mostrada equivale al total. Escribe el costo
+                    real de cada concepto en la tabla de arriba para ver el margen verdadero.
+                  </p>
+                )}
+              </div>
+            )}
 
             {payments.length > 0 && (
               <ul className="mt-4 divide-y divide-slate-50">
@@ -434,9 +526,12 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                   </label>
                   <input id="pay-ref" name="reference" className={inputCls} />
                 </div>
-                <button type="submit" className={`${btnPrimary} col-span-2 sm:col-span-1`}>
+                <SubmitButton
+                  className={`${btnPrimary} col-span-2 sm:col-span-1`}
+                  pendingText="Registrando…"
+                >
                   Registrar pago
-                </button>
+                </SubmitButton>
               </form>
             )}
             {payments.length === 0 && saldo <= 0.009 && (
@@ -485,6 +580,15 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                       <Phone className="w-3.5 h-3.5 text-slate-400" aria-hidden="true" />
                       {order.client_phone}
                     </a>
+                  </dd>
+                </div>
+              )}
+              {order.modality === "domicilio" && order.service_location && (
+                <div className="flex justify-between gap-2">
+                  <dt className="text-slate-400 shrink-0">Ubicación</dt>
+                  <dd className="text-slate-700 text-right flex items-start gap-1">
+                    <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" aria-hidden="true" />
+                    <span>{order.service_location}</span>
                   </dd>
                 </div>
               )}
@@ -665,9 +769,9 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                   </select>
                 </div>
               </div>
-              <button type="submit" className={`${btnSecondary} w-full`}>
+              <SubmitButton className={`${btnSecondary} w-full`} pendingText="Guardando…">
                 Guardar cambios
-              </button>
+              </SubmitButton>
             </form>
           </section>
         </div>

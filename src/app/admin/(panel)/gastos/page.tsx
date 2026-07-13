@@ -4,6 +4,7 @@ import { many, one } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { EXPENSE_CATEGORIES, formatMoney } from "@/lib/status";
 import { createExpenseAction, deleteExpenseAction } from "@/app/admin/actions";
+import SubmitButton from "@/components/admin/SubmitButton";
 import { PageTitle, card, btnPrimary, inputCls, labelCls } from "@/components/admin/ui";
 import ConfirmSubmitButton from "@/components/admin/ConfirmSubmitButton";
 
@@ -202,9 +203,9 @@ export default async function ExpensesPage({
                 className={inputCls}
               />
             </div>
-            <button type="submit" className={`${btnPrimary} w-full`}>
+            <SubmitButton className={`${btnPrimary} w-full`} pendingText="Registrando…">
               <Receipt className="w-4 h-4" aria-hidden="true" /> Registrar gasto
-            </button>
+            </SubmitButton>
           </form>
           <p className="mt-3 text-xs text-slate-400 flex items-start gap-1.5">
             <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden="true" />

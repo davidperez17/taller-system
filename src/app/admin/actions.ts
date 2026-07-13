@@ -241,14 +241,19 @@ export async function createOrderAction(
 
   const folio = await nextFolio();
   const description = str(formData, "description", { max: 2000 });
+  // Modalidad del servicio: en el taller (default) o a domicilio (el equipo va
+  // al cliente). La ubicación solo aplica a domicilio.
+  const modality = formData.get("modality") === "domicilio" ? "domicilio" : "taller";
+  const serviceLocation =
+    modality === "domicilio" ? strOrNull(formData, "service_location") : null;
   // Reintento por si el tracking_code choca con el índice UNIQUE (improbable
   // con 40 bits, pero posible frente a códigos legados de 4 caracteres).
   let orderId = 0;
   for (let attempt = 0; attempt < 3 && !orderId; attempt++) {
     try {
       const info = await run(
-        `INSERT INTO orders (folio, tracking_code, vehicle_id, status, description, km, fuel_level, estimated_delivery, created_by)
-         VALUES (?, ?, ?, 'recibido', ?, ?, ?, ?, ?) RETURNING id`,
+        `INSERT INTO orders (folio, tracking_code, vehicle_id, status, description, km, fuel_level, estimated_delivery, created_by, modality, service_location)
+         VALUES (?, ?, ?, 'recibido', ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
         [
           folio,
           newTrackingCode(),
@@ -258,6 +263,8 @@ export async function createOrderAction(
           strOrNull(formData, "fuel_level"),
           strOrNull(formData, "estimated_delivery"),
           user.id,
+          modality,
+          serviceLocation,
         ]
       );
       orderId = Number(info.lastInsertRowid);
@@ -271,7 +278,12 @@ export async function createOrderAction(
   await run(
     `INSERT INTO order_events (order_id, type, title, detail, is_public, created_by)
      VALUES (?, 'estado', ?, ?, 1, ?)`,
-    [orderId, "Vehículo recibido en el taller", description || null, user.id]
+    [
+      orderId,
+      modality === "domicilio" ? "Servicio a domicilio registrado" : "Vehículo recibido en el taller",
+      description || null,
+      user.id,
+    ]
   );
 
   // Recepción documentada: estado del vehículo al ingreso (fotos + observaciones).
@@ -473,7 +485,7 @@ export async function updateOrderInfoAction(formData: FormData) {
 //  - service_id: servicio del catálogo → snapshot de costo estimado/precio.
 //  - libre: descripción manual, costo opcional.
 export async function addOrderItemAction(formData: FormData) {
-  await requireUser();
+  const user = await requireUser();
   const orderId = Number(formData.get("order_id"));
   const partId = Number(formData.get("part_id")) || null;
   const serviceId = Number(formData.get("service_id")) || null;
@@ -483,7 +495,10 @@ export async function addOrderItemAction(formData: FormData) {
   let kind = String(formData.get("kind") || "servicio");
   let description = str(formData, "description", { max: 2000 });
   let unitPrice = Number(formData.get("unit_price")) || 0;
-  let unitCost = Number(formData.get("unit_cost")) || 0;
+  // El costo real solo lo captura el admin; para el resto del equipo se toma
+  // del catálogo/inventario y nunca del formulario (rentabilidad = solo admin).
+  const canCost = user.role === "admin";
+  let unitCost = canCost ? Number(formData.get("unit_cost")) || 0 : 0;
 
   if (partId) {
     const part = await one<{
@@ -500,7 +515,7 @@ export async function addOrderItemAction(formData: FormData) {
     kind = "repuesto";
     description = description || part.name;
     if (!Number(formData.get("unit_price"))) unitPrice = part.unit_price;
-    unitCost = part.cost;
+    if (!unitCost) unitCost = part.cost; // costo del inventario si no se fijó a mano
   } else if (serviceId) {
     const service = await one<{ name: string; price: number; est_cost: number }>(
       "SELECT name, price, est_cost FROM services WHERE id = ? AND active = 1",
@@ -510,7 +525,7 @@ export async function addOrderItemAction(formData: FormData) {
     kind = "servicio";
     description = description || service.name;
     if (!Number(formData.get("unit_price"))) unitPrice = service.price;
-    unitCost = service.est_cost;
+    if (!unitCost) unitCost = service.est_cost; // costo del catálogo si no se fijó a mano
   }
   if (!description) return;
   if (!["servicio", "repuesto"].includes(kind)) kind = "servicio";
@@ -568,6 +583,19 @@ export async function deleteOrderItemAction(formData: FormData) {
     ]);
     revalidatePath("/admin/inventario");
   }
+  revalidatePath(`/admin/ordenes/${orderId}`);
+}
+
+// Corregir el costo real de un ítem ya cotizado (p. ej. un ítem "libre" que un
+// asesor agregó con costo 0). Solo admin: la rentabilidad es su vista.
+export async function updateOrderItemCostAction(formData: FormData) {
+  const user = await requireUser();
+  if (user.role !== "admin") return;
+  const id = Number(formData.get("id"));
+  const orderId = Number(formData.get("order_id"));
+  const cost = Number(formData.get("unit_cost"));
+  if (!id || !orderId || !Number.isFinite(cost) || cost < 0) return;
+  await run("UPDATE order_items SET unit_cost = ? WHERE id = ?", [cost, id]);
   revalidatePath(`/admin/ordenes/${orderId}`);
 }
 

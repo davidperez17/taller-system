@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Wrench, MapPin } from "lucide-react";
 import { createOrderAction } from "@/app/admin/actions";
 import { card, btnPrimary, inputCls, labelCls } from "@/components/admin/ui";
 import { VEHICLE_TYPES } from "@/lib/status";
@@ -24,11 +24,62 @@ export default function NewOrderForm({
   // si ya se eligió un vehículo registrado, esos campos se ignoran.
   const [vehicleId, setVehicleId] = useState(preselect);
   const [clientId, setClientId] = useState("");
+  const [modality, setModality] = useState<"taller" | "domicilio">("taller");
   const newVehicle = !vehicleId;
   const needClientName = newVehicle && !clientId;
 
+  const modalityOptions = [
+    { value: "taller" as const, label: "En taller", icon: Wrench },
+    { value: "domicilio" as const, label: "A domicilio", icon: MapPin },
+  ];
+
   return (
     <form action={formAction} className={`${card} p-5 space-y-5`}>
+      <fieldset className="space-y-3">
+        <legend className="font-heading font-semibold text-slate-800 tracking-wide">
+          MODALIDAD
+        </legend>
+        <div className="flex gap-1 bg-slate-100 rounded-xl p-1 w-full sm:w-fit" role="radiogroup" aria-label="Modalidad del servicio">
+          {modalityOptions.map((opt) => (
+            <label
+              key={opt.value}
+              className={`flex flex-1 sm:flex-none items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium cursor-pointer transition-colors ${
+                modality === opt.value
+                  ? "bg-white text-slate-800 shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              <input
+                type="radio"
+                name="modality"
+                value={opt.value}
+                checked={modality === opt.value}
+                onChange={() => setModality(opt.value)}
+                className="sr-only"
+              />
+              <opt.icon className="w-4 h-4" aria-hidden="true" /> {opt.label}
+            </label>
+          ))}
+        </div>
+        {modality === "domicilio" && (
+          <div>
+            <label htmlFor="service_location" className={labelCls}>
+              Ubicación de la visita
+            </label>
+            <input
+              id="service_location"
+              name="service_location"
+              placeholder="Ej. 4a calle 3-20, zona 1 · o km 15 carretera al sur"
+              className={inputCls}
+            />
+            <p className="text-xs text-slate-400 mt-1">
+              Dónde está el vehículo. Ayuda al técnico a ubicarse. El costo de ir se agrega
+              después como un concepto en el presupuesto.
+            </p>
+          </div>
+        )}
+      </fieldset>
+
       <fieldset className="space-y-4">
         <legend className="font-heading font-semibold text-slate-800 tracking-wide">
           VEHÍCULO

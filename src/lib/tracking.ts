@@ -1,6 +1,6 @@
 import { createHash, timingSafeEqual } from "crypto";
 import { one, many, normalizePlate } from "./db";
-import { STATUS_FLOW, type OrderStatus } from "./status";
+import { STATUS_FLOW, type OrderStatus, type OrderModality } from "./status";
 
 export type PublicEvent = {
   id: number;
@@ -40,6 +40,7 @@ export type TrackingResult = {
     estimated_delivery: string | null;
     created_at: string;
     updated_at: string;
+    modality?: OrderModality;
     approval_status?: "pendiente" | "aprobado" | "rechazado";
     approval_at?: string | null;
     approval_total?: number | null;
@@ -79,6 +80,7 @@ export async function getTracking(rawPlate: string, code?: string | null): Promi
     estimated_delivery: string | null;
     created_at: string;
     updated_at: string;
+    modality: string;
     approval_status: "pendiente" | "aprobado" | "rechazado";
     approval_at: string | null;
     approval_total: number | null;
@@ -158,6 +160,7 @@ export async function getTracking(rawPlate: string, code?: string | null): Promi
       estimated_delivery: order.estimated_delivery,
       created_at: order.created_at,
       updated_at: order.updated_at,
+      modality: order.modality === "domicilio" ? "domicilio" : "taller",
       approval_status: order.approval_status,
       approval_at: order.approval_at,
       approval_total: order.approval_total,

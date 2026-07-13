@@ -7,6 +7,7 @@ import {
   adjustStockAction,
   deletePartAction,
 } from "@/app/admin/actions";
+import SubmitButton from "@/components/admin/SubmitButton";
 import { formatMoney, PART_CATEGORIES } from "@/lib/status";
 import {
   PageTitle,
@@ -225,9 +226,9 @@ export default async function InventoryPage({
                                 className={inputCls}
                               />
                             </div>
-                            <button type="submit" className={btnPrimary}>
+                            <SubmitButton className={btnPrimary} pendingText="Aplicando…">
                               Aplicar
-                            </button>
+                            </SubmitButton>
                           </form>
                         </details>
 
@@ -253,9 +254,9 @@ export default async function InventoryPage({
                             <input name="unit_price" type="number" step="any" min="0" defaultValue={p.unit_price} placeholder="Precio venta" className={inputCls} />
                             <input name="cost" type="number" step="any" min="0" defaultValue={p.cost} placeholder="Costo" className={inputCls} />
                             <div className="sm:col-span-2 flex gap-2">
-                              <button type="submit" className={btnPrimary}>
+                              <SubmitButton className={btnPrimary} pendingText="Guardando…">
                                 Guardar
-                              </button>
+                              </SubmitButton>
                               {me?.role === "admin" && (
                                 <ConfirmSubmitButton
                                   submitAction={deletePartAction}
@@ -346,9 +347,9 @@ export default async function InventoryPage({
               </label>
               <input id="p-loc" name="location" placeholder="Ej. Estante A-3" className={inputCls} />
             </div>
-            <button type="submit" className={`${btnPrimary} w-full`}>
+            <SubmitButton className={`${btnPrimary} w-full`} pendingText="Agregando…">
               Agregar repuesto
-            </button>
+            </SubmitButton>
           </form>
         </section>
       </div>

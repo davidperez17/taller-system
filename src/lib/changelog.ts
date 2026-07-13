@@ -11,6 +11,27 @@ export type ChangelogEntry = {
 // marcar cuántas novedades hay sin ver.
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 15,
+    date: "2026-07-13",
+    title: "Servicios a domicilio",
+    description:
+      "Al crear una orden puedes marcarla «A domicilio» y anotar la ubicación de la visita. El costo de ir se cotiza como un concepto más, y Reportes ahora separa el facturado y la ganancia de taller vs domicilio.",
+  },
+  {
+    id: 14,
+    date: "2026-07-13",
+    title: "Sin registros duplicados por doble toque",
+    description:
+      "Los botones de guardar/agregar (presupuesto, pagos, anotaciones, inventario, clientes, servicios y más) se desactivan y muestran «Guardando…» mientras procesan, para que tocar rápido ya no cree el mismo registro dos veces.",
+  },
+  {
+    id: 13,
+    date: "2026-07-13",
+    title: "Costo y ganancia por orden (solo admin)",
+    description:
+      "Al cotizar, el admin anota el costo real de cada concepto además del precio de venta, y ve la ganancia y el margen de la orden en la sección Pagos. El cliente sigue viendo solo el precio de venta.",
+  },
+  {
     id: 12,
     date: "2026-07-11",
     title: "Confirmación antes de eliminar",

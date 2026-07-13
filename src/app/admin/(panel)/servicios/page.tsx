@@ -6,6 +6,7 @@ import { formatMoney } from "@/lib/status";
 import {
   createServiceAction, updateServiceAction, deleteServiceAction,
 } from "@/app/admin/actions";
+import SubmitButton from "@/components/admin/SubmitButton";
 import { PageTitle, card, btnPrimary, btnSecondary, inputCls, labelCls } from "@/components/admin/ui";
 import ConfirmSubmitButton from "@/components/admin/ConfirmSubmitButton";
 
@@ -157,9 +158,9 @@ export default async function ServicesPage() {
                                   className={inputCls}
                                 />
                               </div>
-                              <button type="submit" className={btnSecondary}>
+                              <SubmitButton className={btnSecondary} pendingText="Guardando…">
                                 Guardar
-                              </button>
+                              </SubmitButton>
                             </form>
                           </details>
                         </td>
@@ -237,9 +238,9 @@ export default async function ServicesPage() {
               reportes. Se guarda una copia en cada orden: cambiarlo después no altera órdenes
               pasadas.
             </p>
-            <button type="submit" className={`${btnPrimary} w-full`}>
+            <SubmitButton className={`${btnPrimary} w-full`} pendingText="Agregando…">
               Agregar servicio
-            </button>
+            </SubmitButton>
           </form>
         </section>
       </div>

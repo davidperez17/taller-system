@@ -1,6 +1,6 @@
 import Link from "next/link";
 import {
-  Banknote, ClipboardList, TrendingUp, Wrench, Boxes, Wallet, HandCoins, Receipt, Users2, Scale,
+  Banknote, ClipboardList, TrendingUp, Wrench, Boxes, Wallet, HandCoins, Receipt, Users2, Scale, MapPin,
 } from "lucide-react";
 import { many, one } from "@/lib/db";
 import { formatMoney, STATUS_META, STATUS_FLOW, type OrderStatus } from "@/lib/status";
@@ -95,6 +95,19 @@ export default async function ReportsPage({
     `SELECT substr(created_at, 1, 7) AS ym, COUNT(*)::int AS n
        FROM orders WHERE substr(created_at, 1, 10) BETWEEN ? AND ?
       GROUP BY ym`,
+    [desde, hasta]
+  );
+
+  // Facturado y ganancia bruta por modalidad (taller vs domicilio), entregadas.
+  // Separa el canal; los gastos fijos siguen siendo del taller completo.
+  const modalityRows = await many<{ modality: string; total: number; profit: number; n: number }>(
+    `SELECT o.modality,
+            COALESCE(SUM(i.qty * i.unit_price), 0)::float8 AS total,
+            COALESCE(SUM(i.qty * (i.unit_price - i.unit_cost)), 0)::float8 AS profit,
+            COUNT(DISTINCT o.id)::int AS n
+       FROM orders o LEFT JOIN order_items i ON i.order_id = o.id
+      WHERE o.status = 'entregado' AND substr(o.delivered_at, 1, 10) BETWEEN ? AND ?
+      GROUP BY o.modality`,
     [desde, hasta]
   );
 
@@ -199,6 +212,19 @@ export default async function ReportsPage({
   const facturado = byKind.servicio.total + byKind.repuesto.total;
   const gross = byKind.servicio.profit + byKind.repuesto.profit;
   const itemsCost = facturado - gross;
+
+  // Por canal: taller vs domicilio.
+  const byModality = {
+    taller: { total: 0, profit: 0, n: 0 },
+    domicilio: { total: 0, profit: 0, n: 0 },
+  };
+  for (const r of modalityRows) {
+    const k = r.modality === "domicilio" ? "domicilio" : "taller";
+    byModality[k].total += r.total;
+    byModality[k].profit += r.profit;
+    byModality[k].n += r.n;
+  }
+  const hasDomicilio = byModality.domicilio.n > 0;
   const net = gross - expensesTotal - payrollRange;
   const deliveredTotal = deliveredRows.reduce((s, r) => s + r.n, 0);
   const avgTicket = deliveredTotal > 0 ? facturado / deliveredTotal : 0;
@@ -474,6 +500,62 @@ export default async function ReportsPage({
           </p>
         </section>
       </div>
+
+      {/* Por canal: taller vs domicilio */}
+      <section className={`${card} p-5`}>
+        <h2 className="font-heading font-semibold text-lg text-slate-800 tracking-wide">
+          TALLER VS DOMICILIO
+        </h2>
+        <p className="text-xs text-slate-400 mt-0.5">
+          Facturado y ganancia bruta por canal (órdenes entregadas del período)
+        </p>
+        {byModality.taller.n === 0 && byModality.domicilio.n === 0 ? (
+          <p className="mt-4 text-sm text-slate-400">Sin órdenes entregadas en el período.</p>
+        ) : (
+          <div className="mt-4 grid sm:grid-cols-2 gap-3">
+            {(
+              [
+                ["En taller", byModality.taller, Wrench],
+                ["A domicilio", byModality.domicilio, MapPin],
+              ] as const
+            ).map(([label, mod, Icon]) => {
+              const margin = mod.total > 0 ? Math.round((mod.profit / mod.total) * 100) : 0;
+              return (
+                <div key={label} className="rounded-xl border border-slate-200 p-4">
+                  <p className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
+                    <Icon className="w-4 h-4 text-slate-400" aria-hidden="true" /> {label}
+                    <span className="ml-auto text-xs text-slate-400 tabular-nums">
+                      {mod.n} orden{mod.n === 1 ? "" : "es"}
+                    </span>
+                  </p>
+                  <dl className="mt-3 space-y-1.5 text-sm">
+                    <div className="flex justify-between gap-2">
+                      <dt className="text-slate-400">Facturado</dt>
+                      <dd className="tabular-nums text-slate-700">{formatMoney(mod.total)}</dd>
+                    </div>
+                    <div className="flex justify-between gap-2">
+                      <dt className="text-slate-400">Ganancia bruta</dt>
+                      <dd className="tabular-nums font-semibold text-accent-700">
+                        {formatMoney(mod.profit)}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between gap-2">
+                      <dt className="text-slate-400">Margen</dt>
+                      <dd className="tabular-nums text-slate-700">{margin}%</dd>
+                    </div>
+                  </dl>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <p className="mt-4 text-[11px] text-slate-400">
+          {hasDomicilio
+            ? "El costo de ir (traslado) se cotiza como concepto, así que ya está descontado en la ganancia de domicilio. "
+            : "Aún no hay servicios a domicilio entregados: marca la modalidad «A domicilio» al crear la orden. "}
+          Los gastos fijos (renta, salarios) son del taller completo y no se reparten por canal.
+        </p>
+      </section>
 
       {/* Ingresos y ganancia por mes */}
       <section className={`${card} p-5`}>
