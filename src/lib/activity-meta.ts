@@ -4,6 +4,7 @@
 
 export type ActivityType =
   | "orden_nueva"
+  | "orden_editada"
   | "estado"
   | "cancelacion"
   | "pago"
@@ -27,6 +28,7 @@ export const ACTIVITY_META: Record<
   { label: string; tone: ActivityTone; icon: string }
 > = {
   orden_nueva: { label: "Nueva orden", tone: "blue", icon: "clipboard" },
+  orden_editada: { label: "Orden modificada", tone: "amber", icon: "pencil" },
   estado: { label: "Cambio de estado", tone: "violet", icon: "wrench" },
   cancelacion: { label: "Cancelación", tone: "red", icon: "ban" },
   pago: { label: "Pago registrado", tone: "green", icon: "wallet" },

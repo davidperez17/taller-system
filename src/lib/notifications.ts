@@ -133,6 +133,10 @@ export const STAFF_NOTIFS = {
     title: "Nueva orden recibida",
     body: `${v.folio} · ${v.placa}${v.vehiculo ? ` (${v.vehiculo})` : ""} ingresó al taller.`,
   }),
+  orden_modificada: (v: { folio: string; placa: string; autor: string; cambios: string }) => ({
+    title: `Orden ${v.folio} modificada`,
+    body: `${v.autor} cambió ${v.cambios} en ${v.placa} (${v.folio}). Revisa la orden.`,
+  }),
   aprobado: (v: { folio: string; total: string }) => ({
     title: "Presupuesto aprobado por el cliente",
     body: `El cliente aprobó el presupuesto de ${v.folio} (${v.total}). Puedes iniciar la reparación.`,

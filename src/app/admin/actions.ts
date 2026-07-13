@@ -456,27 +456,102 @@ export async function addOrderNoteAction(formData: FormData) {
 }
 
 export async function updateOrderInfoAction(formData: FormData) {
-  await requireUser();
+  const user = await requireUser();
   const orderId = Number(formData.get("order_id"));
   if (!orderId) return;
+
+  // Estado previo: para saber QUÉ cambió y avisar al equipo con el detalle.
+  const before = await one<{
+    folio: string;
+    plate: string;
+    description: string;
+    diagnosis: string | null;
+    km: string | null;
+    fuel_level: string | null;
+    estimated_delivery: string | null;
+    assigned_to: number | null;
+  }>(
+    `SELECT o.folio, v.plate, o.description, o.diagnosis, o.km, o.fuel_level,
+            o.estimated_delivery, o.assigned_to
+       FROM orders o JOIN vehicles v ON v.id = o.vehicle_id WHERE o.id = ?`,
+    [orderId]
+  );
+  if (!before) return;
+
+  const next = {
+    description: str(formData, "description", { max: 2000 }),
+    diagnosis: strOrNull(formData, "diagnosis", { max: 2000 }),
+    km: strOrNull(formData, "km"),
+    fuel_level: strOrNull(formData, "fuel_level"),
+    estimated_delivery: strOrNull(formData, "estimated_delivery"),
+    assigned_to: Number(formData.get("assigned_to")) || null,
+  };
+
   await run(
     `UPDATE orders SET description = ?, diagnosis = ?, km = ?, fuel_level = ?,
      estimated_delivery = ?, assigned_to = ?, updated_at = ${NOW_SQL} WHERE id = ?`,
     [
-      str(formData, "description", { max: 2000 }),
-      strOrNull(formData, "diagnosis", { max: 2000 }),
-      strOrNull(formData, "km"),
-      strOrNull(formData, "fuel_level"),
-      strOrNull(formData, "estimated_delivery"),
-      Number(formData.get("assigned_to")) || null,
+      next.description,
+      next.diagnosis,
+      next.km,
+      next.fuel_level,
+      next.estimated_delivery,
+      next.assigned_to,
       orderId,
     ]
   );
-  const row = await one<{ plate: string }>(
-    "SELECT v.plate FROM orders o JOIN vehicles v ON v.id = o.vehicle_id WHERE o.id = ?",
-    [orderId]
-  );
   revalidatePath(`/admin/ordenes/${orderId}`);
+
+  // Diff campo a campo, en lenguaje del equipo. Solo se avisa si algo cambió
+  // de verdad (re-guardar sin cambios no genera ruido).
+  const LABELS: Record<string, string> = {
+    description: "trabajo solicitado",
+    diagnosis: "diagnóstico",
+    km: "kilometraje",
+    fuel_level: "combustible",
+    estimated_delivery: "entrega estimada",
+    assigned_to: "técnico asignado",
+  };
+  const beforeVals: Record<string, string | number | null> = {
+    description: before.description,
+    diagnosis: before.diagnosis,
+    km: before.km,
+    fuel_level: before.fuel_level,
+    estimated_delivery: before.estimated_delivery,
+    assigned_to: before.assigned_to,
+  };
+  const nextVals = next as Record<string, string | number | null>;
+  const changed = Object.keys(LABELS).filter(
+    (k) => String(beforeVals[k] ?? "") !== String(nextVals[k] ?? "")
+  );
+  if (changed.length === 0) return;
+
+  const cambios = changed.map((k) => LABELS[k]).join(", ");
+  // Push a todo el equipo (incluye mecánicos: un cambio de trabajo/diagnóstico
+  // les afecta directo), menos a quien editó.
+  await sendPushToStaff(
+    {
+      ...STAFF_NOTIFS.orden_modificada({
+        folio: before.folio,
+        placa: before.plate,
+        autor: user.name,
+        cambios,
+      }),
+      url: `/admin/ordenes/${orderId}`,
+    },
+    ["admin", "asesor", "mecanico"],
+    user.id
+  );
+  // Rastro persistente en el feed/campana del panel.
+  await logActivity({
+    type: "orden_editada",
+    title: `Orden ${before.folio} modificada`,
+    detail: `${cambios} · ${before.plate}`,
+    actorId: user.id,
+    actorName: user.name,
+    orderId,
+    url: `/admin/ordenes/${orderId}`,
+  });
 }
 
 // Agrega un ítem al presupuesto. Tres orígenes:

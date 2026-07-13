@@ -1,6 +1,6 @@
 import Link from "next/link";
 import {
-  ClipboardList, Wrench, Ban, Wallet, CheckCircle2, XCircle, Bell,
+  ClipboardList, Wrench, Ban, Wallet, CheckCircle2, XCircle, Bell, Pencil,
 } from "lucide-react";
 import {
   activityMeta, ACTIVITY_TONE_CLASS, type ActivityItem,
@@ -14,6 +14,7 @@ const ICONS: Record<string, typeof Bell> = {
   check: CheckCircle2,
   x: XCircle,
   bell: Bell,
+  pencil: Pencil,
 };
 
 // Fila de actividad reutilizable (dot de color + icono + título + autor·tiempo).

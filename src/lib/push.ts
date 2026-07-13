@@ -18,14 +18,18 @@ function ensureConfigured(): boolean {
 // de gestión salvo que se pida explícitamente.
 export async function sendPushToStaff(
   payload: { title: string; body: string; url?: string },
-  roles: string[] = ["admin", "asesor"]
+  roles: string[] = ["admin", "asesor"],
+  excludeUserId?: number
 ) {
   if (!ensureConfigured()) return;
+  // excludeUserId: no avisar a quien originó el evento (p. ej. quien editó la
+  // orden ya sabe que la editó). COALESCE(?, -1) neutraliza el filtro cuando no
+  // se pasa (ningún user tiene id -1).
   const subs = await many<{ id: number; subscription: string }>(
     `SELECT s.id, s.subscription FROM admin_push_subs s
        JOIN users u ON u.id = s.user_id
-      WHERE u.active = 1 AND u.role = ANY(?)`,
-    [roles]
+      WHERE u.active = 1 AND u.role = ANY(?) AND u.id <> COALESCE(?, -1)`,
+    [roles, excludeUserId ?? null]
   );
 
   const data = JSON.stringify({

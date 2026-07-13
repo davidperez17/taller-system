@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 // marcar cuántas novedades hay sin ver.
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 17,
+    date: "2026-07-13",
+    title: "Aviso al equipo cuando se edita una orden",
+    description:
+      "Si alguien cambia el trabajo solicitado, el diagnóstico, el kilometraje, la entrega estimada, el combustible o el técnico asignado de una orden, al resto del equipo le llega un aviso (push + campana) diciendo qué se cambió y en qué orden. Quien hizo el cambio no se auto-notifica.",
+  },
+  {
     id: 16,
     date: "2026-07-13",
     title: "Código de acceso más corto (4 caracteres)",
