@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { motion } from "motion/react";
 import Link from "next/link";
 import {
   ArrowLeft, Bell, BellRing, BookmarkPlus, BookmarkCheck, Car, Bike, Truck,
@@ -143,7 +144,7 @@ export default function TrackingClient({
 
   const order = data.order!;
   const meta = STATUS_META[order.status] ?? STATUS_META.recibido;
-  const VehicleIcon = VEHICLE_ICON[data.vehicle?.type ?? "auto"] ?? Car;
+  const VehicleIcon = VEHICLE_ICON[data.vehicleType ?? "auto"] ?? Car;
   const finished = order.status === "entregado" || order.status === "cancelado";
 
   return (
@@ -151,9 +152,21 @@ export default function TrackingClient({
       {/* Tarjeta vehículo + estado actual */}
       <section className="bg-white rounded-2xl border border-sm-border shadow-sm overflow-hidden animate-slide-up">
         <div className="p-5 flex items-start gap-4">
-          <div className="bg-sm-bg text-sm-red rounded-2xl p-3 shrink-0" aria-hidden="true">
-            <VehicleIcon className="w-8 h-8" />
-          </div>
+          <motion.div
+            key={data.vehicleType ?? "auto"}
+            className="bg-sm-bg text-sm-red rounded-2xl p-3 shrink-0"
+            aria-hidden="true"
+            initial={{ scale: 0.6, rotate: -12, opacity: 0 }}
+            animate={{ scale: 1, rotate: 0, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 380, damping: 15 }}
+          >
+            <motion.div
+              animate={{ y: [0, -2.5, 0] }}
+              transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <VehicleIcon className="w-8 h-8" />
+            </motion.div>
+          </motion.div>
           <div className="min-w-0 flex-1">
             <span className="plate-badge inline-block bg-sm-bg border border-sm-border-strong rounded-lg px-3 py-1 text-sm-graphite">
               {data.plate}

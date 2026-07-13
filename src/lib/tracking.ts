@@ -21,6 +21,10 @@ export type PublicItem = {
 export type TrackingResult = {
   found: boolean;
   plate: string;
+  // Categoría del vehículo (auto/moto/camion/otro) para pintar el icono. No
+  // identifica al vehículo, así que se expone también en modo básico; los datos
+  // identificatorios (marca/modelo/año/color) siguen solo en `vehicle` detallado.
+  vehicleType?: string;
   // Solo con código válido (detailed): el modo básico se limita al estado del
   // proceso para no filtrar datos del vehículo ni eventos a quien solo
   // conoce/adivina la placa (anti-enumeración).
@@ -108,6 +112,7 @@ export async function getTracking(rawPlate: string, code?: string | null): Promi
     return {
       found: true,
       plate,
+      vehicleType: vehicle.type,
       order: {
         folio: order.folio,
         status: order.status,
@@ -144,6 +149,7 @@ export async function getTracking(rawPlate: string, code?: string | null): Promi
   return {
     found: true,
     plate,
+    vehicleType: vehicle.type,
     vehicle: {
       type: vehicle.type,
       brand: vehicle.brand,
