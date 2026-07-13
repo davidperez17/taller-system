@@ -177,10 +177,14 @@ export async function buildOrderPdf(
   const row = (x: number, label: string, value: string) => {
     const yy = doc.y;
     doc.font("Helvetica").fontSize(9).fillColor(MUTED).text(label, x, yy, { width: 110 });
+    const afterLabel = doc.y;
     doc.font("Helvetica-Bold").fontSize(9).fillColor(INK).text(value || "—", x + 112, yy, {
       width: colW - 112,
     });
-    doc.y = yy + 14;
+    // Avanzar por el alto REAL de la fila. El valor puede envolver a 2 líneas
+    // (p. ej. un vehículo con tipo · marca modelo año largo); con un salto fijo
+    // de 14 esa 2ª línea se encimaba con la fila de abajo (Kilometraje).
+    doc.y = Math.max(yy + 14, afterLabel, doc.y);
   };
   doc.moveDown(0.8);
   const metaTop = doc.y;
