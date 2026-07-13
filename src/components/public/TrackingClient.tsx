@@ -773,14 +773,18 @@ function Shell({
           >
             <ArrowLeft className="w-5 h-5" aria-hidden="true" />
           </Link>
-          <span className="grid place-items-center w-9 h-9 shrink-0 rounded-md bg-sm-red font-heading font-bold text-lg leading-none">
-            SM
-          </span>
+          <img
+            src="/logo/logo-mts96.png"
+            alt="Multiservicios San Miguel 96"
+            width={1458}
+            height={381}
+            className="h-7 sm:h-8 w-auto shrink-0 select-none"
+            draggable={false}
+          />
           <div className="flex-1 min-w-0">
-            <p className="font-heading font-semibold text-[17px] tracking-wide uppercase leading-none">
+            <p className="font-heading font-semibold text-[15px] tracking-wide uppercase leading-none truncate">
               Seguimiento
             </p>
-            <p className="text-white/55 text-[11px] tracking-wide truncate mt-0.5">San Miguel 96</p>
           </div>
           {onRefresh && (
             <button
