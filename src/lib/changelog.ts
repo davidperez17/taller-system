@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 // marcar cuántas novedades hay sin ver.
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 18,
+    date: "2026-07-13",
+    title: "Aviso para activar notificaciones en el seguimiento",
+    description:
+      "Cuando el cliente abre el seguimiento de su vehículo con su código, aparece un aviso para activar las notificaciones y enterarse apenas cambie el estado de su reparación. Se puede descartar y no vuelve a molestar.",
+  },
+  {
     id: 17,
     date: "2026-07-13",
     title: "Aviso al equipo cuando se edita una orden",

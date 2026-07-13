@@ -6,7 +6,7 @@ import Link from "next/link";
 import {
   ArrowLeft, Bell, BellRing, BookmarkPlus, BookmarkCheck, Car, Bike, Truck,
   CheckCircle2, Circle, CircleDot, HelpCircle, KeyRound, MessageSquareText,
-  RefreshCw, SearchX, Wrench, CalendarClock, Receipt, History, LockKeyhole, FileDown, MapPin,
+  RefreshCw, SearchX, Wrench, CalendarClock, Receipt, History, LockKeyhole, FileDown, MapPin, X,
 } from "lucide-react";
 import { STATUS_FLOW, STATUS_META, type OrderStatus, formatMoney, formatDate, formatDateShort } from "@/lib/status";
 import type { TrackingResult } from "@/lib/tracking";
@@ -34,6 +34,7 @@ export default function TrackingClient({
   const [refreshing, setRefreshing] = useState(false);
   const [notifState, setNotifState] = useState<"idle" | "loading" | "on" | "denied">("idle");
   const [savedLocal, setSavedLocal] = useState(false);
+  const [showNotifPop, setShowNotifPop] = useState(false);
   const codeRef = useRef(code);
   codeRef.current = code;
 
@@ -112,6 +113,37 @@ export default function TrackingClient({
     const ok = await subscribeToPush(data.plate, codeRef.current);
     setNotifState(ok ? "on" : "denied");
   }
+
+  const popKey = `sm96_notif_pop_${data.plate}`;
+  function dismissNotifPop() {
+    setShowNotifPop(false);
+    try {
+      localStorage.setItem(popKey, "1"); // no volver a molestar en este equipo
+    } catch {
+      /* localStorage bloqueado (modo privado): se acepta perder la preferencia */
+    }
+  }
+  async function enableFromPop() {
+    setShowNotifPop(false);
+    await enableNotifications();
+  }
+
+  // Pop proactivo para activar avisos. Solo en modo detallado (hay código para
+  // suscribir la placa), si el permiso aún no se decidió y el cliente no lo
+  // descartó antes. Un pequeño retraso para que no aparezca de golpe al cargar.
+  useEffect(() => {
+    if (!data.detailed) return;
+    if (typeof window === "undefined" || !("Notification" in window) || !("PushManager" in window)) return;
+    if (Notification.permission !== "default") return; // ya concedido o bloqueado: no molestar
+    if (notifState === "on" || notifState === "loading") return;
+    try {
+      if (localStorage.getItem(popKey) === "1") return;
+    } catch {
+      /* localStorage bloqueado: se muestra igual */
+    }
+    const t = setTimeout(() => setShowNotifPop(true), 1500);
+    return () => clearTimeout(t);
+  }, [data.detailed, notifState, popKey]);
 
   function handleSave() {
     saveVehicle({ plate: data.plate, label: vehicleLabel(data), code: code || undefined });
@@ -249,6 +281,46 @@ export default function TrackingClient({
         <p className="text-xs text-sm-warn bg-sm-warn-bg border border-sm-warn-border rounded-xl px-3 py-2 -mt-3">
           No se pudieron activar las notificaciones. Revisa los permisos de tu navegador.
         </p>
+      )}
+
+      {/* Pop proactivo para activar avisos (solo en modo detallado). */}
+      {showNotifPop && (
+        <div className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pointer-events-none">
+          <div className="pointer-events-auto mx-auto max-w-md bg-white border border-sm-border shadow-xl rounded-2xl p-4 flex items-start gap-3 animate-slide-up">
+            <div className="bg-sm-bg text-sm-red rounded-xl p-2 shrink-0" aria-hidden="true">
+              <BellRing className="w-5 h-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-heading font-semibold text-sm-graphite leading-tight">
+                Activa los avisos de tu vehículo
+              </p>
+              <p className="text-xs text-sm-muted mt-1">
+                Te avisamos apenas cambie el estado de tu reparación. Sin llamadas ni spam.
+              </p>
+              <div className="flex items-center gap-2 mt-3">
+                <button
+                  onClick={enableFromPop}
+                  className="flex-1 inline-flex items-center justify-center gap-2 bg-sm-red hover:bg-sm-red-hover active:bg-sm-red-active text-white rounded-xl py-2.5 text-sm font-semibold transition-colors cursor-pointer"
+                >
+                  <Bell className="w-4 h-4" aria-hidden="true" /> Activar avisos
+                </button>
+                <button
+                  onClick={dismissNotifPop}
+                  className="px-3 py-2.5 text-sm font-medium text-sm-muted hover:text-sm-graphite transition-colors cursor-pointer"
+                >
+                  Ahora no
+                </button>
+              </div>
+            </div>
+            <button
+              onClick={dismissNotifPop}
+              aria-label="Cerrar"
+              className="p-1 -m-1 text-sm-faint hover:text-sm-graphite transition-colors cursor-pointer shrink-0"
+            >
+              <X className="w-4 h-4" aria-hidden="true" />
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Progreso */}
