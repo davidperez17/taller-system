@@ -114,7 +114,12 @@ export async function nextFolio(): Promise<string> {
 // en createOrderAction, la colisión (32^4 ≈ 1M) es despreciable a esta escala.
 export function newTrackingCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let code = "";
-  for (let i = 0; i < 4; i++) code += chars[randomInt(chars.length)];
-  return code;
+  // Al menos un dígito para que el código no salga en puras letras (con 4
+  // posiciones eso pasaba ~31% de las veces). Se reintenta hasta cumplirlo:
+  // uniforme sobre los códigos con ≥1 dígito, sin sesgar posiciones.
+  for (;;) {
+    let code = "";
+    for (let i = 0; i < 4; i++) code += chars[randomInt(chars.length)];
+    if (/\d/.test(code)) return code;
+  }
 }
