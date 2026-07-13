@@ -106,12 +106,15 @@ export async function nextFolio(): Promise<string> {
   return "OT-" + String((row?.n ?? 0) + 1).padStart(4, "0");
 }
 
-// 8 caracteres de un alfabeto de 32 (40 bits) con CSPRNG. Los códigos de
-// 4 caracteres emitidos antes siguen válidos (están impresos en órdenes
-// entregadas a clientes); solo las órdenes nuevas usan este formato.
+// 4 caracteres de un alfabeto de 32 sin ambiguos (I/O/0/1 fuera), ~20 bits con
+// CSPRNG. Más corto para que el cliente lo dicte/teclee fácil. Los códigos de 8
+// caracteres emitidos en el interín (y los de 4 originales) siguen válidos: la
+// comparación hashea con SHA-256, así que el largo no importa al validar, y el
+// input público acepta hasta 8. Con el UNIQUE de tracking_code y el reintento
+// en createOrderAction, la colisión (32^4 ≈ 1M) es despreciable a esta escala.
 export function newTrackingCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let code = "";
-  for (let i = 0; i < 8; i++) code += chars[randomInt(chars.length)];
+  for (let i = 0; i < 4; i++) code += chars[randomInt(chars.length)];
   return code;
 }

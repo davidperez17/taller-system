@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 // marcar cuántas novedades hay sin ver.
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 16,
+    date: "2026-07-13",
+    title: "Código de acceso más corto (4 caracteres)",
+    description:
+      "Las órdenes nuevas usan un código de acceso de 4 caracteres, más fácil de dictar y teclear. Los códigos ya entregados a clientes siguen funcionando igual.",
+  },
+  {
     id: 15,
     date: "2026-07-13",
     title: "Servicios a domicilio",
