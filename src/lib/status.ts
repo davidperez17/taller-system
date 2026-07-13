@@ -136,9 +136,28 @@ export function formatMoney(n: number): string {
   }).format(n);
 }
 
+// Parseo robusto de las fechas del backend. La BD las guarda como
+// "YYYY-MM-DD HH:MM:SS" (espacio, sin zona) o "YYYY-MM-DD" (solo día). Safari
+// (JavaScriptCore) es estricto: "2026-07-13Z" (una Z sin hora) le da Invalid
+// Date, y formatear una fecha inválida con Intl TIRA RangeError en Safari
+// (V8/Chrome solo devuelve "Invalid Date" sin tirar). Eso reventaba el
+// seguimiento en iPhone al mostrar la entrega estimada (solo-día). Normalizamos
+// las tres formas y devolvemos null si no parsea, para nunca formatear inválidas.
+function parseDbDate(iso: string): Date | null {
+  const norm =
+    iso.length <= 10
+      ? iso + "T12:00:00Z"
+      : iso.includes("T")
+        ? iso
+        : iso.replace(" ", "T") + "Z";
+  const d = new Date(norm);
+  return isNaN(d.getTime()) ? null : d;
+}
+
 export function formatDate(iso: string | null | undefined): string {
   if (!iso) return "—";
-  const d = new Date(iso.includes("T") ? iso : iso.replace(" ", "T") + "Z");
+  const d = parseDbDate(iso);
+  if (!d) return "—";
   return new Intl.DateTimeFormat("es-GT", {
     day: "2-digit",
     month: "short",
@@ -151,7 +170,8 @@ export function formatDate(iso: string | null | undefined): string {
 
 export function formatDateShort(iso: string | null | undefined): string {
   if (!iso) return "—";
-  const d = new Date(iso.includes("T") ? iso : iso.replace(" ", "T") + "Z");
+  const d = parseDbDate(iso);
+  if (!d) return "—";
   return new Intl.DateTimeFormat("es-GT", {
     day: "2-digit",
     month: "short",
@@ -160,10 +180,12 @@ export function formatDateShort(iso: string | null | undefined): string {
   }).format(d);
 }
 
-// Para fechas sin hora (YYYY-MM-DD): fija mediodía UTC para evitar corrimiento de día.
+// Para fechas sin hora (YYYY-MM-DD): parseDbDate ya fija mediodía UTC para
+// evitar corrimiento de día.
 export function formatDay(iso: string | null | undefined): string {
   if (!iso) return "—";
-  const d = new Date(iso.length <= 10 ? iso + "T12:00:00Z" : iso.replace(" ", "T") + "Z");
+  const d = parseDbDate(iso);
+  if (!d) return "—";
   return new Intl.DateTimeFormat("es-GT", {
     day: "2-digit",
     month: "short",
