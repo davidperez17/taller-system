@@ -455,6 +455,41 @@ export async function addOrderNoteAction(formData: FormData) {
   revalidatePath(`/admin/ordenes/${orderId}`);
 }
 
+// Quita una anotación (por si se escribió mal o por error). Solo borra eventos
+// de tipo 'nota'; nunca los de 'estado' o 'sistema', que son el historial de la
+// orden. También limpia las fotos del blob para no dejar archivos huérfanos.
+export async function deleteOrderNoteAction(formData: FormData) {
+  await requireUser();
+  const id = Number(formData.get("id"));
+  const orderId = Number(formData.get("order_id"));
+  if (!id || !orderId) return;
+
+  const note = await one<{ photo_urls: string | null }>(
+    "SELECT photo_urls FROM order_events WHERE id = ? AND order_id = ? AND type = 'nota'",
+    [id, orderId]
+  );
+  if (!note) return;
+
+  await run("DELETE FROM order_events WHERE id = ? AND order_id = ? AND type = 'nota'", [
+    id,
+    orderId,
+  ]);
+
+  if (note.photo_urls) {
+    try {
+      const urls = JSON.parse(note.photo_urls);
+      if (Array.isArray(urls) && urls.length > 0) {
+        const { del } = await import("@vercel/blob");
+        await del(urls);
+      }
+    } catch {
+      /* photo_urls corrupto o del falla: el borrado de la anotación ya está hecho */
+    }
+  }
+
+  revalidatePath(`/admin/ordenes/${orderId}`);
+}
+
 export async function updateOrderInfoAction(formData: FormData) {
   const user = await requireUser();
   const orderId = Number(formData.get("order_id"));

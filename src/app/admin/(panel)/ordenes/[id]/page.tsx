@@ -10,7 +10,7 @@ import {
   STATUS_META, ROLES, formatMoney, formatDate, formatDateShort, type OrderStatus,
 } from "@/lib/status";
 import {
-  addOrderNoteAction,
+  addOrderNoteAction, deleteOrderNoteAction,
   deleteOrderItemAction, updateOrderInfoAction, addPaymentAction, deletePaymentAction,
 } from "@/app/admin/actions";
 import { getSessionUser } from "@/lib/auth";
@@ -295,6 +295,21 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                       {ev.author ? ` · ${ev.author}` : ""}
                     </p>
                   </div>
+                  {ev.type === "nota" && (
+                    <form action={deleteOrderNoteAction} className="shrink-0">
+                      <input type="hidden" name="id" value={ev.id} />
+                      <input type="hidden" name="order_id" value={order.id} />
+                      <ConfirmSubmitButton
+                        ariaLabel="Quitar anotación"
+                        className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
+                        confirmTitle="¿Quitar anotación?"
+                        confirmMessage="Se elimina esta anotación (y sus fotos). No se puede deshacer."
+                        confirmLabel="Quitar"
+                      >
+                        <Trash2 className="w-4 h-4" aria-hidden="true" />
+                      </ConfirmSubmitButton>
+                    </form>
+                  )}
                 </li>
               ))}
             </ul>

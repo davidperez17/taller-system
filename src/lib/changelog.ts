@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 // marcar cuántas novedades hay sin ver.
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 23,
+    date: "2026-07-13",
+    title: "Quitar anotaciones de una orden",
+    description:
+      "Cada anotación de la orden ahora tiene un botón para quitarla, por si se escribió mal o por error. Pide confirmar y también borra sus fotos. Los cambios de estado y los eventos del sistema (historial) no se pueden borrar.",
+  },
+  {
     id: 22,
     date: "2026-07-13",
     title: "Botón para enviar el acceso al cliente por WhatsApp",
