@@ -20,6 +20,7 @@ import SubmitButton from "@/components/admin/SubmitButton";
 import PhotoInput from "@/components/admin/PhotoInput";
 import StatusChangeForm from "@/components/admin/StatusChangeForm";
 import ConfirmSubmitButton from "@/components/admin/ConfirmSubmitButton";
+import EventDetailEditor from "@/components/admin/EventDetailEditor";
 import {
   StatusBadge, PlateBadge, VehicleTypeIcon, PageTitle, card, btnPrimary, btnSecondary, inputCls, labelCls,
 } from "@/components/admin/ui";
@@ -286,8 +287,12 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                         )}
                       </span>
                     </div>
-                    {ev.detail && (
-                      <p className="text-sm text-slate-600 mt-0.5 whitespace-pre-wrap">{ev.detail}</p>
+                    {ev.type === "estado" ? (
+                      <EventDetailEditor eventId={ev.id} orderId={order.id} detail={ev.detail} />
+                    ) : (
+                      ev.detail && (
+                        <p className="text-sm text-slate-600 mt-0.5 whitespace-pre-wrap">{ev.detail}</p>
+                      )
                     )}
                     <EventPhotos raw={ev.photo_urls} />
                     <p className="text-xs text-slate-400 mt-1">

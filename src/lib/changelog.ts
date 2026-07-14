@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 // marcar cuántas novedades hay sin ver.
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 24,
+    date: "2026-07-13",
+    title: "Corregir el mensaje de un cambio de estado",
+    description:
+      "En la línea de tiempo de la orden, los cambios de estado (recibido, listo, etc.) tienen un lápiz para corregir su mensaje si se escribió mal, sin borrar el hito ni volver a notificar al cliente. La etapa en sí no cambia, solo el texto.",
+  },
+  {
     id: 23,
     date: "2026-07-13",
     title: "Quitar anotaciones de una orden",

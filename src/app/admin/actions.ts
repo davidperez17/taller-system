@@ -490,6 +490,22 @@ export async function deleteOrderNoteAction(formData: FormData) {
   revalidatePath(`/admin/ordenes/${orderId}`);
 }
 
+// Corrige el mensaje de un cambio de estado (por si se escribió mal). Solo toca
+// el `detail` de eventos 'estado'; nunca su título (que es la etapa) ni los
+// eventos 'nota'/'sistema'. No re-notifica: es una corrección, no un aviso nuevo.
+export async function updateOrderEventDetailAction(formData: FormData) {
+  await requireUser();
+  const id = Number(formData.get("id"));
+  const orderId = Number(formData.get("order_id"));
+  if (!id || !orderId) return;
+  const detail = str(formData, "detail", { max: 2000 });
+  await run(
+    "UPDATE order_events SET detail = ? WHERE id = ? AND order_id = ? AND type = 'estado'",
+    [detail || null, id, orderId]
+  );
+  revalidatePath(`/admin/ordenes/${orderId}`);
+}
+
 export async function updateOrderInfoAction(formData: FormData) {
   const user = await requireUser();
   const orderId = Number(formData.get("order_id"));
