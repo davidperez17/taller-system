@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 // marcar cuántas novedades hay sin ver.
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 19,
+    date: "2026-07-13",
+    title: "Ubicación por GPS en servicios a domicilio",
+    description:
+      "Al crear una orden «A domicilio» ya no hace falta escribir toda la dirección: con el botón «Usar mi ubicación (GPS)» se captura la ubicación del celular y se guarda como un enlace a Maps. En la orden, el técnico ve «Abrir en Maps» para llegar directo. Igual puedes escribir o ajustar la dirección a mano.",
+  },
+  {
     id: 18,
     date: "2026-07-13",
     title: "Aviso para activar notificaciones en el seguimiento",

@@ -1,9 +1,9 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Loader2, Wrench, MapPin } from "lucide-react";
+import { Loader2, Wrench, MapPin, LocateFixed } from "lucide-react";
 import { createOrderAction } from "@/app/admin/actions";
-import { card, btnPrimary, inputCls, labelCls } from "@/components/admin/ui";
+import { card, btnPrimary, btnSecondary, inputCls, labelCls } from "@/components/admin/ui";
 import { VEHICLE_TYPES } from "@/lib/status";
 import PhotoInput from "@/components/admin/PhotoInput";
 
@@ -25,8 +25,40 @@ export default function NewOrderForm({
   const [vehicleId, setVehicleId] = useState(preselect);
   const [clientId, setClientId] = useState("");
   const [modality, setModality] = useState<"taller" | "domicilio">("taller");
+  const [serviceLocation, setServiceLocation] = useState("");
+  const [geoStatus, setGeoStatus] = useState<"idle" | "loading" | "ok" | "error">("idle");
+  const [geoMsg, setGeoMsg] = useState("");
   const newVehicle = !vehicleId;
   const needClientName = newVehicle && !clientId;
+
+  function useMyLocation() {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setGeoStatus("error");
+      setGeoMsg("Este dispositivo no permite ubicación GPS. Escribe la dirección a mano.");
+      return;
+    }
+    setGeoStatus("loading");
+    setGeoMsg("");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setServiceLocation(
+          `https://maps.google.com/?q=${latitude.toFixed(6)},${longitude.toFixed(6)}`
+        );
+        setGeoStatus("ok");
+        setGeoMsg("Ubicación GPS capturada. Puedes ajustarla o agregar referencias.");
+      },
+      (err) => {
+        setGeoStatus("error");
+        setGeoMsg(
+          err.code === err.PERMISSION_DENIED
+            ? "Permiso de ubicación denegado. Actívalo o escribe la dirección a mano."
+            : "No se pudo obtener la ubicación. Escribe la dirección a mano."
+        );
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  }
 
   const modalityOptions = [
     { value: "taller" as const, label: "En taller", icon: Wrench },
@@ -69,9 +101,41 @@ export default function NewOrderForm({
             <input
               id="service_location"
               name="service_location"
+              value={serviceLocation}
+              onChange={(e) => {
+                setServiceLocation(e.target.value);
+                if (geoStatus !== "idle") {
+                  setGeoStatus("idle");
+                  setGeoMsg("");
+                }
+              }}
               placeholder="Ej. 4a calle 3-20, zona 1 · o km 15 carretera al sur"
               className={inputCls}
             />
+            <div className="mt-2">
+              <button
+                type="button"
+                onClick={useMyLocation}
+                disabled={geoStatus === "loading"}
+                className={`${btnSecondary} disabled:opacity-60`}
+              >
+                {geoStatus === "loading" ? (
+                  <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <LocateFixed className="w-4 h-4" aria-hidden="true" />
+                )}
+                {geoStatus === "loading" ? "Ubicando…" : "Usar mi ubicación (GPS)"}
+              </button>
+              {geoMsg && (
+                <p
+                  className={`text-xs mt-1 ${
+                    geoStatus === "error" ? "text-sm-red" : "text-emerald-600"
+                  }`}
+                >
+                  {geoMsg}
+                </p>
+              )}
+            </div>
             <p className="text-xs text-slate-400 mt-1">
               Dónde está el vehículo. Ayuda al técnico a ubicarse. El costo de ir se agrega
               después como un concepto en el presupuesto.

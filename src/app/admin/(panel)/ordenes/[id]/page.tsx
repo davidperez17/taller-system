@@ -588,7 +588,18 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                   <dt className="text-slate-400 shrink-0">Ubicación</dt>
                   <dd className="text-slate-700 text-right flex items-start gap-1">
                     <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" aria-hidden="true" />
-                    <span>{order.service_location}</span>
+                    {/^https?:\/\//.test(order.service_location) ? (
+                      <a
+                        href={order.service_location}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm-red hover:underline break-all"
+                      >
+                        Abrir en Maps
+                      </a>
+                    ) : (
+                      <span>{order.service_location}</span>
+                    )}
                   </dd>
                 </div>
               )}
