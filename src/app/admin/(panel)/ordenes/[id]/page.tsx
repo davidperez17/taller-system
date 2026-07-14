@@ -128,6 +128,21 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
     }
   }
 
+  // Entrega rápida del acceso al cliente (código + link de seguimiento) por
+  // WhatsApp, pensado para justo después del registro. Disponible siempre que
+  // haya teléfono, no depende del estado de la orden.
+  const accesoWaHref = order.client_phone
+    ? waLink(
+        order.client_phone,
+        WA_TEMPLATES.acceso({
+          nombre: order.client_name.split(" ")[0],
+          placa: order.plate,
+          code: order.tracking_code,
+          origin,
+        })
+      )
+    : null;
+
   return (
     <div className="space-y-5">
       <PageTitle
@@ -658,11 +673,21 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 </span>
               </div>
             </div>
+            {accesoWaHref && (
+              <a
+                href={accesoWaHref}
+                target="_blank"
+                rel="noopener"
+                className="inline-flex items-center justify-center gap-2 w-full mt-4 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors"
+              >
+                <MessageCircle className="w-4 h-4" aria-hidden="true" /> Enviar acceso por WhatsApp
+              </a>
+            )}
             <a
               href={`/seguimiento/${order.plate}?code=${order.tracking_code}`}
               target="_blank"
               rel="noopener"
-              className={`${btnSecondary} w-full mt-4`}
+              className={`${btnSecondary} w-full ${accesoWaHref ? "mt-2" : "mt-4"}`}
             >
               <ExternalLink className="w-4 h-4" aria-hidden="true" /> Ver como cliente
             </a>

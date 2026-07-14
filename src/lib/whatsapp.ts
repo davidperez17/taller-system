@@ -26,6 +26,10 @@ export const WA_TEMPLATES = {
   estado: (v: { nombre: string; placa: string; estado: string; origin: string }) =>
     `Hola ${v.nombre}, le saludamos de ${brand.name}. Su vehículo placa ${v.placa} está: ${v.estado}. ` +
     `Siga el avance en vivo aquí: ${v.origin}${trackingUrl(v.placa)}`,
+  acceso: (v: { nombre: string; placa: string; code: string; origin: string }) =>
+    `Hola ${v.nombre}, le saludamos de ${brand.name}. Registramos su vehículo placa ${v.placa}. ` +
+    `Puede seguir el avance de su servicio en tiempo real con su código de acceso *${v.code}* aquí: ` +
+    `${v.origin}${trackingUrl(v.placa)}?code=${v.code}`,
   presupuesto: (v: { nombre: string; placa: string; total: number; code: string; origin: string }) =>
     `Hola ${v.nombre}, le saludamos de ${brand.name}. El presupuesto de su vehículo placa ${v.placa} ` +
     `está listo por ${formatMoney(v.total)}. Puede verlo y aprobarlo con su código ${v.code} aquí: ` +

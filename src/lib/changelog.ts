@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 // marcar cuántas novedades hay sin ver.
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 22,
+    date: "2026-07-13",
+    title: "Botón para enviar el acceso al cliente por WhatsApp",
+    description:
+      "En la orden, dentro de «Acceso del cliente», hay un botón verde de WhatsApp que abre un mensaje listo con el código de acceso resaltado y el link de seguimiento, para entregarle el acceso al cliente de una vez apenas se registra la orden.",
+  },
+  {
     id: 21,
     date: "2026-07-13",
     title: "El aviso de nueva versión aparece solo, sin recargar",
