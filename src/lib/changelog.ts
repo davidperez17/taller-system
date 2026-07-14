@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 // marcar cuántas novedades hay sin ver.
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 21,
+    date: "2026-07-13",
+    title: "El aviso de nueva versión aparece solo, sin recargar",
+    description:
+      "El pop de «Actualización disponible» ahora se detecta cada minuto y al volver a la pestaña o la ventana, así que aparece solo poco después de cada deploy sin tener que recargar la página a mano.",
+  },
+  {
     id: 20,
     date: "2026-07-13",
     title: "Al avisar «vehículo listo» se manda el link y el total",

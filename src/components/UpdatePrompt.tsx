@@ -77,7 +77,10 @@ export default function UpdatePrompt() {
       }
     };
 
-    // Al volver a la app y cada 5 min: buscar deploy nuevo y actualizar el SW.
+    // Buscar deploy nuevo (y refrescar el SW) al montar, al volver a la app, al
+    // re-enfocar la ventana, al recuperar conexión y cada minuto. Antes era solo
+    // cada 5 min + cambio de pestaña, por eso el pop tardaba en salir tras un
+    // deploy si te quedabas mirando la misma pestaña.
     const poll = () => {
       if (document.visibilityState !== "visible") return;
       checkBuild();
@@ -85,11 +88,17 @@ export default function UpdatePrompt() {
     };
     checkBuild();
     document.addEventListener("visibilitychange", poll);
-    const interval = window.setInterval(poll, 5 * 60 * 1000);
+    window.addEventListener("focus", poll);
+    window.addEventListener("online", poll);
+    window.addEventListener("pageshow", poll);
+    const interval = window.setInterval(poll, 60 * 1000);
 
     return () => {
       stopped = true;
       document.removeEventListener("visibilitychange", poll);
+      window.removeEventListener("focus", poll);
+      window.removeEventListener("online", poll);
+      window.removeEventListener("pageshow", poll);
       window.clearInterval(interval);
       if (hasSW) navigator.serviceWorker.removeEventListener("controllerchange", onControllerChange);
     };
