@@ -114,7 +114,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
       if (href) waActions.push({ label, href });
     };
     if (order.status === "listo") {
-      push("Vehículo listo", WA_TEMPLATES.listo(base));
+      push("Vehículo listo", WA_TEMPLATES.listo({ ...base, total, code: order.tracking_code }));
     } else if (order.status === "aprobacion" && total > 0) {
       push(
         "Presupuesto listo",

@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 // marcar cuántas novedades hay sin ver.
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 20,
+    date: "2026-07-13",
+    title: "Al avisar «vehículo listo» se manda el link y el total",
+    description:
+      "El mensaje de WhatsApp de «Vehículo listo» ahora incluye el link de seguimiento con el código de acceso resaltado y el total del servicio, para que el cliente entre desde su teléfono y vea el detalle de cuánto le salió todo.",
+  },
+  {
     id: 19,
     date: "2026-07-13",
     title: "Ubicación por GPS en servicios a domicilio",

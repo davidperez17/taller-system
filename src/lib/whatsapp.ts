@@ -30,8 +30,10 @@ export const WA_TEMPLATES = {
     `Hola ${v.nombre}, le saludamos de ${brand.name}. El presupuesto de su vehículo placa ${v.placa} ` +
     `está listo por ${formatMoney(v.total)}. Puede verlo y aprobarlo con su código ${v.code} aquí: ` +
     `${v.origin}${trackingUrl(v.placa)}?code=${v.code}`,
-  listo: (v: { nombre: string; placa: string; origin: string }) =>
+  listo: (v: { nombre: string; placa: string; total: number; code: string; origin: string }) =>
     `Hola ${v.nombre}, le saludamos de ${brand.name}. ¡Su vehículo placa ${v.placa} está listo! ` +
+    (v.total > 0 ? `El total de su servicio fue ${formatMoney(v.total)}. ` : "") +
+    `Vea el detalle con su código *${v.code}* aquí: ${v.origin}${trackingUrl(v.placa)}?code=${v.code} ` +
     `Puede pasar a recogerlo en horario de atención.`,
   saldo: (v: { nombre: string; placa: string; saldo: number }) =>
     `Hola ${v.nombre}, le saludamos de ${brand.name}. Le recordamos que su vehículo placa ${v.placa} ` +
