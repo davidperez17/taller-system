@@ -220,6 +220,19 @@ export default function HomeClient() {
             )}
           </div>
 
+          {/* Instalar la app — a la mano desde el hero para que instalen de una */}
+          <div className="mt-5 mx-auto max-w-sm space-y-2">
+            <InstallButton
+              appName={brand.clientAppName}
+              label="Instala la app en tu celular"
+              tone="onDark"
+            />
+            <p className="flex items-center justify-center gap-1.5 text-xs text-white/50">
+              <ShieldCheck className="w-4 h-4 shrink-0" aria-hidden="true" />
+              Tus datos solo son visibles con tu placa y código de acceso.
+            </p>
+          </div>
+
           {/* Confianza — franja discreta */}
           <div className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[13px] text-white/65">
             {["Autos", "Motos", "Camiones"].map((t) => (
@@ -429,16 +442,16 @@ export default function HomeClient() {
         {/* ============ CONTACTO / CTA ============ */}
         <section id="contacto" className="mt-16 sm:mt-20 scroll-mt-20">
           <div className="bg-sm-graphite text-white">
-            <div className="mx-auto max-w-5xl px-4 py-14 sm:py-16 grid lg:grid-cols-2 gap-10 items-center *:min-w-0">
-              <div className="text-center lg:text-left">
+            <div className="mx-auto max-w-2xl px-4 py-14 sm:py-16 text-center">
+              <div>
                 <h2 className="font-heading font-bold uppercase text-[30px] sm:text-[40px] tracking-wide leading-[1.05] text-balance">
                   ¿Tu vehículo necesita servicio?
                 </h2>
-                <p className="mt-3 text-white/70 max-w-md mx-auto lg:mx-0">
+                <p className="mt-3 text-white/70 max-w-md mx-auto">
                   Tráelo al taller o escríbenos: te cotizamos sin compromiso y lo sigues en vivo desde
                   tu celular.
                 </p>
-                <div className="mt-6 flex flex-wrap justify-center lg:justify-start gap-3">
+                <div className="mt-6 flex flex-wrap justify-center gap-3">
                   <a
                     href={WA_AGENDA}
                     target="_blank"
@@ -454,7 +467,7 @@ export default function HomeClient() {
                     <Phone className="w-5 h-5" aria-hidden="true" /> Llámanos
                   </a>
                 </div>
-                <div className="mt-6 flex flex-wrap justify-center lg:justify-start gap-x-6 gap-y-2 text-sm text-white/65">
+                <div className="mt-6 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-white/65">
                   <span className="flex items-center gap-2">
                     <MapPin className="w-4 h-4 shrink-0" aria-hidden="true" /> {brand.address || "Guatemala"}
                   </span>
@@ -462,18 +475,6 @@ export default function HomeClient() {
                     <Clock className="w-4 h-4 shrink-0" aria-hidden="true" /> {brand.hours || "Lun–Sáb"}
                   </span>
                 </div>
-              </div>
-
-              <div className="w-full max-w-sm mx-auto lg:ml-auto lg:mr-0 space-y-3">
-                <InstallButton
-                  appName={brand.clientAppName}
-                  label="Instala la app en tu celular"
-                  tone="onDark"
-                />
-                <p className="flex items-center justify-center gap-1.5 text-xs text-white/45">
-                  <ShieldCheck className="w-4 h-4 shrink-0" aria-hidden="true" />
-                  Tus datos solo son visibles con tu placa y código de acceso.
-                </p>
               </div>
             </div>
           </div>
