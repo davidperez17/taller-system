@@ -712,16 +712,80 @@ export async function deleteOrderItemAction(formData: FormData) {
   revalidatePath(`/admin/ordenes/${orderId}`);
 }
 
-// Corregir el costo real de un ítem ya cotizado (p. ej. un ítem "libre" que un
-// asesor agregó con costo 0). Solo admin: la rentabilidad es su vista.
-export async function updateOrderItemCostAction(formData: FormData) {
+// Corregir un ítem ya cotizado: concepto, cantidad y precio de venta; el costo
+// real solo lo toca el admin (la rentabilidad es su vista). Si el ítem vino de
+// inventario, la diferencia de cantidad se descuenta o se devuelve al stock para
+// que las existencias sigan cuadrando.
+export async function updateOrderItemAction(formData: FormData) {
   const user = await requireUser();
-  if (user.role !== "admin") return;
   const id = Number(formData.get("id"));
   const orderId = Number(formData.get("order_id"));
-  const cost = Number(formData.get("unit_cost"));
-  if (!id || !orderId || !Number.isFinite(cost) || cost < 0) return;
-  await run("UPDATE order_items SET unit_cost = ? WHERE id = ?", [cost, id]);
+  if (!id || !orderId) return;
+
+  const before = await one<{ part_id: number | null; qty: number }>(
+    "SELECT part_id, qty FROM order_items WHERE id = ? AND order_id = ?",
+    [id, orderId]
+  );
+  if (!before) return;
+
+  const description = str(formData, "description", { max: 2000 });
+  const qty = Number(formData.get("qty"));
+  const unitPrice = Number(formData.get("unit_price") || 0);
+  if (!description) return;
+  if (!Number.isFinite(qty) || qty <= 0) return;
+  if (!Number.isFinite(unitPrice) || unitPrice < 0) return;
+
+  const canCost = user.role === "admin";
+  const unitCost = Number(formData.get("unit_cost") || 0);
+  if (canCost && (!Number.isFinite(unitCost) || unitCost < 0)) return;
+
+  // delta > 0 = el ítem consume más piezas que antes; delta < 0 = devuelve.
+  const delta = qty - before.qty;
+  if (before.part_id && delta > 0) {
+    const part = await one<{ stock: number }>("SELECT stock FROM parts WHERE id = ?", [
+      before.part_id,
+    ]);
+    if (!part || part.stock < delta) return; // no dejar el stock en negativo
+  }
+
+  if (canCost) {
+    await run(
+      "UPDATE order_items SET description = ?, qty = ?, unit_price = ?, unit_cost = ? WHERE id = ?",
+      [description, qty, unitPrice, unitCost, id]
+    );
+  } else {
+    await run("UPDATE order_items SET description = ?, qty = ?, unit_price = ? WHERE id = ?", [
+      description,
+      qty,
+      unitPrice,
+      id,
+    ]);
+  }
+
+  if (before.part_id && delta !== 0) {
+    const updated = await one<{ name: string; stock: number; min_stock: number }>(
+      `UPDATE parts SET stock = stock - ?, updated_at = ${NOW_SQL}
+        WHERE id = ? RETURNING name, stock, min_stock`,
+      [delta, before.part_id]
+    );
+    if (
+      updated &&
+      updated.min_stock > 0 &&
+      updated.stock <= updated.min_stock &&
+      updated.stock + delta > updated.min_stock // solo al CRUZAR el mínimo
+    ) {
+      await sendPushToStaff({
+        ...STAFF_NOTIFS.stock_bajo({
+          nombre: updated.name,
+          stock: updated.stock,
+          minimo: updated.min_stock,
+        }),
+        url: "/admin/inventario",
+      });
+    }
+    revalidatePath("/admin/inventario");
+  }
+
   revalidatePath(`/admin/ordenes/${orderId}`);
 }
 

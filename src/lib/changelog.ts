@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 // marcar cuántas novedades hay sin ver.
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 25,
+    date: "2026-07-15",
+    title: "Editar cualquier dato del presupuesto (y verlo bien en el teléfono)",
+    description:
+      "Cada concepto del presupuesto tiene un botón «Editar» para corregir todo: concepto, cantidad, costo y precio de venta, sin tener que borrarlo y volver a agregarlo. Si el concepto salió del inventario, la diferencia de cantidad se descuenta o se devuelve al stock sola, y no deja pedir más piezas de las que hay. Además, en el teléfono el presupuesto ya no se ve como una tabla cortada que obliga a arrastrar de lado: ahora es una tarjeta por concepto con todo a la vista.",
+  },
+  {
     id: 24,
     date: "2026-07-13",
     title: "Corregir el mensaje de un cambio de estado",

@@ -11,11 +11,11 @@ import {
 } from "@/lib/status";
 import {
   addOrderNoteAction, deleteOrderNoteAction,
-  deleteOrderItemAction, updateOrderInfoAction, addPaymentAction, deletePaymentAction,
+  updateOrderInfoAction, addPaymentAction, deletePaymentAction,
 } from "@/app/admin/actions";
 import { getSessionUser } from "@/lib/auth";
 import ItemPicker from "@/components/admin/ItemPicker";
-import ItemCostCell from "@/components/admin/ItemCostCell";
+import OrderItemsEditor from "@/components/admin/OrderItemsEditor";
 import SubmitButton from "@/components/admin/SubmitButton";
 import PhotoInput from "@/components/admin/PhotoInput";
 import StatusChangeForm from "@/components/admin/StatusChangeForm";
@@ -53,10 +53,18 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
   if (!order) notFound();
 
+  // stock: existencias que quedan del repuesto, para topar la cantidad al editar.
   const items = await many<{
     id: number; kind: string; description: string; qty: number; unit_price: number;
-    unit_cost: number;
-  }>("SELECT * FROM order_items WHERE order_id = ? ORDER BY id", [order.id]);
+    unit_cost: number; part_id: number | null; stock: number | null;
+  }>(
+    `SELECT i.id, i.kind, i.description, i.qty, i.unit_price, i.unit_cost, i.part_id,
+              p.stock
+       FROM order_items i
+       LEFT JOIN parts p ON p.id = i.part_id
+       WHERE i.order_id = ? ORDER BY i.id`,
+    [order.id]
+  );
   const total = items.reduce((s, i) => s + i.qty * i.unit_price, 0);
   const costTotal = items.reduce((s, i) => s + i.qty * i.unit_cost, 0);
   const profit = total - costTotal;
@@ -325,99 +333,13 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             <h2 className="font-heading font-semibold text-lg text-slate-800 tracking-wide">
               PRESUPUESTO
             </h2>
-            {items.length > 0 && (
-              <div className="mt-3 overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-left text-xs uppercase tracking-wider text-slate-400 border-b border-slate-100">
-                      <th className="py-2 pr-2 font-semibold">Concepto</th>
-                      <th className="py-2 px-2 font-semibold hidden sm:table-cell">Tipo</th>
-                      <th className="py-2 px-2 font-semibold text-right">Cant.</th>
-                      {isAdmin && <th className="py-2 px-2 font-semibold text-right">Costo unit.</th>}
-                      <th className="py-2 px-2 font-semibold text-right hidden md:table-cell">P. venta</th>
-                      <th className="py-2 px-2 font-semibold text-right">Importe</th>
-                      {isAdmin && <th className="py-2 px-2 font-semibold text-right">Ganancia</th>}
-                      <th className="py-2 pl-2" aria-label="Acciones" />
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50">
-                    {items.map((it) => {
-                      const lineProfit = it.qty * (it.unit_price - it.unit_cost);
-                      return (
-                        <tr key={it.id}>
-                          <td className="py-2.5 pr-2 text-slate-700">{it.description}</td>
-                          <td className="py-2.5 px-2 text-slate-500 capitalize hidden sm:table-cell">
-                            {it.kind}
-                          </td>
-                          <td className="py-2.5 px-2 text-right tabular-nums text-slate-500">{it.qty}</td>
-                          {isAdmin && (
-                            <td className="py-2.5 px-2 text-right">
-                              <ItemCostCell
-                                itemId={it.id}
-                                orderId={order.id}
-                                cost={it.unit_cost}
-                                label={it.description}
-                              />
-                            </td>
-                          )}
-                          <td className="py-2.5 px-2 text-right tabular-nums text-slate-500 hidden md:table-cell">
-                            {formatMoney(it.unit_price)}
-                          </td>
-                          <td className="py-2.5 px-2 text-right tabular-nums font-medium text-slate-700">
-                            {formatMoney(it.qty * it.unit_price)}
-                          </td>
-                          {isAdmin && (
-                            <td
-                              className={`py-2.5 px-2 text-right tabular-nums font-medium ${
-                                lineProfit < -0.009 ? "text-red-600" : "text-accent-700"
-                              }`}
-                            >
-                              {formatMoney(lineProfit)}
-                            </td>
-                          )}
-                          <td className="py-2.5 pl-2 text-right">
-                            <form action={deleteOrderItemAction} className="inline">
-                              <input type="hidden" name="id" value={it.id} />
-                              <input type="hidden" name="order_id" value={order.id} />
-                              <ConfirmSubmitButton
-                                ariaLabel={`Eliminar ${it.description}`}
-                                className="p-1.5 text-slate-300 hover:text-red-500 transition-colors cursor-pointer"
-                                confirmTitle="¿Eliminar concepto?"
-                                confirmMessage={`Se quita "${it.description}" de la orden.`}
-                              >
-                                <Trash2 className="w-4 h-4" aria-hidden="true" />
-                              </ConfirmSubmitButton>
-                            </form>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                  <tfoot>
-                    <tr className="border-t border-slate-200">
-                      <td className="py-3 font-semibold text-slate-800">Total</td>
-                      <td className="hidden sm:table-cell" />
-                      <td />
-                      {isAdmin && <td />}
-                      <td className="hidden md:table-cell" />
-                      <td className="py-3 text-right font-bold text-slate-900 tabular-nums">
-                        {formatMoney(total)}
-                      </td>
-                      {isAdmin && (
-                        <td
-                          className={`py-3 text-right font-bold tabular-nums ${
-                            profit < -0.009 ? "text-red-600" : "text-accent-700"
-                          }`}
-                        >
-                          {formatMoney(profit)}
-                        </td>
-                      )}
-                      <td />
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            )}
+            <OrderItemsEditor
+              orderId={order.id}
+              items={items}
+              isAdmin={isAdmin}
+              total={total}
+              profit={profit}
+            />
             <ItemPicker orderId={order.id} parts={pickerParts} services={pickerServices} isAdmin={isAdmin} />
           </section>
 
