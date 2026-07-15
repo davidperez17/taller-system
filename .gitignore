@@ -6,6 +6,7 @@ out/
 data/*.db
 data/*.db-*
 .DS_Store
+*:Zone.Identifier
 [Rr]esumen_proyecto.md
 
 tsconfig.tsbuildinfo
