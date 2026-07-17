@@ -145,6 +145,18 @@ export const STAFF_NOTIFS = {
     title: "Presupuesto rechazado por el cliente",
     body: `El cliente rechazó el presupuesto de ${v.folio}. Contáctalo para acordar cómo seguir.`,
   }),
+  // Presupuestos pre-orden (módulo Presupuestos, folio P-XXXX). Distintos de
+  // aprobado/rechazado de arriba, que son la aprobación DENTRO de una orden.
+  presupuesto_aprobado: (v: { folio: string; total: string; orden?: string | null }) => ({
+    title: "Presupuesto aprobado",
+    body: `El cliente aprobó el presupuesto ${v.folio} (${v.total}).${
+      v.orden ? ` Se creó la orden ${v.orden}.` : " Falta generar la orden desde el panel."
+    }`,
+  }),
+  presupuesto_rechazado: (v: { folio: string }) => ({
+    title: "Presupuesto rechazado",
+    body: `El cliente rechazó el presupuesto ${v.folio}. Contáctalo para acordar cómo seguir.`,
+  }),
   listo_admin: (v: { folio: string; placa: string }) => ({
     title: "Orden lista para entrega",
     body: `${v.placa} (${v.folio}) pasó el control de calidad y está lista para entrega.`,

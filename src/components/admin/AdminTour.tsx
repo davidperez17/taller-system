@@ -34,6 +34,13 @@ const STEPS: Step[] = [
     body: "El corazón del panel. Crea una orden por cada vehículo que entra y actualiza su etapa; tu cliente sigue el avance en vivo con su placa.",
   },
   {
+    target: "/admin/presupuestos",
+    noMechanic: true,
+    fallbackNote: "En el teléfono los encuentras tocando «Más».",
+    title: "PRESUPUESTOS",
+    body: "Cotiza sin abrir una orden: el cliente aprueba desde su teléfono y la orden de trabajo se crea sola. Todo queda en el historial, también lo rechazado.",
+  },
+  {
     target: "/admin/caja",
     noMechanic: true,
     fallbackNote: "En el teléfono la encuentras tocando «Más».",

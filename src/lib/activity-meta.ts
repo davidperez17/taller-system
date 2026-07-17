@@ -9,7 +9,10 @@ export type ActivityType =
   | "cancelacion"
   | "pago"
   | "aprobacion"
-  | "rechazo";
+  | "rechazo"
+  | "presupuesto_nuevo"
+  | "presupuesto_aprobado"
+  | "presupuesto_rechazado";
 
 export type ActivityTone = "blue" | "green" | "amber" | "red" | "violet" | "slate";
 
@@ -32,8 +35,12 @@ export const ACTIVITY_META: Record<
   estado: { label: "Cambio de estado", tone: "violet", icon: "wrench" },
   cancelacion: { label: "Cancelación", tone: "red", icon: "ban" },
   pago: { label: "Pago registrado", tone: "green", icon: "wallet" },
-  aprobacion: { label: "Presupuesto aprobado", tone: "green", icon: "check" },
-  rechazo: { label: "Presupuesto rechazado", tone: "amber", icon: "x" },
+  aprobacion: { label: "Aprobación en orden", tone: "green", icon: "check" },
+  rechazo: { label: "Rechazo en orden", tone: "amber", icon: "x" },
+  // Módulo Presupuestos (cotizaciones pre-orden, folio P-XXXX).
+  presupuesto_nuevo: { label: "Presupuesto creado", tone: "blue", icon: "file-text" },
+  presupuesto_aprobado: { label: "Presupuesto aprobado", tone: "green", icon: "file-check" },
+  presupuesto_rechazado: { label: "Presupuesto rechazado", tone: "amber", icon: "file-x" },
 };
 
 // Fallback para tipos desconocidos (compatibilidad hacia adelante).

@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, ClipboardList, Users, Car, UserCog, ExternalLink,
   Boxes, BarChart3, Bell, MoreHorizontal, X, BellRing, Wallet, Hammer, Receipt,
-  Megaphone, History,
+  Megaphone, History, FileText,
 } from "lucide-react";
 import type { SessionUser } from "@/lib/auth";
 import type { ActivityItem } from "@/lib/activity-meta";
@@ -28,6 +28,7 @@ type NavItem = {
 const NAV: NavItem[] = [
   { href: "/admin", label: "Inicio", icon: LayoutDashboard, exact: true },
   { href: "/admin/ordenes", label: "Órdenes", icon: ClipboardList },
+  { href: "/admin/presupuestos", label: "Presupuestos", icon: FileText, noMechanic: true },
   { href: "/admin/caja", label: "Caja", icon: Wallet, noMechanic: true },
   { href: "/admin/gastos", label: "Gastos", icon: Receipt, adminOnly: true },
   { href: "/admin/inventario", label: "Inventario", icon: Boxes, alertKey: "inventario" },

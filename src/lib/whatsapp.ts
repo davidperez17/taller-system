@@ -45,4 +45,10 @@ export const WA_TEMPLATES = {
   recordatorio: (v: { nombre: string; placa: string; motivo: string }) =>
     `Hola ${v.nombre}, le saludamos de ${brand.name}. Le recordamos que su vehículo placa ${v.placa} ` +
     `tiene pendiente: ${v.motivo}. ¿Desea agendar una cita?`,
+  // Presupuesto pre-orden (módulo Presupuestos): enlace a la página pública
+  // /presupuesto/{folio}, donde el cliente revisa y aprueba con su código.
+  presupuesto_link: (v: { nombre: string; folio: string; total: number; code: string; origin: string }) =>
+    `Hola ${v.nombre}, le saludamos de ${brand.name}. Le compartimos su presupuesto ${v.folio} ` +
+    `por ${formatMoney(v.total)}. Puede revisarlo y aprobarlo con su código *${v.code}* aquí: ` +
+    `${v.origin}/presupuesto/${v.folio}?code=${v.code}`,
 } as const;

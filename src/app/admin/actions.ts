@@ -2,7 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { one, run, normalizePlate, nextFolio, newTrackingCode } from "@/lib/db";
+import { one, run, normalizePlate, nextFolio, newTrackingCode, nextQuoteFolio } from "@/lib/db";
+import {
+  approveQuoteAndCreateOrder, rejectQuote, materializeOrderFromQuote,
+} from "@/lib/quotes";
 import {
   checkPassword, hashPassword, setSession, clearSession, getSessionUser, requireUser,
 } from "@/lib/auth";
@@ -10,7 +13,8 @@ import { sendPushToPlate, sendPushToStaff } from "@/lib/push";
 import { hitLimit, clientIp } from "@/lib/rate-limit";
 import { str, strOrNull } from "@/lib/validate";
 import {
-  STATUS_META, RECEPTION_EVENT_TITLE, EXPENSE_CATEGORIES, formatMoney, type OrderStatus,
+  STATUS_META, RECEPTION_EVENT_TITLE, EXPENSE_CATEGORIES, VEHICLE_TYPES, formatMoney,
+  type OrderStatus,
 } from "@/lib/status";
 import { CLIENT_PRESETS, STAFF_NOTIFS } from "@/lib/notifications";
 import { logActivity, markNotifsSeen } from "@/lib/activity";
@@ -1291,4 +1295,396 @@ export async function deleteAnnouncementAction(formData: FormData) {
   if (!id) return;
   await run("DELETE FROM announcements WHERE id = ?", [id]);
   revalidatePath("/admin/novedades");
+}
+
+/* ---------------- Presupuestos (cotizaciones pre-orden) ---------------- */
+// Herramienta de venta: mecánico sin acceso (mismo gating que novedades). El
+// presupuesto guarda snapshots del cliente/vehículo; nada se materializa en el
+// CRM hasta que el cliente aprueba (ver src/lib/quotes.ts).
+
+// Vigencia como YYYY-MM-DD (input date); cualquier otra cosa se descarta.
+function validUntilOrNull(formData: FormData): string | null {
+  const v = strOrNull(formData, "valid_until", { max: 10 });
+  return v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null;
+}
+
+export async function createQuoteAction(
+  _prev: { error?: string } | null,
+  formData: FormData
+): Promise<{ error?: string }> {
+  const user = await requireUser();
+  if (user.role === "mecanico") return { error: "No tienes permiso para crear presupuestos." };
+
+  const description = str(formData, "description", { max: 2000 });
+  if (!description) return { error: "Describe el trabajo a cotizar." };
+
+  // Snapshot del vehículo/cliente. Tres orígenes: vehículo registrado, placa
+  // que resulta ya registrada, o datos sueltos (no se crea nada en el CRM).
+  let vehicleId = Number(formData.get("vehicle_id")) || 0;
+  let clientId = 0;
+  let clientName: string | null = null;
+  let clientPhone: string | null = null;
+  let plate = "";
+  let vType = "auto";
+  let vBrand: string | null = null;
+  let vModel: string | null = null;
+  let vYear: string | null = null;
+  let vColor: string | null = null;
+
+  if (!vehicleId) {
+    plate = normalizePlate(String(formData.get("new_plate") || ""));
+    if (!plate) {
+      return { error: "Ingresa la placa del vehículo o elige uno ya registrado." };
+    }
+    const existing = await one<{ id: number }>("SELECT id FROM vehicles WHERE plate = ?", [
+      plate,
+    ]);
+    if (existing) vehicleId = existing.id;
+  }
+
+  if (vehicleId) {
+    const v = await one<{
+      plate: string; type: string; brand: string | null; model: string | null;
+      year: string | null; color: string | null; client_id: number | null;
+      client_name: string | null; client_phone: string | null;
+    }>(
+      `SELECT v.plate, v.type, v.brand, v.model, v.year, v.color, v.client_id,
+              c.name AS client_name, c.phone AS client_phone
+         FROM vehicles v LEFT JOIN clients c ON c.id = v.client_id
+        WHERE v.id = ?`,
+      [vehicleId]
+    );
+    if (!v) return { error: "El vehículo elegido ya no existe." };
+    plate = v.plate;
+    vType = v.type;
+    vBrand = v.brand;
+    vModel = v.model;
+    vYear = v.year;
+    vColor = v.color;
+    clientId = v.client_id ?? 0;
+    clientName = v.client_name;
+    clientPhone = v.client_phone;
+  } else {
+    clientId = Number(formData.get("client_id")) || 0;
+    if (clientId) {
+      const c = await one<{ name: string; phone: string | null }>(
+        "SELECT name, phone FROM clients WHERE id = ?",
+        [clientId]
+      );
+      if (!c) return { error: "El cliente elegido ya no existe." };
+      clientName = c.name;
+      clientPhone = c.phone;
+    } else {
+      clientName = str(formData, "new_client_name");
+      if (!clientName) {
+        return { error: "Elige un cliente existente o escribe el nombre del cliente nuevo." };
+      }
+      clientPhone = strOrNull(formData, "new_client_phone");
+    }
+    vType = String(formData.get("new_type") || "auto");
+    if (!VEHICLE_TYPES[vType]) vType = "auto";
+    vBrand = strOrNull(formData, "new_brand");
+    vModel = strOrNull(formData, "new_model");
+    vYear = strOrNull(formData, "new_year");
+    vColor = strOrNull(formData, "new_color");
+  }
+
+  const folio = await nextQuoteFolio();
+  const info = await run(
+    `INSERT INTO quotes (folio, public_code, client_id, vehicle_id, client_name, client_phone,
+        plate, vehicle_type, vehicle_brand, vehicle_model, vehicle_year, vehicle_color,
+        description, notes, valid_until, created_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+    [
+      folio,
+      newTrackingCode(),
+      clientId || null,
+      vehicleId || null,
+      clientName,
+      clientPhone,
+      plate,
+      vType,
+      vBrand,
+      vModel,
+      vYear,
+      vColor,
+      description,
+      strOrNull(formData, "notes", { max: 2000 }),
+      validUntilOrNull(formData),
+      user.id,
+    ]
+  );
+  const quoteId = Number(info.lastInsertRowid);
+
+  await logActivity({
+    type: "presupuesto_nuevo",
+    title: `Presupuesto ${folio} creado`,
+    detail: `${plate}${clientName ? ` · ${clientName}` : ""}`,
+    actorId: user.id,
+    actorName: user.name,
+    url: `/admin/presupuestos/${quoteId}`,
+  });
+
+  revalidatePath("/admin/presupuestos");
+  redirect(`/admin/presupuestos/${quoteId}`);
+}
+
+// Solo mientras está pendiente: tras la decisión el presupuesto es historial.
+async function quoteIsPending(quoteId: number): Promise<boolean> {
+  const q = await one<{ status: string }>("SELECT status FROM quotes WHERE id = ?", [quoteId]);
+  return q?.status === "pendiente";
+}
+
+export async function updateQuoteInfoAction(formData: FormData) {
+  const user = await requireUser();
+  if (user.role === "mecanico") return;
+  const quoteId = Number(formData.get("quote_id"));
+  const description = str(formData, "description", { max: 2000 });
+  if (!quoteId || !description) return;
+  if (!(await quoteIsPending(quoteId))) return;
+
+  await run(
+    `UPDATE quotes SET description = ?, notes = ?, valid_until = ?,
+        client_name = ?, client_phone = ?, updated_at = ${NOW_SQL}
+      WHERE id = ?`,
+    [
+      description,
+      strOrNull(formData, "notes", { max: 2000 }),
+      validUntilOrNull(formData),
+      strOrNull(formData, "client_name"),
+      strOrNull(formData, "client_phone"),
+      quoteId,
+    ]
+  );
+  revalidatePath(`/admin/presupuestos/${quoteId}`);
+  revalidatePath("/admin/presupuestos");
+}
+
+// Espejo de addOrderItemAction SIN tocar stock: cotizar no reserva piezas (el
+// descuento ocurre al aprobar, cuando se genera la orden). Por eso tampoco se
+// bloquean repuestos sin existencias.
+export async function addQuoteItemAction(formData: FormData) {
+  const user = await requireUser();
+  if (user.role === "mecanico") return;
+  const quoteId = Number(formData.get("quote_id"));
+  const partId = Number(formData.get("part_id")) || null;
+  const serviceId = Number(formData.get("service_id")) || null;
+  const qty = Number(formData.get("qty")) || 1;
+  if (!quoteId || qty <= 0) return;
+  if (!(await quoteIsPending(quoteId))) return;
+
+  let kind = String(formData.get("kind") || "servicio");
+  let description = str(formData, "description", { max: 2000 });
+  let unitPrice = Number(formData.get("unit_price")) || 0;
+  const canCost = user.role === "admin";
+  let unitCost = canCost ? Number(formData.get("unit_cost")) || 0 : 0;
+
+  if (partId) {
+    const part = await one<{ name: string; unit_price: number; cost: number }>(
+      "SELECT name, unit_price, cost FROM parts WHERE id = ? AND active = 1",
+      [partId]
+    );
+    if (!part) return;
+    kind = "repuesto";
+    description = description || part.name;
+    if (!Number(formData.get("unit_price"))) unitPrice = part.unit_price;
+    if (!unitCost) unitCost = part.cost;
+  } else if (serviceId) {
+    const service = await one<{ name: string; price: number; est_cost: number }>(
+      "SELECT name, price, est_cost FROM services WHERE id = ? AND active = 1",
+      [serviceId]
+    );
+    if (!service) return;
+    kind = "servicio";
+    description = description || service.name;
+    if (!Number(formData.get("unit_price"))) unitPrice = service.price;
+    if (!unitCost) unitCost = service.est_cost;
+  }
+  if (!description) return;
+  if (!["servicio", "repuesto"].includes(kind)) kind = "servicio";
+
+  await run(
+    `INSERT INTO quote_items (quote_id, kind, description, qty, unit_price, unit_cost, part_id, service_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [quoteId, kind, description, qty, unitPrice, unitCost, partId, serviceId]
+  );
+  revalidatePath(`/admin/presupuestos/${quoteId}`);
+}
+
+export async function updateQuoteItemAction(formData: FormData) {
+  const user = await requireUser();
+  if (user.role === "mecanico") return;
+  const id = Number(formData.get("id"));
+  const quoteId = Number(formData.get("quote_id"));
+  if (!id || !quoteId) return;
+  if (!(await quoteIsPending(quoteId))) return;
+
+  const before = await one<{ id: number }>(
+    "SELECT id FROM quote_items WHERE id = ? AND quote_id = ?",
+    [id, quoteId]
+  );
+  if (!before) return;
+
+  const description = str(formData, "description", { max: 2000 });
+  const qty = Number(formData.get("qty"));
+  const unitPrice = Number(formData.get("unit_price") || 0);
+  if (!description) return;
+  if (!Number.isFinite(qty) || qty <= 0) return;
+  if (!Number.isFinite(unitPrice) || unitPrice < 0) return;
+
+  const canCost = user.role === "admin";
+  const unitCost = Number(formData.get("unit_cost") || 0);
+  if (canCost && (!Number.isFinite(unitCost) || unitCost < 0)) return;
+
+  if (canCost) {
+    await run(
+      "UPDATE quote_items SET description = ?, qty = ?, unit_price = ?, unit_cost = ? WHERE id = ?",
+      [description, qty, unitPrice, unitCost, id]
+    );
+  } else {
+    await run("UPDATE quote_items SET description = ?, qty = ?, unit_price = ? WHERE id = ?", [
+      description,
+      qty,
+      unitPrice,
+      id,
+    ]);
+  }
+  revalidatePath(`/admin/presupuestos/${quoteId}`);
+}
+
+export async function deleteQuoteItemAction(formData: FormData) {
+  const user = await requireUser();
+  if (user.role === "mecanico") return;
+  const id = Number(formData.get("id"));
+  const quoteId = Number(formData.get("quote_id"));
+  if (!id || !quoteId) return;
+  if (!(await quoteIsPending(quoteId))) return;
+  await run("DELETE FROM quote_items WHERE id = ? AND quote_id = ?", [id, quoteId]);
+  revalidatePath(`/admin/presupuestos/${quoteId}`);
+}
+
+// El staff registra la decisión que el cliente dio en persona o por llamada.
+// Converge en la misma lógica que la aprobación pública (src/lib/quotes.ts):
+// aprobar genera la orden y redirige a ella.
+export async function decideQuoteAction(formData: FormData) {
+  const user = await requireUser();
+  if (user.role === "mecanico") return;
+  const quoteId = Number(formData.get("quote_id"));
+  const decision = String(formData.get("decision"));
+  if (!quoteId || !["aprobado", "rechazado"].includes(decision)) return;
+
+  const actor = { id: user.id, name: user.name };
+  const result =
+    decision === "aprobado"
+      ? await approveQuoteAndCreateOrder(quoteId, "staff", actor)
+      : await rejectQuote(quoteId, "staff", actor);
+
+  revalidatePath("/admin/presupuestos");
+  revalidatePath(`/admin/presupuestos/${quoteId}`);
+  revalidatePath("/admin/ordenes");
+  revalidatePath("/admin/inventario");
+  revalidatePath("/admin");
+
+  if (decision === "aprobado" && result.ok && "orderId" in result && result.orderId) {
+    redirect(`/admin/ordenes/${result.orderId}`);
+  }
+}
+
+// Reintento de la generación de orden cuando la aprobación quedó a medias
+// (aprobado sin order_id por un fallo parcial; Neon HTTP no tiene transacciones).
+export async function generateOrderFromQuoteAction(formData: FormData) {
+  const user = await requireUser();
+  if (user.role === "mecanico") return;
+  const quoteId = Number(formData.get("quote_id"));
+  if (!quoteId) return;
+
+  let orderId = 0;
+  try {
+    const r = await materializeOrderFromQuote(quoteId, user.id);
+    orderId = r.orderId;
+  } catch {
+    return;
+  }
+  revalidatePath("/admin/presupuestos");
+  revalidatePath(`/admin/presupuestos/${quoteId}`);
+  revalidatePath("/admin/ordenes");
+  revalidatePath("/admin/inventario");
+  redirect(`/admin/ordenes/${orderId}`);
+}
+
+// Cancelar en vez de borrar: el historial de presupuestos es permanente.
+export async function cancelQuoteAction(formData: FormData) {
+  const user = await requireUser();
+  if (user.role === "mecanico") return;
+  const quoteId = Number(formData.get("quote_id"));
+  if (!quoteId) return;
+  await run(
+    `UPDATE quotes SET status = 'cancelado', decided_at = ${NOW_SQL}, decided_via = 'staff',
+        decided_by = ?, updated_at = ${NOW_SQL}
+      WHERE id = ? AND status = 'pendiente'`,
+    [user.id, quoteId]
+  );
+  revalidatePath(`/admin/presupuestos/${quoteId}`);
+  revalidatePath("/admin/presupuestos");
+}
+
+// Re-cotizar tras un rechazo o vencimiento: copia encabezado y conceptos a un
+// presupuesto nuevo pendiente (folio y código nuevos; la vigencia no se copia).
+export async function duplicateQuoteAction(formData: FormData) {
+  const user = await requireUser();
+  if (user.role === "mecanico") return;
+  const quoteId = Number(formData.get("quote_id"));
+  if (!quoteId) return;
+
+  const src = await one<{
+    client_id: number | null; vehicle_id: number | null; client_name: string | null;
+    client_phone: string | null; plate: string; vehicle_type: string;
+    vehicle_brand: string | null; vehicle_model: string | null; vehicle_year: string | null;
+    vehicle_color: string | null; description: string; notes: string | null; folio: string;
+  }>("SELECT * FROM quotes WHERE id = ?", [quoteId]);
+  if (!src) return;
+
+  const folio = await nextQuoteFolio();
+  const info = await run(
+    `INSERT INTO quotes (folio, public_code, client_id, vehicle_id, client_name, client_phone,
+        plate, vehicle_type, vehicle_brand, vehicle_model, vehicle_year, vehicle_color,
+        description, notes, created_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+    [
+      folio,
+      newTrackingCode(),
+      src.client_id,
+      src.vehicle_id,
+      src.client_name,
+      src.client_phone,
+      src.plate,
+      src.vehicle_type,
+      src.vehicle_brand,
+      src.vehicle_model,
+      src.vehicle_year,
+      src.vehicle_color,
+      src.description,
+      src.notes,
+      user.id,
+    ]
+  );
+  const newId = Number(info.lastInsertRowid);
+  await run(
+    `INSERT INTO quote_items (quote_id, kind, description, qty, unit_price, unit_cost, part_id, service_id)
+     SELECT ?, kind, description, qty, unit_price, unit_cost, part_id, service_id
+       FROM quote_items WHERE quote_id = ? ORDER BY id`,
+    [newId, quoteId]
+  );
+
+  await logActivity({
+    type: "presupuesto_nuevo",
+    title: `Presupuesto ${folio} creado`,
+    detail: `Duplicado de ${src.folio} · ${src.plate}`,
+    actorId: user.id,
+    actorName: user.name,
+    url: `/admin/presupuestos/${newId}`,
+  });
+
+  revalidatePath("/admin/presupuestos");
+  redirect(`/admin/presupuestos/${newId}`);
 }

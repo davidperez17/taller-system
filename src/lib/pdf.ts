@@ -1,8 +1,8 @@
 import type PDFDocumentType from "pdfkit";
 import { one, many } from "./db";
 import {
-  VEHICLE_TYPES, RECEPTION_EVENT_TITLE, formatMoney, formatDate, formatDateShort,
-  type OrderStatus,
+  VEHICLE_TYPES, RECEPTION_EVENT_TITLE, formatMoney, formatDate, formatDateShort, formatDay,
+  type OrderStatus, type QuoteStatus,
 } from "./status";
 import brand from "./brand.json";
 
@@ -38,6 +38,9 @@ export type OrderDocData = {
   events: { title: string; detail: string | null; created_at: string; has_photos: boolean }[];
   paid: number;
   reception: string | null;
+  // Solo para kind "presupuesto" (pre-orden): vigencia y estado real del quote.
+  valid_until?: string | null;
+  quote_status?: QuoteStatus;
 };
 
 export async function loadOrderDocData(orderId: number): Promise<OrderDocData | null> {
@@ -93,6 +96,66 @@ export async function loadOrderDocData(orderId: number): Promise<OrderDocData | 
   };
 }
 
+// Mapea un presupuesto pre-orden (quotes/quote_items) al shape del documento.
+// tracking_code lleva el public_code del quote; el bloque de acceso del PDF de
+// presupuesto imprime folio+código hacia /presupuesto/{folio}.
+export async function loadQuoteDocData(quoteId: number): Promise<OrderDocData | null> {
+  const q = await one<{
+    id: number; folio: string; public_code: string; status: QuoteStatus; plate: string;
+    vehicle_type: string; vehicle_brand: string | null; vehicle_model: string | null;
+    vehicle_year: string | null; vehicle_color: string | null; description: string;
+    valid_until: string | null; decided_at: string | null; created_at: string;
+    client_name: string | null; client_phone: string | null;
+  }>(
+    `SELECT q.id, q.folio, q.public_code, q.status, q.plate, q.vehicle_type,
+            q.vehicle_brand, q.vehicle_model, q.vehicle_year, q.vehicle_color,
+            q.description, q.valid_until, q.decided_at, q.created_at,
+            COALESCE(c.name, q.client_name) AS client_name,
+            COALESCE(c.phone, q.client_phone) AS client_phone
+       FROM quotes q LEFT JOIN clients c ON c.id = q.client_id
+      WHERE q.id = ?`,
+    [quoteId]
+  );
+  if (!q) return null;
+
+  const items = await many<OrderDocData["items"][number]>(
+    "SELECT kind, description, qty, unit_price FROM quote_items WHERE quote_id = ? ORDER BY id",
+    [quoteId]
+  );
+
+  return {
+    id: q.id,
+    folio: q.folio,
+    tracking_code: q.public_code,
+    status: "aprobacion",
+    description: q.description,
+    diagnosis: null,
+    km: null,
+    fuel_level: null,
+    estimated_delivery: null,
+    created_at: q.created_at,
+    delivered_at: null,
+    approval_status:
+      q.status === "aprobado" ? "aprobado" : q.status === "rechazado" ? "rechazado" : "pendiente",
+    approval_at: q.decided_at,
+    plate: q.plate,
+    type: q.vehicle_type,
+    brand: q.vehicle_brand,
+    model: q.vehicle_model,
+    year: q.vehicle_year,
+    color: q.vehicle_color,
+    client_name: q.client_name ?? "—",
+    client_phone: q.client_phone,
+    mechanic: null,
+    items,
+    events: [],
+    paid: 0,
+    reception: null,
+    valid_until: q.valid_until,
+    quote_status: q.status,
+  };
+}
+
 /* ---------------- Maquetación ---------------- */
 
 const INK = "#18181b"; // zinc-900 (neutro, sin tinte azul)
@@ -112,7 +175,7 @@ const BOTTOM = PAGE_H - 64;
 
 export async function buildOrderPdf(
   data: OrderDocData,
-  kind: "cotizacion" | "informe",
+  kind: "cotizacion" | "informe" | "presupuesto",
   origin: string
 ): Promise<Buffer> {
   const doc = new PDFDocument({
@@ -120,7 +183,9 @@ export async function buildOrderPdf(
     margins: { top: M, left: M, right: M, bottom: 64 },
     bufferPages: true,
     info: {
-      Title: `${kind === "informe" ? "Informe de servicio" : "Cotización"} ${data.folio}`,
+      Title: `${
+        kind === "informe" ? "Informe de servicio" : kind === "presupuesto" ? "Presupuesto" : "Cotización"
+      } ${data.folio}`,
       Author: brand.name,
     },
   });
@@ -148,7 +213,8 @@ export async function buildOrderPdf(
   };
 
   /* Encabezado */
-  const title = kind === "informe" ? "INFORME DE SERVICIO" : "COTIZACIÓN";
+  const title =
+    kind === "informe" ? "INFORME DE SERVICIO" : kind === "presupuesto" ? "PRESUPUESTO" : "COTIZACIÓN";
   doc.font("Helvetica-Bold").fontSize(15).fillColor(HEAD).text(brand.name.toUpperCase(), M, M, {
     width: W - 190,
   });
@@ -160,10 +226,14 @@ export async function buildOrderPdf(
     width: 180,
     align: "right",
   });
-  doc.font("Helvetica-Bold").fontSize(11).fillColor(RED).text(`Orden ${data.folio}`, {
-    width: 180,
-    align: "right",
-  });
+  doc
+    .font("Helvetica-Bold")
+    .fontSize(11)
+    .fillColor(RED)
+    .text(`${kind === "presupuesto" ? "Presupuesto" : "Orden"} ${data.folio}`, {
+      width: 180,
+      align: "right",
+    });
   doc.font("Helvetica").fontSize(8.5).fillColor(MUTED).text(
     `Emitido: ${formatDate(new Date().toISOString().slice(0, 19).replace("T", " "))}`,
     { width: 180, align: "right" }
@@ -190,12 +260,17 @@ export async function buildOrderPdf(
   const metaTop = doc.y;
   row(M, "Cliente", data.client_name);
   row(M, "Teléfono", data.client_phone ?? "—");
-  row(M, "Recepción", formatDate(data.created_at));
-  if (kind === "informe") {
-    row(M, "Entrega", data.delivered_at ? formatDate(data.delivered_at) : "—");
-    if (data.mechanic) row(M, "Atendido por", data.mechanic);
+  if (kind === "presupuesto") {
+    row(M, "Elaborado", formatDate(data.created_at));
+    row(M, "Vigente hasta", data.valid_until ? formatDay(data.valid_until) : "—");
   } else {
-    row(M, "Entrega estimada", formatDateShort(data.estimated_delivery));
+    row(M, "Recepción", formatDate(data.created_at));
+    if (kind === "informe") {
+      row(M, "Entrega", data.delivered_at ? formatDate(data.delivered_at) : "—");
+      if (data.mechanic) row(M, "Atendido por", data.mechanic);
+    } else {
+      row(M, "Entrega estimada", formatDateShort(data.estimated_delivery));
+    }
   }
   const leftBottom = doc.y;
   doc.y = metaTop;
@@ -208,8 +283,10 @@ export async function buildOrderPdf(
       .filter(Boolean)
       .join(" · ")
   );
-  row(x2, "Kilometraje", data.km ?? "—");
-  row(x2, "Combustible", data.fuel_level ?? "—");
+  if (kind !== "presupuesto") {
+    row(x2, "Kilometraje", data.km ?? "—");
+    row(x2, "Combustible", data.fuel_level ?? "—");
+  }
   doc.y = Math.max(leftBottom, doc.y);
   doc.x = M;
 
@@ -341,6 +418,34 @@ export async function buildOrderPdf(
     );
   }
 
+  /* Estado del presupuesto pre-orden */
+  if (kind === "presupuesto" && data.items.length > 0) {
+    doc.moveDown(0.8);
+    ensure(30);
+    const qs = data.quote_status ?? "pendiente";
+    if (qs === "aprobado") {
+      doc.font("Helvetica-Bold").fontSize(9.5).fillColor(GREEN).text(
+        `Presupuesto aprobado por el cliente${data.approval_at ? ` el ${formatDate(data.approval_at)}` : ""}.`,
+        M, doc.y, { width: W }
+      );
+    } else if (qs === "rechazado") {
+      doc.font("Helvetica-Bold").fontSize(9.5).fillColor(RED).text(
+        `Presupuesto rechazado por el cliente${data.approval_at ? ` el ${formatDate(data.approval_at)}` : ""}.`,
+        M, doc.y, { width: W }
+      );
+    } else if (qs === "cancelado") {
+      doc.font("Helvetica-Bold").fontSize(9.5).fillColor(FAINT).text(
+        "Este presupuesto fue retirado por el taller.",
+        M, doc.y, { width: W }
+      );
+    } else {
+      doc.font("Helvetica-Bold").fontSize(9.5).fillColor(AMBER).text(
+        "Pendiente de tu aprobación: revísalo y apruébalo en línea con tu código de acceso.",
+        M, doc.y, { width: W }
+      );
+    }
+  }
+
   /* Estado de aprobación (cotización) */
   if (kind === "cotizacion" && data.items.length > 0) {
     doc.moveDown(0.8);
@@ -363,20 +468,25 @@ export async function buildOrderPdf(
     }
   }
 
-  /* Seguimiento en línea */
+  /* Acceso en línea: seguimiento (orden) o revisión/aprobación (presupuesto) */
   ensure(86);
   doc.moveDown(1.1);
   const boxY = doc.y;
   doc.save().roundedRect(M, boxY, W, 66, 8).lineWidth(1.2).strokeColor(INK).stroke().restore();
   doc.font("Helvetica-Bold").fontSize(8).fillColor(MUTED).text(
-    "SIGUE TU REPARACIÓN EN LÍNEA", M, boxY + 10, { width: W, align: "center", characterSpacing: 0.8 }
+    kind === "presupuesto" ? "REVISA Y APRUEBA TU PRESUPUESTO EN LÍNEA" : "SIGUE TU REPARACIÓN EN LÍNEA",
+    M, boxY + 10, { width: W, align: "center", characterSpacing: 0.8 }
   );
   doc.font("Helvetica").fontSize(9.5).fillColor(INK).text(
-    `${origin}/seguimiento/${data.plate}`,
+    kind === "presupuesto"
+      ? `${origin}/presupuesto/${data.folio}`
+      : `${origin}/seguimiento/${data.plate}`,
     M, boxY + 24, { width: W, align: "center" }
   );
   doc.font("Helvetica-Bold").fontSize(9.5).fillColor(INK).text(
-    `Placa: ${data.plate}      Código de acceso: ${data.tracking_code}`,
+    kind === "presupuesto"
+      ? `Folio: ${data.folio}      Código de acceso: ${data.tracking_code}`
+      : `Placa: ${data.plate}      Código de acceso: ${data.tracking_code}`,
     M, boxY + 40, { width: W, align: "center" }
   );
   doc.y = boxY + 74;

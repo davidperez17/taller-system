@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Boxes, Hammer, PenLine } from "lucide-react";
-import { addOrderItemAction } from "@/app/admin/actions";
+import { addOrderItemAction, addQuoteItemAction } from "@/app/admin/actions";
 import { btnPrimary, inputCls, labelCls } from "@/components/admin/ui";
 import SubmitButton from "@/components/admin/SubmitButton";
 
@@ -28,17 +28,24 @@ type Tab = "repuesto" | "servicio" | "libre";
 // servicio del catálogo, o ítem libre. Precio y costo se pueden sobreescribir;
 // el campo de costo solo lo ve el admin (rentabilidad). Si se deja vacío, el
 // server action toma el costo del catálogo/inventario como respaldo.
+// mode="quote": el mismo selector alimenta un presupuesto pre-orden
+// (quote_items); ahí el stock NO se toca ni se bloquea — se descuenta al
+// aprobarse y generarse la orden.
 export default function ItemPicker({
   orderId,
   parts,
   services,
   isAdmin,
+  mode = "order",
 }: {
+  // Id de la orden o del presupuesto, según mode.
   orderId: number;
   parts: PickerPart[];
   services: PickerService[];
   isAdmin: boolean;
+  mode?: "order" | "quote";
 }) {
+  const isQuote = mode === "quote";
   const [tab, setTab] = useState<Tab>(services.length > 0 ? "servicio" : "libre");
   const [partId, setPartId] = useState("");
   const [serviceId, setServiceId] = useState("");
@@ -64,9 +71,11 @@ export default function ItemPicker({
   // Ayuda contextual según la pestaña y el rol. El costo solo lo ve el admin.
   const hint =
     tab === "repuesto"
-      ? `Deja precio vacío para usar el de inventario; se descuenta del stock al agregar.${
-          isAdmin ? " El costo se rellena del inventario si lo dejas vacío." : ""
-        }`
+      ? `Deja precio vacío para usar el de inventario; ${
+          isQuote
+            ? "el stock se descuenta al aprobarse el presupuesto, no al cotizar."
+            : "se descuenta del stock al agregar."
+        }${isAdmin ? " El costo se rellena del inventario si lo dejas vacío." : ""}`
       : tab === "servicio"
         ? `Deja precio vacío para usar el del catálogo.${
             isAdmin ? " El costo se rellena del catálogo si lo dejas vacío." : ""
@@ -94,14 +103,14 @@ export default function ItemPicker({
       </div>
 
       <form
-        action={addOrderItemAction}
+        action={isQuote ? addQuoteItemAction : addOrderItemAction}
         className={`mt-3 grid grid-cols-2 gap-2 items-end ${
           isAdmin
             ? "sm:grid-cols-[1fr_5rem_7rem_7rem_auto]"
             : "sm:grid-cols-[1fr_5rem_7rem_auto]"
         }`}
       >
-        <input type="hidden" name="order_id" value={orderId} />
+        <input type="hidden" name={isQuote ? "quote_id" : "order_id"} value={orderId} />
 
         {tab === "repuesto" && (
           <div className="col-span-2 sm:col-span-1 space-y-2">
@@ -133,13 +142,13 @@ export default function ItemPicker({
                   Selecciona…
                 </option>
                 {filteredParts.map((p) => (
-                  <option key={p.id} value={p.id} disabled={p.stock <= 0}>
+                  <option key={p.id} value={p.id} disabled={!isQuote && p.stock <= 0}>
                     {p.name}
                     {p.sku ? ` (${p.sku})` : ""} · stock {p.stock}
                   </option>
                 ))}
               </select>
-              {selectedPart && selectedPart.stock <= 0 && (
+              {!isQuote && selectedPart && selectedPart.stock <= 0 && (
                 <p className="text-xs text-red-600 mt-1">Sin stock disponible.</p>
               )}
             </div>

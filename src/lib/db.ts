@@ -106,6 +106,14 @@ export async function nextFolio(): Promise<string> {
   return "OT-" + String((row?.n ?? 0) + 1).padStart(4, "0");
 }
 
+// Folio de presupuestos ("P-0001"), misma lógica MAX que nextFolio.
+export async function nextQuoteFolio(): Promise<string> {
+  const row = await one<{ n: number }>(
+    "SELECT COALESCE(MAX(substring(folio from 3)::int), 0) AS n FROM quotes"
+  );
+  return "P-" + String((row?.n ?? 0) + 1).padStart(4, "0");
+}
+
 // 4 caracteres de un alfabeto de 32 sin ambiguos (I/O/0/1 fuera), ~20 bits con
 // CSPRNG. Más corto para que el cliente lo dicte/teclee fácil. Los códigos de 8
 // caracteres emitidos en el interín (y los de 4 originales) siguen válidos: la

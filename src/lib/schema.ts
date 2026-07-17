@@ -258,4 +258,58 @@ export const MIGRATIONS: string[][] = [
        SELECT 'Visita a domicilio', 'Domicilio', 0, 0
         WHERE NOT EXISTS (SELECT 1 FROM services WHERE name = 'Visita a domicilio')`,
   ],
+  // v14 — presupuestos pre-orden (cotizaciones antes de que el vehículo ingrese).
+  // El presupuesto es historial permanente (nunca se borra: 'cancelado' en vez de
+  // DELETE). Cliente/vehículo se materializan al APROBAR, no al cotizar, para no
+  // ensuciar el CRM con consultas que no cierran; por eso las FKs van SET NULL y
+  // los datos del vehículo/cliente se snapshotean en columnas propias (la placa
+  // normalizada es obligatoria: garantiza poder generar la orden siempre).
+  // public_code sin UNIQUE: el lookup público es siempre folio+código, así que
+  // el código está scopeado a su folio (a diferencia de orders.tracking_code).
+  [
+    `CREATE TABLE IF NOT EXISTS quotes (
+       id SERIAL PRIMARY KEY,
+       folio TEXT NOT NULL UNIQUE,
+       public_code TEXT NOT NULL,
+       status TEXT NOT NULL DEFAULT 'pendiente'
+         CHECK (status IN ('pendiente','aprobado','rechazado','cancelado')),
+       client_id INTEGER REFERENCES clients(id) ON DELETE SET NULL,
+       vehicle_id INTEGER REFERENCES vehicles(id) ON DELETE SET NULL,
+       client_name TEXT,
+       client_phone TEXT,
+       plate TEXT NOT NULL,
+       vehicle_type TEXT NOT NULL DEFAULT 'auto',
+       vehicle_brand TEXT,
+       vehicle_model TEXT,
+       vehicle_year TEXT,
+       vehicle_color TEXT,
+       description TEXT NOT NULL DEFAULT '',
+       notes TEXT,
+       valid_until TEXT,
+       decided_at TEXT,
+       decided_via TEXT CHECK (decided_via IN ('cliente','staff')),
+       decided_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+       decision_total DOUBLE PRECISION,
+       order_id INTEGER REFERENCES orders(id) ON DELETE SET NULL,
+       created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+       created_at TEXT NOT NULL DEFAULT to_char(now(),'YYYY-MM-DD HH24:MI:SS'),
+       updated_at TEXT NOT NULL DEFAULT to_char(now(),'YYYY-MM-DD HH24:MI:SS')
+     )`,
+    `CREATE TABLE IF NOT EXISTS quote_items (
+       id SERIAL PRIMARY KEY,
+       quote_id INTEGER NOT NULL REFERENCES quotes(id) ON DELETE CASCADE,
+       kind TEXT NOT NULL DEFAULT 'servicio' CHECK (kind IN ('servicio','repuesto')),
+       description TEXT NOT NULL,
+       qty DOUBLE PRECISION NOT NULL DEFAULT 1,
+       unit_price DOUBLE PRECISION NOT NULL DEFAULT 0,
+       unit_cost DOUBLE PRECISION NOT NULL DEFAULT 0,
+       part_id INTEGER REFERENCES parts(id) ON DELETE SET NULL,
+       service_id INTEGER REFERENCES services(id) ON DELETE SET NULL,
+       created_at TEXT NOT NULL DEFAULT to_char(now(),'YYYY-MM-DD HH24:MI:SS')
+     )`,
+    `CREATE INDEX IF NOT EXISTS idx_quotes_status ON quotes(status)`,
+    `CREATE INDEX IF NOT EXISTS idx_quotes_order ON quotes(order_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_quotes_created ON quotes(created_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS idx_quote_items_quote ON quote_items(quote_id)`,
+  ],
 ];

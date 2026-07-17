@@ -2,7 +2,9 @@
 
 import { useId, useState } from "react";
 import { Pencil, Trash2, X } from "lucide-react";
-import { updateOrderItemAction, deleteOrderItemAction } from "@/app/admin/actions";
+import {
+  updateOrderItemAction, deleteOrderItemAction, updateQuoteItemAction, deleteQuoteItemAction,
+} from "@/app/admin/actions";
 import { formatMoney } from "@/lib/status";
 import { btnPrimary, btnSecondary, inputCls, labelCls } from "@/components/admin/ui";
 import SubmitButton from "@/components/admin/SubmitButton";
@@ -19,22 +21,32 @@ export type EditableItem = {
   stock: number | null; // existencias que quedan del repuesto (null si es libre/servicio)
 };
 
+type EditorMode = "order" | "quote";
+
 // Presupuesto de la orden. Hasta md se pintan tarjetas apiladas (la tabla
 // obligaba a scroll lateral en el teléfono y cortaba columnas); desde md se
 // recupera la tabla, que en pantalla ancha alinea mejor las cifras. Ambas vistas
 // comparten el mismo formulario de edición.
+// mode="quote": edita quote_items de un presupuesto pre-orden (sin tope de
+// stock: las piezas no se reservan al cotizar). readOnly congela un presupuesto
+// ya decidido (historial): sin editar ni quitar.
 export default function OrderItemsEditor({
   orderId,
   items,
   isAdmin,
   total,
   profit,
+  mode = "order",
+  readOnly = false,
 }: {
+  // Id de la orden o del presupuesto, según mode.
   orderId: number;
   items: EditableItem[];
   isAdmin: boolean;
   total: number;
   profit: number;
+  mode?: EditorMode;
+  readOnly?: boolean;
 }) {
   const [editingId, setEditingId] = useState<number | null>(null);
 
@@ -54,6 +66,7 @@ export default function OrderItemsEditor({
                 item={it}
                 orderId={orderId}
                 isAdmin={isAdmin}
+                mode={mode}
                 onClose={() => setEditingId(null)}
               />
             ) : (
@@ -78,16 +91,18 @@ export default function OrderItemsEditor({
                     </span>
                   </p>
                 )}
-                <div className="mt-2 flex justify-end gap-1 border-t border-slate-100 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setEditingId(it.id)}
-                    className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-sm-red cursor-pointer"
-                  >
-                    <Pencil className="h-4 w-4" aria-hidden="true" /> Editar
-                  </button>
-                  <DeleteItemForm item={it} orderId={orderId} withLabel />
-                </div>
+                {!readOnly && (
+                  <div className="mt-2 flex justify-end gap-1 border-t border-slate-100 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditingId(it.id)}
+                      className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-sm-red cursor-pointer"
+                    >
+                      <Pencil className="h-4 w-4" aria-hidden="true" /> Editar
+                    </button>
+                    <DeleteItemForm item={it} orderId={orderId} mode={mode} withLabel />
+                  </div>
+                )}
               </>
             )}
           </li>
@@ -129,6 +144,7 @@ export default function OrderItemsEditor({
                     item={it}
                     orderId={orderId}
                     isAdmin={isAdmin}
+                    mode={mode}
                     onClose={() => setEditingId(null)}
                   />
                 </td>
@@ -161,17 +177,19 @@ export default function OrderItemsEditor({
                   </td>
                 )}
                 <td className="py-2.5 pl-2">
-                  <div className="flex items-center justify-end gap-0.5">
-                    <button
-                      type="button"
-                      onClick={() => setEditingId(it.id)}
-                      aria-label={`Editar ${it.description}`}
-                      className="rounded-lg p-1.5 text-slate-300 transition-colors hover:bg-slate-50 hover:text-sm-red cursor-pointer"
-                    >
-                      <Pencil className="h-4 w-4" aria-hidden="true" />
-                    </button>
-                    <DeleteItemForm item={it} orderId={orderId} />
-                  </div>
+                  {!readOnly && (
+                    <div className="flex items-center justify-end gap-0.5">
+                      <button
+                        type="button"
+                        onClick={() => setEditingId(it.id)}
+                        aria-label={`Editar ${it.description}`}
+                        className="rounded-lg p-1.5 text-slate-300 transition-colors hover:bg-slate-50 hover:text-sm-red cursor-pointer"
+                      >
+                        <Pencil className="h-4 w-4" aria-hidden="true" />
+                      </button>
+                      <DeleteItemForm item={it} orderId={orderId} mode={mode} />
+                    </div>
+                  )}
                 </td>
               </tr>
             )
@@ -203,16 +221,19 @@ export default function OrderItemsEditor({
 function DeleteItemForm({
   item,
   orderId,
+  mode,
   withLabel,
 }: {
   item: EditableItem;
   orderId: number;
+  mode: EditorMode;
   withLabel?: boolean;
 }) {
+  const isQuote = mode === "quote";
   return (
-    <form action={deleteOrderItemAction} className="inline">
+    <form action={isQuote ? deleteQuoteItemAction : deleteOrderItemAction} className="inline">
       <input type="hidden" name="id" value={item.id} />
-      <input type="hidden" name="order_id" value={orderId} />
+      <input type="hidden" name={isQuote ? "quote_id" : "order_id"} value={orderId} />
       <ConfirmSubmitButton
         ariaLabel={`Eliminar ${item.description}`}
         className={
@@ -221,9 +242,13 @@ function DeleteItemForm({
             : "rounded-lg p-1.5 text-slate-300 transition-colors hover:bg-red-50 hover:text-red-500 cursor-pointer"
         }
         confirmTitle="¿Eliminar concepto?"
-        confirmMessage={`Se quita "${item.description}" de la orden.${
-          item.part_id ? " El repuesto vuelve al inventario." : ""
-        }`}
+        confirmMessage={
+          isQuote
+            ? `Se quita "${item.description}" del presupuesto.`
+            : `Se quita "${item.description}" de la orden.${
+                item.part_id ? " El repuesto vuelve al inventario." : ""
+              }`
+        }
       >
         <Trash2 className="h-4 w-4" aria-hidden="true" />
         {withLabel && "Quitar"}
@@ -233,31 +258,36 @@ function DeleteItemForm({
 }
 
 // Un ítem de inventario no puede consumir más piezas de las que quedan en stock:
-// el tope es lo que ya tiene reservado más lo que queda en bodega.
+// el tope es lo que ya tiene reservado más lo que queda en bodega. En modo
+// quote no hay tope (el stock no se reserva al cotizar).
 function ItemEditForm({
   item,
   orderId,
   isAdmin,
+  mode,
   onClose,
 }: {
   item: EditableItem;
   orderId: number;
   isAdmin: boolean;
+  mode: EditorMode;
   onClose: () => void;
 }) {
   const uid = useId();
-  const maxQty = item.part_id !== null && item.stock !== null ? item.qty + item.stock : undefined;
+  const isQuote = mode === "quote";
+  const maxQty =
+    !isQuote && item.part_id !== null && item.stock !== null ? item.qty + item.stock : undefined;
 
   return (
     <form
       action={async (fd) => {
-        await updateOrderItemAction(fd);
+        await (isQuote ? updateQuoteItemAction(fd) : updateOrderItemAction(fd));
         onClose();
       }}
       className="grid grid-cols-2 gap-3"
     >
       <input type="hidden" name="id" value={item.id} />
-      <input type="hidden" name="order_id" value={orderId} />
+      <input type="hidden" name={isQuote ? "quote_id" : "order_id"} value={orderId} />
 
       <div className="col-span-2">
         <label htmlFor={`${uid}-desc`} className={labelCls}>

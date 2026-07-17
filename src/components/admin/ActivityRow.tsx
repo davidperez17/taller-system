@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   ClipboardList, Wrench, Ban, Wallet, CheckCircle2, XCircle, Bell, Pencil,
+  FileText, FileCheck, FileX,
 } from "lucide-react";
 import {
   activityMeta, ACTIVITY_TONE_CLASS, type ActivityItem,
@@ -15,6 +16,9 @@ const ICONS: Record<string, typeof Bell> = {
   x: XCircle,
   bell: Bell,
   pencil: Pencil,
+  "file-text": FileText,
+  "file-check": FileCheck,
+  "file-x": FileX,
 };
 
 // Fila de actividad reutilizable (dot de color + icono + título + autor·tiempo).

@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 // marcar cuántas novedades hay sin ver.
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 26,
+    date: "2026-07-16",
+    title: "Presupuestos: cotiza sin abrir una orden y deja que el cliente apruebe en línea",
+    description:
+      "Nuevo apartado «Presupuestos» en el menú. Cotiza a cualquier cliente aunque su vehículo no haya entrado al taller: agrega servicios, repuestos e items libres, y envíale el enlace por WhatsApp (o el PDF). El cliente revisa los conceptos desde su teléfono con un código de acceso y aprueba o rechaza con un toque; si aprueba, la orden de trabajo se crea sola con todo el presupuesto cargado y el stock descontado. Todos los presupuestos quedan en el historial —pendientes, aprobados, rechazados y cancelados— con filtros, vigencia opcional y duplicado en un toque para re-cotizar.",
+  },
+  {
     id: 25,
     date: "2026-07-15",
     title: "Editar cualquier dato del presupuesto (y verlo bien en el teléfono)",

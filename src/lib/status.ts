@@ -84,6 +84,17 @@ export const STATUS_META: Record<
 // (fotos + observaciones). Lo crean createOrderAction y lo lee la orden impresa.
 export const RECEPTION_EVENT_TITLE = "Estado del vehículo al ingreso";
 
+// Ciclo de vida de un presupuesto pre-orden (módulo Presupuestos). No confundir
+// con orders.approval_status: aquí el presupuesto existe ANTES de la orden y al
+// aprobarse la genera. 'cancelado' sustituye al borrado (historial permanente).
+export type QuoteStatus = "pendiente" | "aprobado" | "rechazado" | "cancelado";
+export const QUOTE_STATUS_META: Record<QuoteStatus, { label: string; color: string }> = {
+  pendiente: { label: "Pendiente", color: "amber" },
+  aprobado: { label: "Aprobado", color: "green" },
+  rechazado: { label: "Rechazado", color: "red" },
+  cancelado: { label: "Cancelado", color: "slate" },
+};
+
 // Categorías de gastos del taller. Los salarios NO van aquí: se registran
 // como costo mensual por usuario (users.monthly_cost) para evitar doble
 // conteo en la ganancia neta de reportes.

@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import {
   Bell, X, ClipboardList, Wrench, Ban, Wallet, CheckCircle2, XCircle, History, Pencil,
+  FileText, FileCheck, FileX,
 } from "lucide-react";
 import { markNotifsSeenAction } from "@/app/admin/actions";
 import {
@@ -23,6 +24,9 @@ const ICONS: Record<string, typeof Bell> = {
   x: XCircle,
   bell: Bell,
   pencil: Pencil,
+  "file-text": FileText,
+  "file-check": FileCheck,
+  "file-x": FileX,
 };
 
 // Centro de notificaciones internas. La campana vive en la barra (móvil) y en
