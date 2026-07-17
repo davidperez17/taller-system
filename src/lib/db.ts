@@ -114,6 +114,28 @@ export async function nextQuoteFolio(): Promise<string> {
   return "P-" + String((row?.n ?? 0) + 1).padStart(4, "0");
 }
 
+// El folio se calcula con MAX(...) en una query y se inserta en otra: dos
+// escrituras concurrentes leen el mismo MAX y derivan el mismo folio. Neon HTTP
+// no expone transacciones, así que el UNIQUE de folio es el árbitro y aquí se
+// reintenta: cada vuelta recalcula el MAX, que ya ve la fila del que ganó, así
+// que converge. Sin esto la perdedora revienta con el UNIQUE —error 500 al
+// crear, o presupuesto aprobado sin orden cuando el throw lo traga un catch.
+export async function withFolioRetry<T>(
+  table: "orders" | "quotes",
+  insert: (folio: string) => Promise<T>
+): Promise<{ folio: string; value: T }> {
+  const next = table === "orders" ? nextFolio : nextQuoteFolio;
+  for (let attempt = 0; ; attempt++) {
+    const folio = await next();
+    try {
+      return { folio, value: await insert(folio) };
+    } catch (err) {
+      const isDupFolio = err instanceof Error && err.message.includes(`${table}_folio_key`);
+      if (!isDupFolio || attempt === 4) throw err;
+    }
+  }
+}
+
 // 4 caracteres de un alfabeto de 32 sin ambiguos (I/O/0/1 fuera), ~20 bits con
 // CSPRNG. Más corto para que el cliente lo dicte/teclee fácil. Los códigos de 8
 // caracteres emitidos en el interín (y los de 4 originales) siguen válidos: la

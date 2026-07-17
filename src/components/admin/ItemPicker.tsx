@@ -62,6 +62,17 @@ export default function ItemPicker({
   const selectedPart = parts.find((p) => String(p.id) === partId);
   const selectedService = services.find((s) => String(s.id) === serviceId);
 
+  // El repuesto elegido se mantiene en la lista aunque el filtro lo excluya: si
+  // su <option> sale del DOM, el navegador reasigna el <select> a la primera
+  // opción que quede y el form envía OTRO repuesto sin avisar (elegir "Galón
+  // Mobil Uno", teclear "filtro" en el buscador y Agregar guardaba el filtro,
+  // con su precio y su stock). El estado seguía apuntando al original, así que
+  // los placeholders de precio/costo tampoco delataban el cambio.
+  const partOptions = useMemo(() => {
+    if (!selectedPart || filteredParts.some((p) => p.id === selectedPart.id)) return filteredParts;
+    return [selectedPart, ...filteredParts];
+  }, [filteredParts, selectedPart]);
+
   const tabs: { id: Tab; label: string; icon: typeof Boxes }[] = [
     { id: "servicio", label: "Servicio", icon: Hammer },
     { id: "repuesto", label: "Inventario", icon: Boxes },
@@ -141,7 +152,7 @@ export default function ItemPicker({
                 <option value="" disabled>
                   Selecciona…
                 </option>
-                {filteredParts.map((p) => (
+                {partOptions.map((p) => (
                   <option key={p.id} value={p.id} disabled={!isQuote && p.stock <= 0}>
                     {p.name}
                     {p.sku ? ` (${p.sku})` : ""} · stock {p.stock}

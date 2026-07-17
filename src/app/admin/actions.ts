@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { one, run, normalizePlate, nextFolio, newTrackingCode, nextQuoteFolio } from "@/lib/db";
+import { one, run, normalizePlate, newTrackingCode, withFolioRetry } from "@/lib/db";
 import {
   approveQuoteAndCreateOrder, rejectQuote, materializeOrderFromQuote,
 } from "@/lib/quotes";
@@ -243,41 +243,44 @@ export async function createOrderAction(
     }
   }
 
-  const folio = await nextFolio();
   const description = str(formData, "description", { max: 2000 });
   // Modalidad del servicio: en el taller (default) o a domicilio (el equipo va
   // al cliente). La ubicación solo aplica a domicilio.
   const modality = formData.get("modality") === "domicilio" ? "domicilio" : "taller";
   const serviceLocation =
     modality === "domicilio" ? strOrNull(formData, "service_location") : null;
-  // Reintento por si el tracking_code choca con el índice UNIQUE (improbable
-  // con 40 bits, pero posible frente a códigos legados de 4 caracteres).
-  let orderId = 0;
-  for (let attempt = 0; attempt < 3 && !orderId; attempt++) {
-    try {
-      const info = await run(
-        `INSERT INTO orders (folio, tracking_code, vehicle_id, status, description, km, fuel_level, estimated_delivery, created_by, modality, service_location)
-         VALUES (?, ?, ?, 'recibido', ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
-        [
-          folio,
-          newTrackingCode(),
-          vehicleId,
-          description,
-          strOrNull(formData, "km"),
-          strOrNull(formData, "fuel_level"),
-          strOrNull(formData, "estimated_delivery"),
-          user.id,
-          modality,
-          serviceLocation,
-        ]
-      );
-      orderId = Number(info.lastInsertRowid);
-    } catch (err) {
-      const isUniqueCode =
-        err instanceof Error && err.message.includes("idx_orders_tracking");
-      if (!isUniqueCode || attempt === 2) throw err;
+  // Dos reintentos anidados sobre UNIQUEs distintos: el de folio (withFolioRetry,
+  // recalcula el MAX) y el de tracking_code (improbable con 40 bits, pero posible
+  // frente a códigos legados de 4 caracteres).
+  const { folio, value: orderId } = await withFolioRetry("orders", async (folio) => {
+    let id = 0;
+    for (let attempt = 0; attempt < 3 && !id; attempt++) {
+      try {
+        const info = await run(
+          `INSERT INTO orders (folio, tracking_code, vehicle_id, status, description, km, fuel_level, estimated_delivery, created_by, modality, service_location)
+           VALUES (?, ?, ?, 'recibido', ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+          [
+            folio,
+            newTrackingCode(),
+            vehicleId,
+            description,
+            strOrNull(formData, "km"),
+            strOrNull(formData, "fuel_level"),
+            strOrNull(formData, "estimated_delivery"),
+            user.id,
+            modality,
+            serviceLocation,
+          ]
+        );
+        id = Number(info.lastInsertRowid);
+      } catch (err) {
+        const isUniqueCode =
+          err instanceof Error && err.message.includes("idx_orders_tracking");
+        if (!isUniqueCode || attempt === 2) throw err;
+      }
     }
-  }
+    return id;
+  });
 
   await run(
     `INSERT INTO order_events (order_id, type, title, detail, is_public, created_by)
@@ -879,7 +882,9 @@ export async function createExpenseAction(formData: FormData) {
   const category = str(formData, "category") || "otros";
   const amount = Number(formData.get("amount"));
   if (!/^\d{4}-\d{2}-\d{2}$/.test(spentOn) || !(amount > 0)) return;
-  if (!(category in EXPENSE_CATEGORIES)) return;
+  // hasOwnProperty y no `in`: `in` recorre la cadena de prototipos y dejaba pasar
+  // "constructor", "toString", etc. como categoría de gasto.
+  if (!Object.prototype.hasOwnProperty.call(EXPENSE_CATEGORIES, category)) return;
   await run(
     "INSERT INTO expenses (spent_on, category, amount, notes, created_by) VALUES (?, ?, ?, ?, ?)",
     [spentOn, category, amount, strOrNull(formData, "notes"), user.id]
@@ -1382,39 +1387,44 @@ export async function createQuoteAction(
       clientPhone = strOrNull(formData, "new_client_phone");
     }
     vType = String(formData.get("new_type") || "auto");
-    if (!VEHICLE_TYPES[vType]) vType = "auto";
+    // hasOwnProperty y no VEHICLE_TYPES[vType]: el bracket resuelve por la cadena
+    // de prototipos, así que "constructor" pasaba el filtro y se persistía. Al
+    // aprobar reventaba el CHECK de vehicles.type dentro de un catch{} → el
+    // presupuesto quedaba aprobado sin orden y sin forma de arreglarlo desde la UI.
+    if (!Object.prototype.hasOwnProperty.call(VEHICLE_TYPES, vType)) vType = "auto";
     vBrand = strOrNull(formData, "new_brand");
     vModel = strOrNull(formData, "new_model");
     vYear = strOrNull(formData, "new_year");
     vColor = strOrNull(formData, "new_color");
   }
 
-  const folio = await nextQuoteFolio();
-  const info = await run(
-    `INSERT INTO quotes (folio, public_code, client_id, vehicle_id, client_name, client_phone,
-        plate, vehicle_type, vehicle_brand, vehicle_model, vehicle_year, vehicle_color,
-        description, notes, valid_until, created_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
-    [
-      folio,
-      newTrackingCode(),
-      clientId || null,
-      vehicleId || null,
-      clientName,
-      clientPhone,
-      plate,
-      vType,
-      vBrand,
-      vModel,
-      vYear,
-      vColor,
-      description,
-      strOrNull(formData, "notes", { max: 2000 }),
-      validUntilOrNull(formData),
-      user.id,
-    ]
-  );
-  const quoteId = Number(info.lastInsertRowid);
+  const { folio, value: quoteId } = await withFolioRetry("quotes", async (folio) => {
+    const info = await run(
+      `INSERT INTO quotes (folio, public_code, client_id, vehicle_id, client_name, client_phone,
+          plate, vehicle_type, vehicle_brand, vehicle_model, vehicle_year, vehicle_color,
+          description, notes, valid_until, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+      [
+        folio,
+        newTrackingCode(),
+        clientId || null,
+        vehicleId || null,
+        clientName,
+        clientPhone,
+        plate,
+        vType,
+        vBrand,
+        vModel,
+        vYear,
+        vColor,
+        description,
+        strOrNull(formData, "notes", { max: 2000 }),
+        validUntilOrNull(formData),
+        user.id,
+      ]
+    );
+    return Number(info.lastInsertRowid);
+  });
 
   await logActivity({
     type: "presupuesto_nuevo",
@@ -1430,10 +1440,13 @@ export async function createQuoteAction(
 }
 
 // Solo mientras está pendiente: tras la decisión el presupuesto es historial.
-async function quoteIsPending(quoteId: number): Promise<boolean> {
-  const q = await one<{ status: string }>("SELECT status FROM quotes WHERE id = ?", [quoteId]);
-  return q?.status === "pendiente";
-}
+//
+// El guard va DENTRO del WHERE del propio write, no en un SELECT previo:
+// comprobarlo aparte era check-then-act y entre las dos queries cabe la
+// aprobación del cliente (son round-trips de Neon HTTP, ~100-300 ms, no
+// microsegundos). El concepto aterrizaba en un presupuesto ya decidido y la
+// orden nacía con ítems que no cuadraban con el decision_total ya congelado.
+const PENDING_GUARD_SQL = "EXISTS (SELECT 1 FROM quotes WHERE id = ? AND status = 'pendiente')";
 
 export async function updateQuoteInfoAction(formData: FormData) {
   const user = await requireUser();
@@ -1441,12 +1454,11 @@ export async function updateQuoteInfoAction(formData: FormData) {
   const quoteId = Number(formData.get("quote_id"));
   const description = str(formData, "description", { max: 2000 });
   if (!quoteId || !description) return;
-  if (!(await quoteIsPending(quoteId))) return;
 
   await run(
     `UPDATE quotes SET description = ?, notes = ?, valid_until = ?,
         client_name = ?, client_phone = ?, updated_at = ${NOW_SQL}
-      WHERE id = ?`,
+      WHERE id = ? AND status = 'pendiente'`,
     [
       description,
       strOrNull(formData, "notes", { max: 2000 }),
@@ -1471,13 +1483,18 @@ export async function addQuoteItemAction(formData: FormData) {
   const serviceId = Number(formData.get("service_id")) || null;
   const qty = Number(formData.get("qty")) || 1;
   if (!quoteId || qty <= 0) return;
-  if (!(await quoteIsPending(quoteId))) return;
 
   let kind = String(formData.get("kind") || "servicio");
   let description = str(formData, "description", { max: 2000 });
-  let unitPrice = Number(formData.get("unit_price")) || 0;
   const canCost = user.role === "admin";
-  let unitCost = canCost ? Number(formData.get("unit_cost")) || 0 : 0;
+  // Campo VACÍO = usar el del catálogo (es lo que promete el hint del ItemPicker);
+  // un 0 escrito a propósito es un precio válido —una cortesía— y debe respetarse.
+  // Con el falsy-check anterior, Number("0") === 0 era indistinguible de vacío y
+  // el precio del catálogo pisaba la cortesía: al cliente se le cobraba lo regalado.
+  const rawPrice = String(formData.get("unit_price") ?? "").trim();
+  const rawCost = String(formData.get("unit_cost") ?? "").trim();
+  let unitPrice = Number(rawPrice) || 0;
+  let unitCost = canCost ? Number(rawCost) || 0 : 0;
 
   if (partId) {
     const part = await one<{ name: string; unit_price: number; cost: number }>(
@@ -1487,8 +1504,9 @@ export async function addQuoteItemAction(formData: FormData) {
     if (!part) return;
     kind = "repuesto";
     description = description || part.name;
-    if (!Number(formData.get("unit_price"))) unitPrice = part.unit_price;
-    if (!unitCost) unitCost = part.cost;
+    if (!rawPrice) unitPrice = part.unit_price;
+    // Sin permiso de costo el campo ni se envía: el del catálogo es el único dato.
+    if (!canCost || !rawCost) unitCost = part.cost;
   } else if (serviceId) {
     const service = await one<{ name: string; price: number; est_cost: number }>(
       "SELECT name, price, est_cost FROM services WHERE id = ? AND active = 1",
@@ -1497,16 +1515,18 @@ export async function addQuoteItemAction(formData: FormData) {
     if (!service) return;
     kind = "servicio";
     description = description || service.name;
-    if (!Number(formData.get("unit_price"))) unitPrice = service.price;
-    if (!unitCost) unitCost = service.est_cost;
+    if (!rawPrice) unitPrice = service.price;
+    if (!canCost || !rawCost) unitCost = service.est_cost;
   }
+  if (!Number.isFinite(unitPrice) || unitPrice < 0) return;
+  if (!Number.isFinite(unitCost) || unitCost < 0) return;
   if (!description) return;
   if (!["servicio", "repuesto"].includes(kind)) kind = "servicio";
 
   await run(
     `INSERT INTO quote_items (quote_id, kind, description, qty, unit_price, unit_cost, part_id, service_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [quoteId, kind, description, qty, unitPrice, unitCost, partId, serviceId]
+     SELECT ?, ?, ?, ?, ?, ?, ?, ? WHERE ${PENDING_GUARD_SQL}`,
+    [quoteId, kind, description, qty, unitPrice, unitCost, partId, serviceId, quoteId]
   );
   revalidatePath(`/admin/presupuestos/${quoteId}`);
 }
@@ -1517,13 +1537,6 @@ export async function updateQuoteItemAction(formData: FormData) {
   const id = Number(formData.get("id"));
   const quoteId = Number(formData.get("quote_id"));
   if (!id || !quoteId) return;
-  if (!(await quoteIsPending(quoteId))) return;
-
-  const before = await one<{ id: number }>(
-    "SELECT id FROM quote_items WHERE id = ? AND quote_id = ?",
-    [id, quoteId]
-  );
-  if (!before) return;
 
   const description = str(formData, "description", { max: 2000 });
   const qty = Number(formData.get("qty"));
@@ -1536,18 +1549,20 @@ export async function updateQuoteItemAction(formData: FormData) {
   const unitCost = Number(formData.get("unit_cost") || 0);
   if (canCost && (!Number.isFinite(unitCost) || unitCost < 0)) return;
 
+  // El quote_id va en el WHERE (antes solo se comprobaba en un SELECT aparte),
+  // así que el write queda acotado al presupuesto y a que siga pendiente.
   if (canCost) {
     await run(
-      "UPDATE quote_items SET description = ?, qty = ?, unit_price = ?, unit_cost = ? WHERE id = ?",
-      [description, qty, unitPrice, unitCost, id]
+      `UPDATE quote_items SET description = ?, qty = ?, unit_price = ?, unit_cost = ?
+        WHERE id = ? AND quote_id = ? AND ${PENDING_GUARD_SQL}`,
+      [description, qty, unitPrice, unitCost, id, quoteId, quoteId]
     );
   } else {
-    await run("UPDATE quote_items SET description = ?, qty = ?, unit_price = ? WHERE id = ?", [
-      description,
-      qty,
-      unitPrice,
-      id,
-    ]);
+    await run(
+      `UPDATE quote_items SET description = ?, qty = ?, unit_price = ?
+        WHERE id = ? AND quote_id = ? AND ${PENDING_GUARD_SQL}`,
+      [description, qty, unitPrice, id, quoteId, quoteId]
+    );
   }
   revalidatePath(`/admin/presupuestos/${quoteId}`);
 }
@@ -1558,8 +1573,11 @@ export async function deleteQuoteItemAction(formData: FormData) {
   const id = Number(formData.get("id"));
   const quoteId = Number(formData.get("quote_id"));
   if (!id || !quoteId) return;
-  if (!(await quoteIsPending(quoteId))) return;
-  await run("DELETE FROM quote_items WHERE id = ? AND quote_id = ?", [id, quoteId]);
+  await run(`DELETE FROM quote_items WHERE id = ? AND quote_id = ? AND ${PENDING_GUARD_SQL}`, [
+    id,
+    quoteId,
+    quoteId,
+  ]);
   revalidatePath(`/admin/presupuestos/${quoteId}`);
 }
 
@@ -1644,31 +1662,32 @@ export async function duplicateQuoteAction(formData: FormData) {
   }>("SELECT * FROM quotes WHERE id = ?", [quoteId]);
   if (!src) return;
 
-  const folio = await nextQuoteFolio();
-  const info = await run(
-    `INSERT INTO quotes (folio, public_code, client_id, vehicle_id, client_name, client_phone,
-        plate, vehicle_type, vehicle_brand, vehicle_model, vehicle_year, vehicle_color,
-        description, notes, created_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
-    [
-      folio,
-      newTrackingCode(),
-      src.client_id,
-      src.vehicle_id,
-      src.client_name,
-      src.client_phone,
-      src.plate,
-      src.vehicle_type,
-      src.vehicle_brand,
-      src.vehicle_model,
-      src.vehicle_year,
-      src.vehicle_color,
-      src.description,
-      src.notes,
-      user.id,
-    ]
-  );
-  const newId = Number(info.lastInsertRowid);
+  const { folio, value: newId } = await withFolioRetry("quotes", async (folio) => {
+    const info = await run(
+      `INSERT INTO quotes (folio, public_code, client_id, vehicle_id, client_name, client_phone,
+          plate, vehicle_type, vehicle_brand, vehicle_model, vehicle_year, vehicle_color,
+          description, notes, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+      [
+        folio,
+        newTrackingCode(),
+        src.client_id,
+        src.vehicle_id,
+        src.client_name,
+        src.client_phone,
+        src.plate,
+        src.vehicle_type,
+        src.vehicle_brand,
+        src.vehicle_model,
+        src.vehicle_year,
+        src.vehicle_color,
+        src.description,
+        src.notes,
+        user.id,
+      ]
+    );
+    return Number(info.lastInsertRowid);
+  });
   await run(
     `INSERT INTO quote_items (quote_id, kind, description, qty, unit_price, unit_cost, part_id, service_id)
      SELECT ?, kind, description, qty, unit_price, unit_cost, part_id, service_id

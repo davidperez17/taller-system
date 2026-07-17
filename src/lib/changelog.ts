@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 // marcar cuántas novedades hay sin ver.
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 27,
+    date: "2026-07-17",
+    title: "Presupuestos: precios de cortesía, buscador de repuestos y PDF vencido",
+    description:
+      "Si pones 0 en el precio de un concepto —una cortesía— ahora se guarda en 0: antes el sistema lo entendía como «vacío» y le ponía el precio del inventario, así que al cliente se le terminaba cobrando lo que le habías regalado. En la pestaña «Inventario», buscar un repuesto después de haberlo elegido ya no cambia la selección: antes el buscador podía dejar seleccionado un repuesto distinto del que veías y agregarlo sin avisar. El PDF de un presupuesto vencido ya no invita a aprobarlo en línea —la página pública ya no lo permitía—: ahora avisa que venció y pide contactar al taller. Y se cerraron dos huecos raros: que dos aprobaciones al mismo tiempo dejaran un presupuesto aprobado pero sin su orden de trabajo, y que un cambio hecho justo en el momento en que el cliente aprobaba se colara en un presupuesto ya decidido.",
+  },
+  {
     id: 26,
     date: "2026-07-16",
     title: "Presupuestos: cotiza sin abrir una orden y deja que el cliente apruebe en línea",

@@ -1,4 +1,4 @@
-import { one, many, run, nextFolio, newTrackingCode } from "./db";
+import { one, many, run, newTrackingCode, withFolioRetry } from "./db";
 import { safeCodeEqual } from "./tracking";
 import { sendPushToStaff } from "./push";
 import { STAFF_NOTIFS } from "./notifications";
@@ -67,7 +67,9 @@ export type QuoteDetail = QuoteRow & {
 // Vigencia comparada como texto YYYY-MM-DD contra la fecha UTC, igual que las
 // ventanas de announcements (el corrimiento de ≤6 h en el borde del día no
 // importa para una vigencia comercial).
-const EXPIRED_SQL = `(q.valid_until IS NOT NULL AND q.status = 'pendiente'
+// Exportado para que el PDF (lib/pdf.ts) decida la vigencia con este mismo
+// criterio y no contradiga a la página pública ni a la API de aprobación.
+export const EXPIRED_SQL = `(q.valid_until IS NOT NULL AND q.status = 'pendiente'
   AND q.valid_until < to_char(now(),'YYYY-MM-DD'))`;
 
 export async function getQuoteWithItems(
@@ -386,34 +388,39 @@ export async function materializeOrderFromQuote(
     vehicleId = Number(v.lastInsertRowid);
   }
 
-  const folio = await nextFolio();
-  let orderId = 0;
   let trackingCode = "";
-  // Reintento por colisión del UNIQUE de tracking_code (mismo patrón que
+  // Dos reintentos anidados sobre UNIQUEs distintos: el de folio (withFolioRetry;
+  // sin él, dos aprobaciones simultáneas derivaban el mismo OT-00NN y la perdedora
+  // reventaba dentro del catch{} de approveQuoteAndCreateOrder → presupuesto
+  // aprobado sin orden, en silencio) y el de tracking_code (mismo patrón que
   // createOrderAction).
-  for (let attempt = 0; attempt < 3 && !orderId; attempt++) {
-    try {
-      trackingCode = newTrackingCode();
-      const info = await run(
-        `INSERT INTO orders (folio, tracking_code, vehicle_id, status, description,
-            created_by, modality, approval_status, approval_at, approval_total)
-         VALUES (?, ?, ?, 'recibido', ?, ?, 'taller', 'aprobado', ${NOW_SQL}, ?) RETURNING id`,
-        [
-          folio,
-          trackingCode,
-          vehicleId,
-          quote.description,
-          actorId ?? quote.created_by,
-          quote.decision_total ?? 0,
-        ]
-      );
-      orderId = Number(info.lastInsertRowid);
-    } catch (err) {
-      const isUniqueCode =
-        err instanceof Error && err.message.includes("idx_orders_tracking");
-      if (!isUniqueCode || attempt === 2) throw err;
+  const { folio, value: orderId } = await withFolioRetry("orders", async (folio) => {
+    let id = 0;
+    for (let attempt = 0; attempt < 3 && !id; attempt++) {
+      try {
+        trackingCode = newTrackingCode();
+        const info = await run(
+          `INSERT INTO orders (folio, tracking_code, vehicle_id, status, description,
+              created_by, modality, approval_status, approval_at, approval_total)
+           VALUES (?, ?, ?, 'recibido', ?, ?, 'taller', 'aprobado', ${NOW_SQL}, ?) RETURNING id`,
+          [
+            folio,
+            trackingCode,
+            vehicleId,
+            quote.description,
+            actorId ?? quote.created_by,
+            quote.decision_total ?? 0,
+          ]
+        );
+        id = Number(info.lastInsertRowid);
+      } catch (err) {
+        const isUniqueCode =
+          err instanceof Error && err.message.includes("idx_orders_tracking");
+        if (!isUniqueCode || attempt === 2) throw err;
+      }
     }
-  }
+    return id;
+  });
 
   await run(
     `INSERT INTO order_items (order_id, kind, description, qty, unit_price, unit_cost, part_id, service_id)

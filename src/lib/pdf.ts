@@ -4,6 +4,7 @@ import {
   VEHICLE_TYPES, RECEPTION_EVENT_TITLE, formatMoney, formatDate, formatDateShort, formatDay,
   type OrderStatus, type QuoteStatus,
 } from "./status";
+import { EXPIRED_SQL } from "./quotes";
 import brand from "./brand.json";
 
 // Build standalone: trae las métricas de fuente embebidas (el build normal las
@@ -41,6 +42,7 @@ export type OrderDocData = {
   // Solo para kind "presupuesto" (pre-orden): vigencia y estado real del quote.
   valid_until?: string | null;
   quote_status?: QuoteStatus;
+  quote_expired?: boolean;
 };
 
 export async function loadOrderDocData(orderId: number): Promise<OrderDocData | null> {
@@ -105,13 +107,14 @@ export async function loadQuoteDocData(quoteId: number): Promise<OrderDocData | 
     vehicle_type: string; vehicle_brand: string | null; vehicle_model: string | null;
     vehicle_year: string | null; vehicle_color: string | null; description: string;
     valid_until: string | null; decided_at: string | null; created_at: string;
-    client_name: string | null; client_phone: string | null;
+    client_name: string | null; client_phone: string | null; expired: boolean;
   }>(
     `SELECT q.id, q.folio, q.public_code, q.status, q.plate, q.vehicle_type,
             q.vehicle_brand, q.vehicle_model, q.vehicle_year, q.vehicle_color,
             q.description, q.valid_until, q.decided_at, q.created_at,
             COALESCE(c.name, q.client_name) AS client_name,
-            COALESCE(c.phone, q.client_phone) AS client_phone
+            COALESCE(c.phone, q.client_phone) AS client_phone,
+            ${EXPIRED_SQL} AS expired
        FROM quotes q LEFT JOIN clients c ON c.id = q.client_id
       WHERE q.id = ?`,
     [quoteId]
@@ -153,6 +156,7 @@ export async function loadQuoteDocData(quoteId: number): Promise<OrderDocData | 
     reception: null,
     valid_until: q.valid_until,
     quote_status: q.status,
+    quote_expired: q.expired,
   };
 }
 
@@ -438,6 +442,14 @@ export async function buildOrderPdf(
         "Este presupuesto fue retirado por el taller.",
         M, doc.y, { width: W }
       );
+    } else if (data.quote_expired) {
+      // Vencido sigue siendo 'pendiente' en BD. Sin esta rama el PDF invitaba a
+      // aprobar en línea algo que la página pública ya no ofrece y que la API
+      // rechaza con 409: una instrucción imposible de seguir para el cliente.
+      doc.font("Helvetica-Bold").fontSize(9.5).fillColor(FAINT).text(
+        `Este presupuesto venció${data.valid_until ? ` el ${formatDay(data.valid_until)}` : ""}. Contáctanos para actualizarlo.`,
+        M, doc.y, { width: W }
+      );
     } else {
       doc.font("Helvetica-Bold").fontSize(9.5).fillColor(AMBER).text(
         "Pendiente de tu aprobación: revísalo y apruébalo en línea con tu código de acceso.",
@@ -472,9 +484,17 @@ export async function buildOrderPdf(
   ensure(86);
   doc.moveDown(1.1);
   const boxY = doc.y;
+  // El enlace y el código siguen sirviendo para consultarlo, pero solo se invita
+  // a APROBAR si de verdad se puede: vencido o ya decidido, la página pública no
+  // ofrece el botón y la API responde 409.
+  const canApprove = (data.quote_status ?? "pendiente") === "pendiente" && !data.quote_expired;
   doc.save().roundedRect(M, boxY, W, 66, 8).lineWidth(1.2).strokeColor(INK).stroke().restore();
   doc.font("Helvetica-Bold").fontSize(8).fillColor(MUTED).text(
-    kind === "presupuesto" ? "REVISA Y APRUEBA TU PRESUPUESTO EN LÍNEA" : "SIGUE TU REPARACIÓN EN LÍNEA",
+    kind !== "presupuesto"
+      ? "SIGUE TU REPARACIÓN EN LÍNEA"
+      : canApprove
+        ? "REVISA Y APRUEBA TU PRESUPUESTO EN LÍNEA"
+        : "CONSULTA TU PRESUPUESTO EN LÍNEA",
     M, boxY + 10, { width: W, align: "center", characterSpacing: 0.8 }
   );
   doc.font("Helvetica").fontSize(9.5).fillColor(INK).text(
