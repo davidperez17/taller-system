@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   Banknote, ClipboardList, TrendingUp, Wrench, Boxes, Wallet, HandCoins, Receipt, Users2, Scale,
   MapPin, ChevronRight,
 } from "lucide-react";
 import { many, one } from "@/lib/db";
+import { getSessionUser } from "@/lib/auth";
 import { formatMoney, STATUS_META, STATUS_FLOW, type OrderStatus } from "@/lib/status";
 import { resolveRange, type ReportMetric } from "@/lib/reports";
 import ReportRangeFilter from "@/components/admin/ReportRangeFilter";
@@ -41,6 +43,10 @@ export default async function ReportsPage({
 }: {
   searchParams: Promise<{ r?: string; desde?: string; hasta?: string }>;
 }) {
+  // Solo admin: los reportes exponen márgenes, gastos y salarios del equipo.
+  const me = await getSessionUser();
+  if (!me || me.role !== "admin") redirect("/admin");
+
   // El período y su querystring salen de lib/reports.ts, que también alimenta
   // el detalle de cada tarjeta: una sola definición para los dos.
   const range = resolveRange(await searchParams);

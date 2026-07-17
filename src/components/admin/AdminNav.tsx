@@ -39,7 +39,7 @@ const NAV: NavItem[] = [
   { href: "/admin/gastos", label: "Gastos", icon: Receipt, adminOnly: true },
   { href: "/admin/inventario", label: "Inventario", icon: Boxes, alertKey: "inventario" },
   { href: "/admin/servicios", label: "Servicios", icon: Hammer },
-  { href: "/admin/reportes", label: "Reportes", icon: BarChart3 },
+  { href: "/admin/reportes", label: "Reportes", icon: BarChart3, adminOnly: true },
   { href: "/admin/recordatorios", label: "Recordatorios", icon: Bell, alertKey: "recordatorios" },
   { href: "/admin/clientes", label: "Clientes", icon: Users },
   { href: "/admin/vehiculos", label: "Vehículos", icon: Car },

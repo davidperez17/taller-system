@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, ChevronRight, Info } from "lucide-react";
+import { getSessionUser } from "@/lib/auth";
 import { formatMoney } from "@/lib/status";
 import { isReportMetric, loadMetricDetail, resolveRange } from "@/lib/reports";
 import ReportRangeFilter from "@/components/admin/ReportRangeFilter";
@@ -19,6 +20,10 @@ export default async function ReportDetailPage({
   params: Promise<{ metrica: string }>;
   searchParams: Promise<{ r?: string; desde?: string; hasta?: string }>;
 }) {
+  // Solo admin, igual que el resumen: aquí se listan pagos, gastos y salarios.
+  const me = await getSessionUser();
+  if (!me || me.role !== "admin") redirect("/admin");
+
   const { metrica } = await params;
   if (!isReportMetric(metrica)) notFound();
 
