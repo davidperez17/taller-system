@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { one } from "@/lib/db";
 import { getNotifCenter } from "@/lib/activity";
+import { FOLLOWUP_DUE_SQL } from "@/lib/quotes";
 import AdminNav from "@/components/admin/AdminNav";
 import AdminTour from "@/components/admin/AdminTour";
 import UpdatePrompt from "@/components/UpdatePrompt";
@@ -19,13 +20,25 @@ export default async function PanelLayout({ children }: { children: React.ReactN
     `SELECT COUNT(*)::int AS n FROM service_reminders
      WHERE done = 0 AND substr(due_date, 1, 10) <= to_char(now(), 'YYYY-MM-DD')`
   ))?.n ?? 0;
+  // Cotizaciones en el aire. El mecánico no ve el apartado Presupuestos, así
+  // que tampoco se paga el COUNT en cada carga de su panel.
+  const staleQuotes =
+    user.role === "mecanico"
+      ? 0
+      : ((
+          await one<{ n: number }>(`SELECT COUNT(*)::int AS n FROM quotes q WHERE ${FOLLOWUP_DUE_SQL}`)
+        )?.n ?? 0);
   const notif = await getNotifCenter(user.id);
 
   return (
     <div className="min-h-dvh bg-sm-bg lg:flex">
       <AdminNav
         user={user}
-        alerts={{ inventario: lowStock, recordatorios: dueReminders }}
+        alerts={{
+          inventario: lowStock,
+          recordatorios: dueReminders,
+          presupuestos: staleQuotes,
+        }}
         notif={notif}
       />
       <main className="flex-1 min-w-0 overflow-x-clip pb-20 lg:pb-6">

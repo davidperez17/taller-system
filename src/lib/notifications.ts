@@ -157,6 +157,14 @@ export const STAFF_NOTIFS = {
     title: "Presupuesto rechazado",
     body: `El cliente rechazó el presupuesto ${v.folio}. Contáctalo para acordar cómo seguir.`,
   }),
+  // Lo dispara el cron diario sobre las cotizaciones que llevan un día enviadas
+  // sin respuesta: la idea es que ninguna quede en el aire por olvido.
+  presupuesto_sin_respuesta: (v: { folio: string; placa: string; dias: number }) => ({
+    title: "Cotización sin respuesta",
+    body: `${v.folio} · ${v.placa} — enviada hace ${v.dias} día${
+      v.dias === 1 ? "" : "s"
+    } y el cliente no ha contestado. Pregúntale qué le pareció.`,
+  }),
   listo_admin: (v: { folio: string; placa: string }) => ({
     title: "Orden lista para entrega",
     body: `${v.placa} (${v.folio}) pasó el control de calidad y está lista para entrega.`,

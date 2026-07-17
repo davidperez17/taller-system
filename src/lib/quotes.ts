@@ -33,6 +33,8 @@ export type QuoteRow = {
   description: string;
   notes: string | null;
   valid_until: string | null;
+  sent_at: string | null;
+  followed_up_at: string | null;
   decided_at: string | null;
   decided_via: "cliente" | "staff" | null;
   decided_by: number | null;
@@ -62,6 +64,7 @@ export type QuoteDetail = QuoteRow & {
   decided_by_name: string | null;
   order_folio: string | null;
   expired: boolean;
+  followup_due: boolean;
 };
 
 // Vigencia comparada como texto YYYY-MM-DD contra la fecha UTC, igual que las
@@ -72,6 +75,23 @@ export type QuoteDetail = QuoteRow & {
 export const EXPIRED_SQL = `(q.valid_until IS NOT NULL AND q.status = 'pendiente'
   AND q.valid_until < to_char(now(),'YYYY-MM-DD'))`;
 
+// Horas que un presupuesto puede quedarse "en el aire" antes de que el sistema
+// pida seguimiento. Un solo aviso por envío (no una cadena): es más fácil sumar
+// insistencia después que quitarla cuando el equipo ya aprendió a ignorarla.
+export const FOLLOWUP_HOURS = 24;
+
+// Cotización enviada que el cliente dejó sin responder y que nadie del equipo
+// ha perseguido. El vencimiento de la vigencia NO la excluye: una cotización
+// que nunca tuvo respuesta es justo la que hay que llamar (y el chip "Vencido"
+// ya avisa por su lado que toca duplicarla en vez de esperar la aprobación).
+//
+// La comparación es en TEXTO contra el mismo to_char que estampa sent_at (igual
+// que EXPIRED_SQL): mezclar timestamp y timestamptz haría depender el corte del
+// TimeZone de la sesión de Neon.
+export const FOLLOWUP_DUE_SQL = `(q.status = 'pendiente' AND q.sent_at IS NOT NULL
+  AND q.followed_up_at IS NULL
+  AND q.sent_at < to_char(now() - interval '${FOLLOWUP_HOURS} hours','YYYY-MM-DD HH24:MI:SS'))`;
+
 export async function getQuoteWithItems(
   id: number
 ): Promise<{ quote: QuoteDetail; items: QuoteItemRow[]; total: number } | null> {
@@ -81,7 +101,8 @@ export async function getQuoteWithItems(
             COALESCE(c.phone, q.client_phone) AS display_client_phone,
             u.name AS decided_by_name,
             o.folio AS order_folio,
-            ${EXPIRED_SQL} AS expired
+            ${EXPIRED_SQL} AS expired,
+            ${FOLLOWUP_DUE_SQL} AS followup_due
        FROM quotes q
        LEFT JOIN clients c ON c.id = q.client_id
        LEFT JOIN users u ON u.id = q.decided_by
@@ -191,9 +212,65 @@ export async function getPublicQuote(
   };
 }
 
-// ---------- Decisión ----------
+// ---------- Envío y seguimiento ----------
 
 type Actor = { id: number; name: string };
+
+// 'link' = se le manda la cotización; 'seguimiento' = se le pregunta qué le
+// pareció pasadas las FOLLOWUP_HOURS.
+export type QuoteSendKind = "link" | "seguimiento";
+
+// Deja constancia de que la cotización salió hacia el cliente. Acotado a
+// 'pendiente' (un presupuesto ya decidido no necesita seguimiento) y
+// best-effort: el llamador abre WhatsApp gane o pierda el sello.
+//
+// Reenviar el enlace limpia followed_up_at: volver a mandarlo es volver a
+// dejarlo en el aire, así que el reloj de 24 h arranca de nuevo. Dar
+// seguimiento solo apaga el aviso, sin reiniciar nada.
+//
+// El self-join contra `old` lee el valor previo de sent_at en la MISMA query
+// (el FROM ve la fila de antes del UPDATE): sin él haría falta un SELECT aparte
+// —check-then-act— solo para saber si este es el primer envío.
+export async function markQuoteSent(
+  quoteId: number,
+  kind: QuoteSendKind,
+  actor: Actor
+): Promise<void> {
+  const row = await one<{ folio: string; plate: string; prev_sent_at: string | null }>(
+    kind === "link"
+      ? `UPDATE quotes q SET sent_at = ${NOW_SQL}, followed_up_at = NULL, updated_at = ${NOW_SQL}
+           FROM quotes old
+          WHERE old.id = q.id AND q.id = ? AND q.status = 'pendiente'
+          RETURNING q.folio, q.plate, old.sent_at AS prev_sent_at`
+      : `UPDATE quotes q SET followed_up_at = ${NOW_SQL}, updated_at = ${NOW_SQL}
+           FROM quotes old
+          WHERE old.id = q.id AND q.id = ? AND q.status = 'pendiente'
+          RETURNING q.folio, q.plate, old.sent_at AS prev_sent_at`,
+    [quoteId]
+  );
+  if (!row) return;
+
+  // Los reenvíos no entran en la bitácora: reabrir el chat del cliente es
+  // rutina y llenaría la campana de ruido. El primer envío sí es un hito.
+  if (kind === "link" && row.prev_sent_at) return;
+
+  await logActivity({
+    type: kind === "link" ? "presupuesto_enviado" : "presupuesto_seguimiento",
+    title:
+      kind === "link"
+        ? `Presupuesto ${row.folio} enviado al cliente`
+        : `Seguimiento del presupuesto ${row.folio}`,
+    detail:
+      kind === "link"
+        ? `${row.plate} · enviado por WhatsApp.`
+        : `${row.plate} · se le preguntó al cliente qué le pareció.`,
+    actorId: actor.id,
+    actorName: actor.name,
+    url: `/admin/presupuestos/${quoteId}`,
+  });
+}
+
+// ---------- Decisión ----------
 
 // Marca el rechazo con guard de idempotencia y congela el total. El push y la
 // bitácora solo corren si el flip ganó (una petición concurrente pierde).

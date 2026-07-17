@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { many } from "@/lib/db";
 import { sendPushToStaff } from "@/lib/push";
 import { STAFF_NOTIFS } from "@/lib/notifications";
+import { FOLLOWUP_DUE_SQL } from "@/lib/quotes";
 
 export const dynamic = "force-dynamic";
 
-// Cron diario (vercel.json, 13:00 UTC = 7:00 Guatemala): avisa al staff de los
-// recordatorios de servicio vencidos y sin atender. Protegido con CRON_SECRET
-// (Vercel lo manda como Bearer en sus invocaciones de cron).
+// Cron diario (vercel.json, 13:00 UTC = 7:00 Guatemala): dos avisos al equipo,
+// los recordatorios de servicio vencidos y las cotizaciones que el cliente dejó
+// sin responder. Protegido con CRON_SECRET (Vercel lo manda como Bearer en sus
+// invocaciones de cron).
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
@@ -42,5 +44,33 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  return NextResponse.json({ ok: true, overdue: overdue.length });
+  // Cotizaciones en el aire: enviadas hace más de un día, sin decisión del
+  // cliente y sin que nadie del equipo las haya perseguido. Al dar seguimiento
+  // desde el panel se apagan (followed_up_at), así que no vuelven mañana.
+  const stale = await many<{ folio: string; plate: string; days: number }>(
+    `SELECT q.folio, q.plate, GREATEST(1, current_date - q.sent_at::date) AS days
+       FROM quotes q
+      WHERE ${FOLLOWUP_DUE_SQL}
+      ORDER BY q.sent_at
+      LIMIT 20`
+  );
+
+  if (stale.length === 1) {
+    const s = stale[0];
+    await sendPushToStaff({
+      ...STAFF_NOTIFS.presupuesto_sin_respuesta({ folio: s.folio, placa: s.plate, dias: s.days }),
+      url: "/admin/presupuestos?estado=sin_respuesta",
+    });
+  } else if (stale.length > 1) {
+    await sendPushToStaff({
+      title: "Cotizaciones sin respuesta",
+      body: `Hay ${stale.length} cotizaciones enviadas que el cliente no ha contestado (${stale
+        .slice(0, 3)
+        .map((s) => s.folio)
+        .join(", ")}${stale.length > 3 ? "…" : ""}). Pregúntales qué les parecieron.`,
+      url: "/admin/presupuestos?estado=sin_respuesta",
+    });
+  }
+
+  return NextResponse.json({ ok: true, overdue: overdue.length, sinRespuesta: stale.length });
 }

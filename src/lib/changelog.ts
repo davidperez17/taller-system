@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 // marcar cuántas novedades hay sin ver.
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 28,
+    date: "2026-07-17",
+    title: "Que ninguna cotización quede en el aire",
+    description:
+      "Ahora el sistema sabe cuándo le mandaste un presupuesto a un cliente: el botón «Enviar por WhatsApp» deja constancia de la fecha antes de abrir el chat. Si pasa un día y el cliente no responde, el presupuesto se marca con «Sin respuesta», aparece un contador rojo junto a Presupuestos en el menú y a las 7 de la mañana te llega un aviso al teléfono. Para destrabarlo hay un botón «Dar seguimiento» que abre WhatsApp con el mensaje ya escrito preguntándole al cliente qué le pareció; al usarlo, el aviso se apaga. También hay un filtro nuevo «Sin respuesta» para ver de un vistazo a quién toca llamar hoy. El aviso es uno solo por envío, no una cadena: si reenvías la cotización, el día vuelve a empezar.",
+  },
+  {
     id: 27,
     date: "2026-07-17",
     title: "Presupuestos: precios de cortesía, buscador de repuestos y PDF vencido",

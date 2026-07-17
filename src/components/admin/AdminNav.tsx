@@ -22,13 +22,19 @@ type NavItem = {
   exact?: boolean;
   adminOnly?: boolean;
   noMechanic?: boolean;
-  alertKey?: "inventario" | "recordatorios";
+  alertKey?: "inventario" | "recordatorios" | "presupuestos";
 };
 
 const NAV: NavItem[] = [
   { href: "/admin", label: "Inicio", icon: LayoutDashboard, exact: true },
   { href: "/admin/ordenes", label: "Órdenes", icon: ClipboardList },
-  { href: "/admin/presupuestos", label: "Presupuestos", icon: FileText, noMechanic: true },
+  {
+    href: "/admin/presupuestos",
+    label: "Presupuestos",
+    icon: FileText,
+    noMechanic: true,
+    alertKey: "presupuestos",
+  },
   { href: "/admin/caja", label: "Caja", icon: Wallet, noMechanic: true },
   { href: "/admin/gastos", label: "Gastos", icon: Receipt, adminOnly: true },
   { href: "/admin/inventario", label: "Inventario", icon: Boxes, alertKey: "inventario" },
@@ -46,7 +52,7 @@ const NAV: NavItem[] = [
 // Los 4 primeros van en la barra inferior móvil; el resto entra en "Más".
 const PRIMARY = ["/admin", "/admin/ordenes", "/admin/inventario", "/admin/reportes"];
 
-export type NavAlerts = { inventario?: number; recordatorios?: number };
+export type NavAlerts = { inventario?: number; recordatorios?: number; presupuestos?: number };
 
 export default function AdminNav({
   user,

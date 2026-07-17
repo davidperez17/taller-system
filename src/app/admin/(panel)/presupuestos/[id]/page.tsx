@@ -2,13 +2,12 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { headers } from "next/headers";
 import {
-  ArrowLeft, MessageCircle, Phone, KeyRound, ExternalLink, FileDown, Check, X,
-  CircleAlert, Copy, EyeOff, ClipboardList,
+  ArrowLeft, MessageCircle, MessageCircleQuestion, Phone, KeyRound, ExternalLink, FileDown,
+  Check, X, CircleAlert, Copy, EyeOff, ClipboardList,
 } from "lucide-react";
 import { many } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
-import { getQuoteWithItems } from "@/lib/quotes";
-import { waLink, WA_TEMPLATES } from "@/lib/whatsapp";
+import { getQuoteWithItems, FOLLOWUP_HOURS } from "@/lib/quotes";
 import { formatMoney, formatDate, formatDay } from "@/lib/status";
 import {
   decideQuoteAction, cancelQuoteAction, duplicateQuoteAction, generateOrderFromQuoteAction,
@@ -70,19 +69,10 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
   const h = await headers();
   const origin = `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host") ?? "localhost"}`;
   const publicUrl = `${origin}/presupuesto/${quote.folio}?code=${quote.public_code}`;
-  const waHref =
-    quote.display_client_phone && total > 0
-      ? waLink(
-          quote.display_client_phone,
-          WA_TEMPLATES.presupuesto_link({
-            nombre: (quote.display_client_name ?? "").split(" ")[0] || "cliente",
-            folio: quote.folio,
-            total,
-            code: quote.public_code,
-            origin,
-          })
-        )
-      : null;
+  // El mensaje lo arma la ruta /enviar, que además sella el envío; aquí solo se
+  // decide si el botón tiene sentido (hace falta teléfono y algo que cobrar).
+  const canSend = Boolean(quote.display_client_phone) && total > 0;
+  const sendHref = `/admin/presupuestos/${quote.id}/enviar`;
 
   const vehicleLabel =
     [quote.vehicle_brand, quote.vehicle_model, quote.vehicle_year, quote.vehicle_color]
@@ -166,6 +156,42 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
                 Cancelado por el taller{quote.decided_at && <> el {formatDate(quote.decided_at)}</>}.
                 Queda en el historial; puedes duplicarlo si el cliente vuelve.
               </p>
+            )}
+
+            {/* Envío y seguimiento: solo importa mientras el cliente puede
+                responder. Tras la decisión el presupuesto es historial. */}
+            {pending && !quote.sent_at && (
+              <p className="mt-3 text-sm text-slate-500">
+                Todavía no se le ha enviado al cliente por WhatsApp.
+              </p>
+            )}
+            {pending && quote.sent_at && (
+              <div
+                className={`mt-3 flex items-start gap-2.5 text-sm border rounded-xl px-3 py-2.5 ${
+                  quote.followup_due
+                    ? "text-orange-800 bg-orange-50 border-orange-200"
+                    : "text-slate-600 bg-slate-50 border-slate-200"
+                }`}
+              >
+                <MessageCircle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
+                {/* formatDate es-GT ya cierra con punto ("11:58 p. m."), así que
+                    aquí no se agrega otro: doblarlo se veía como "p. m..". */}
+                <div className="flex-1">
+                  Enviado al cliente el {formatDate(quote.sent_at)}{" "}
+                  {quote.followed_up_at ? (
+                    <>Ya se le dio seguimiento el {formatDate(quote.followed_up_at)}</>
+                  ) : quote.followup_due ? (
+                    <strong>
+                      Pasó más de un día y no ha respondido: pregúntale qué le pareció.
+                    </strong>
+                  ) : (
+                    <>
+                      Si no responde en {FOLLOWUP_HOURS} h, el sistema te lo recuerda para que no
+                      quede en el aire.
+                    </>
+                  )}
+                </div>
+              </div>
             )}
 
             {pending && activeOrder.length > 0 && (
@@ -318,17 +344,33 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
                 </div>
               )}
             </dl>
-            {waHref && (
+            {canSend && (
               <a
-                href={waHref}
+                href={sendHref}
                 target="_blank"
                 rel="noopener"
                 className="inline-flex items-center justify-center gap-2 w-full mt-4 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors"
               >
-                <MessageCircle className="w-4 h-4" aria-hidden="true" /> Enviar por WhatsApp
+                <MessageCircle className="w-4 h-4" aria-hidden="true" />
+                {quote.sent_at ? "Reenviar por WhatsApp" : "Enviar por WhatsApp"}
               </a>
             )}
-            {!waHref && pending && (
+            {/* Seguimiento: disponible desde que la cotización sale, sin esperar
+                a que venza el día. El contador decide cuándo el sistema avisa,
+                no cuándo el asesor puede escribir. */}
+            {canSend && pending && quote.sent_at && (
+              <a
+                href={`${sendHref}?tipo=seguimiento`}
+                target="_blank"
+                rel="noopener"
+                className={`${btnSecondary} w-full mt-2 ${
+                  quote.followup_due ? "border-orange-300 text-orange-700 bg-orange-50" : ""
+                }`}
+              >
+                <MessageCircleQuestion className="w-4 h-4" aria-hidden="true" /> Dar seguimiento
+              </a>
+            )}
+            {!canSend && pending && (
               <p className="mt-4 text-xs text-slate-400">
                 {total <= 0
                   ? "Agrega conceptos para poder enviarlo por WhatsApp."

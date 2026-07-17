@@ -312,4 +312,14 @@ export const MIGRATIONS: string[][] = [
     `CREATE INDEX IF NOT EXISTS idx_quotes_created ON quotes(created_at DESC)`,
     `CREATE INDEX IF NOT EXISTS idx_quote_items_quote ON quote_items(quote_id)`,
   ],
+  // v15 — seguimiento del envío. Hasta aquí "enviar por WhatsApp" era un enlace
+  // wa.me suelto que no tocaba la BD: el taller no sabía si una cotización había
+  // salido ni cuánto llevaba en el aire. sent_at es el ancla del recordatorio
+  // (24 h sin respuesta) y followed_up_at lo apaga: un aviso por envío, no una
+  // cadena. Reenviar reinicia ambos (ver markQuoteSent en lib/quotes.ts).
+  [
+    `ALTER TABLE quotes ADD COLUMN IF NOT EXISTS sent_at TEXT`,
+    `ALTER TABLE quotes ADD COLUMN IF NOT EXISTS followed_up_at TEXT`,
+    `CREATE INDEX IF NOT EXISTS idx_quotes_sent ON quotes(sent_at)`,
+  ],
 ];

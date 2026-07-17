@@ -1,3 +1,4 @@
+import { Clock } from "lucide-react";
 import { QUOTE_STATUS_META, type QuoteStatus } from "@/lib/status";
 
 // Clases estáticas por estado (no interpoladas) para que el JIT de Tailwind
@@ -27,6 +28,19 @@ export function ExpiredChip() {
   return (
     <span className="inline-flex items-center text-[11px] font-semibold uppercase tracking-wide bg-red-50 text-red-600 border border-red-200 rounded-full px-2 py-0.5">
       Vencido
+    </span>
+  );
+}
+
+// Cotización enviada que lleva más de un día sin respuesta del cliente y sin
+// seguimiento del equipo (FOLLOWUP_DUE_SQL en lib/quotes.ts). Lleva icono
+// porque convive con el chip ámbar de "Pendiente": sin él, dos chips cálidos
+// seguidos se leen como uno solo.
+export function FollowupChip() {
+  return (
+    <span className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide bg-orange-50 text-orange-700 border border-orange-200 rounded-full px-2 py-0.5">
+      <Clock className="w-3 h-3" aria-hidden="true" />
+      Sin respuesta
     </span>
   );
 }

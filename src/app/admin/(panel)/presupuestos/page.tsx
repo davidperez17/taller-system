@@ -3,15 +3,21 @@ import { redirect } from "next/navigation";
 import { Plus, Search, ChevronRight, FileText } from "lucide-react";
 import { many, normalizePlate } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
+import { FOLLOWUP_DUE_SQL } from "@/lib/quotes";
 import { QUOTE_STATUS_META, formatMoney, formatDate, type QuoteStatus } from "@/lib/status";
 import { PageTitle, PlateBadge, VehicleTypeIcon, card, btnPrimary, inputCls } from "@/components/admin/ui";
-import QuoteStatusChip, { ExpiredChip } from "@/components/admin/QuoteStatusChip";
+import QuoteStatusChip, { ExpiredChip, FollowupChip } from "@/components/admin/QuoteStatusChip";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Presupuestos" };
 
+// "sin_respuesta" no es un estado sino un filtro derivado (enviadas hace más de
+// un día que el cliente no contestó). Va segundo porque es el destino del badge
+// del menú y del aviso del cron: la lista de "a quién hay que llamar hoy".
+const SIN_RESPUESTA = "sin_respuesta";
 const FILTERS: { key: string; label: string }[] = [
   { key: "todos", label: "Todos" },
+  { key: SIN_RESPUESTA, label: "Sin respuesta" },
   ...Object.entries(QUOTE_STATUS_META).map(([key, m]) => ({ key, label: m.label + "s" })),
 ];
 
@@ -30,7 +36,9 @@ export default async function QuotesPage({
 
   let where = "1=1";
   const args: (string | number)[] = [];
-  if (QUOTE_STATUS_META[estado as QuoteStatus]) {
+  if (estado === SIN_RESPUESTA) {
+    where += ` AND ${FOLLOWUP_DUE_SQL}`;
+  } else if (QUOTE_STATUS_META[estado as QuoteStatus]) {
     where += " AND q.status = ?";
     args.push(estado);
   }
@@ -44,7 +52,7 @@ export default async function QuotesPage({
     vehicle_brand: string | null; vehicle_model: string | null; description: string;
     valid_until: string | null; created_at: string; decision_total: number | null;
     order_id: number | null; order_folio: string | null; client: string | null;
-    total: number; expired: boolean;
+    total: number; expired: boolean; followup_due: boolean;
   }>(
     `SELECT q.id, q.folio, q.status, q.plate, q.vehicle_type, q.vehicle_brand,
             q.vehicle_model, q.description, q.valid_until, q.created_at,
@@ -54,7 +62,8 @@ export default async function QuotesPage({
             (SELECT COALESCE(SUM(i.qty * i.unit_price), 0) FROM quote_items i
               WHERE i.quote_id = q.id)::float8 AS total,
             (q.valid_until IS NOT NULL AND q.status = 'pendiente'
-              AND q.valid_until < to_char(now(),'YYYY-MM-DD')) AS expired
+              AND q.valid_until < to_char(now(),'YYYY-MM-DD')) AS expired,
+            ${FOLLOWUP_DUE_SQL} AS followup_due
        FROM quotes q
        LEFT JOIN clients c ON c.id = q.client_id
        LEFT JOIN orders o ON o.id = q.order_id
@@ -119,7 +128,9 @@ export default async function QuotesPage({
             <p className="mt-2 text-sm text-slate-400">
               {estado === "todos" && !q
                 ? "Aún no hay presupuestos. Crea el primero para cotizarle a un cliente sin abrir una orden."
-                : "No se encontraron presupuestos con estos filtros."}
+                : estado === SIN_RESPUESTA && !q
+                  ? "Ninguna cotización lleva más de un día esperando respuesta. Todo al día."
+                  : "No se encontraron presupuestos con estos filtros."}
             </p>
           </div>
         ) : (
@@ -140,6 +151,7 @@ export default async function QuotesPage({
                         {[p.vehicle_brand, p.vehicle_model].filter(Boolean).join(" ") || "—"}
                       </span>
                       {p.expired && <ExpiredChip />}
+                      {p.followup_due && <FollowupChip />}
                     </div>
                     <p className="text-xs text-slate-400 mt-0.5 truncate">
                       {p.folio}

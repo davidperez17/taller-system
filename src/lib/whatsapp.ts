@@ -51,4 +51,12 @@ export const WA_TEMPLATES = {
     `Hola ${v.nombre}, le saludamos de ${brand.name}. Le compartimos su presupuesto ${v.folio} ` +
     `por ${formatMoney(v.total)}. Puede revisarlo y aprobarlo con su código *${v.code}* aquí: ` +
     `${v.origin}/presupuesto/${v.folio}?code=${v.code}`,
+  // Seguimiento de una cotización que lleva un día sin respuesta. Pregunta
+  // abierta y sin repetir el precio: la idea es destrabar la conversación, no
+  // volver a cobrar. Reincluye el enlace porque a esas alturas ya se perdió
+  // entre los mensajes.
+  presupuesto_seguimiento: (v: { nombre: string; folio: string; code: string; origin: string }) =>
+    `Hola ${v.nombre}, le saludamos de ${brand.name}. ¿Qué le pareció el presupuesto ${v.folio} ` +
+    `que le enviamos? Quedamos atentos por si tiene alguna duda o quiere que le expliquemos ` +
+    `algún punto. Puede volver a verlo aquí: ${v.origin}/presupuesto/${v.folio}?code=${v.code}`,
 } as const;

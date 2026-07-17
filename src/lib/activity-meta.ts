@@ -11,6 +11,8 @@ export type ActivityType =
   | "aprobacion"
   | "rechazo"
   | "presupuesto_nuevo"
+  | "presupuesto_enviado"
+  | "presupuesto_seguimiento"
   | "presupuesto_aprobado"
   | "presupuesto_rechazado";
 
@@ -39,6 +41,8 @@ export const ACTIVITY_META: Record<
   rechazo: { label: "Rechazo en orden", tone: "amber", icon: "x" },
   // Módulo Presupuestos (cotizaciones pre-orden, folio P-XXXX).
   presupuesto_nuevo: { label: "Presupuesto creado", tone: "blue", icon: "file-text" },
+  presupuesto_enviado: { label: "Presupuesto enviado", tone: "violet", icon: "send" },
+  presupuesto_seguimiento: { label: "Seguimiento enviado", tone: "violet", icon: "message-circle" },
   presupuesto_aprobado: { label: "Presupuesto aprobado", tone: "green", icon: "file-check" },
   presupuesto_rechazado: { label: "Presupuesto rechazado", tone: "amber", icon: "file-x" },
 };
