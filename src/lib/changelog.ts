@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 // marcar cuántas novedades hay sin ver.
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 30,
+    date: "2026-07-17",
+    title: "«Nuevo presupuesto» a un toque desde Inicio",
+    description:
+      "En Inicio, junto a «Nueva orden», ahora hay un botón «Nuevo presupuesto» que lleva directo al formulario. Antes había que entrar a Presupuestos y buscar el botón adentro. Los mecánicos no lo ven, igual que no ven el apartado.",
+  },
+  {
     id: 29,
     date: "2026-07-17",
     title: "Reportes: toca cualquier tarjeta y mira de dónde sale el número",

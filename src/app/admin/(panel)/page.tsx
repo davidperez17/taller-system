@@ -1,17 +1,26 @@
 import Link from "next/link";
 import {
   ClipboardList, Car, CheckCircle2, Banknote, Plus, ChevronRight, AlertTriangle, Bell, History,
+  FilePlus,
 } from "lucide-react";
 import { one, many } from "@/lib/db";
+import { getSessionUser } from "@/lib/auth";
 import { getActivityHistory } from "@/lib/activity";
 import { timeAgo } from "@/lib/activity-meta";
 import { STATUS_META, STATUS_FLOW, formatMoney, formatDate, type OrderStatus } from "@/lib/status";
-import { StatusBadge, PlateBadge, VehicleTypeIcon, PageTitle, card, btnPrimary } from "@/components/admin/ui";
+import {
+  StatusBadge, PlateBadge, VehicleTypeIcon, PageTitle, card, btnPrimary, btnSecondary,
+} from "@/components/admin/ui";
 import ActivityRow from "@/components/admin/ActivityRow";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
+  // Solo para decidir los accesos rápidos: el mecánico no entra a Presupuestos
+  // (mismo gating que la nav), así que tampoco se le ofrece el atajo.
+  const user = await getSessionUser();
+  const canQuote = user?.role !== "mecanico";
+
   const active = (await one<{ n: number }>(
     "SELECT COUNT(*)::int AS n FROM orders WHERE status NOT IN ('entregado','cancelado')"
   ))!;
@@ -70,9 +79,16 @@ export default async function DashboardPage() {
         title="INICIO"
         subtitle="Resumen del taller en tiempo real"
         action={
-          <Link href="/admin/ordenes/nueva" className={btnPrimary}>
-            <Plus className="w-4 h-4" aria-hidden="true" /> Nueva orden
-          </Link>
+          <div className="flex items-center gap-2 flex-wrap">
+            {canQuote && (
+              <Link href="/admin/presupuestos/nuevo" className={btnSecondary}>
+                <FilePlus className="w-4 h-4" aria-hidden="true" /> Nuevo presupuesto
+              </Link>
+            )}
+            <Link href="/admin/ordenes/nueva" className={btnPrimary}>
+              <Plus className="w-4 h-4" aria-hidden="true" /> Nueva orden
+            </Link>
+          </div>
         }
       />
 
