@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 // marcar cuántas novedades hay sin ver.
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 29,
+    date: "2026-07-17",
+    title: "Reportes: toca cualquier tarjeta y mira de dónde sale el número",
+    description:
+      "Las seis tarjetas de Reportes (Facturado, Cobrado, Margen bruto, Gastos, Planilla y Ganancia neta) ahora se tocan y abren su historial. Facturado y Margen listan orden por orden lo que se cobró, lo que costó y lo que dejó; Cobrado, cada pago con su método y quién lo registró; Gastos, cada gasto con su categoría; Planilla, quién compone el costo del equipo; y Ganancia neta muestra la resta completa con un enlace a cada parte. Desde cada renglón se salta a la orden o al gasto que lo originó, y el período que tengas puesto se conserva al entrar y al volver, así que ya no hay que reconstruir a mano de dónde salió un total.",
+  },
+  {
     id: 28,
     date: "2026-07-17",
     title: "Que ninguna cotización quede en el aire",

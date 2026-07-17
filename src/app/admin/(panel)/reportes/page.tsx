@@ -1,9 +1,12 @@
 import Link from "next/link";
 import {
-  Banknote, ClipboardList, TrendingUp, Wrench, Boxes, Wallet, HandCoins, Receipt, Users2, Scale, MapPin,
+  Banknote, ClipboardList, TrendingUp, Wrench, Boxes, Wallet, HandCoins, Receipt, Users2, Scale,
+  MapPin, ChevronRight,
 } from "lucide-react";
 import { many, one } from "@/lib/db";
 import { formatMoney, STATUS_META, STATUS_FLOW, type OrderStatus } from "@/lib/status";
+import { resolveRange, type ReportMetric } from "@/lib/reports";
+import ReportRangeFilter from "@/components/admin/ReportRangeFilter";
 import { PageTitle, card } from "@/components/admin/ui";
 
 export const dynamic = "force-dynamic";
@@ -13,14 +16,6 @@ const MONTH_LABELS = [
   "ene", "feb", "mar", "abr", "may", "jun",
   "jul", "ago", "sep", "oct", "nov", "dic",
 ];
-
-// Fechas en día de Guatemala (UTC-6), como hace caja.
-function gtNow(): Date {
-  return new Date(Date.now() - 6 * 3600_000);
-}
-function iso(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
 
 // Meses 'YYYY-MM' entre dos fechas (se quedan los últimos 12 para la gráfica).
 function monthsBetween(desde: string, hasta: string): { key: string; label: string }[] {
@@ -46,33 +41,11 @@ export default async function ReportsPage({
 }: {
   searchParams: Promise<{ r?: string; desde?: string; hasta?: string }>;
 }) {
-  const sp = await searchParams;
-  const now = gtNow();
-  const y = now.getUTCFullYear();
-  const m = now.getUTCMonth();
-  const today = iso(now);
-
-  const PRESETS: Record<string, { label: string; desde: string; hasta: string }> = {
-    mes: { label: "Este mes", desde: iso(new Date(Date.UTC(y, m, 1))), hasta: today },
-    prev: {
-      label: "Mes anterior",
-      desde: iso(new Date(Date.UTC(y, m - 1, 1))),
-      hasta: iso(new Date(Date.UTC(y, m, 0))),
-    },
-    "3m": { label: "3 meses", desde: iso(new Date(Date.UTC(y, m - 2, 1))), hasta: today },
-    "6m": { label: "6 meses", desde: iso(new Date(Date.UTC(y, m - 5, 1))), hasta: today },
-    ano: { label: "Este año", desde: iso(new Date(Date.UTC(y, 0, 1))), hasta: today },
-  };
-
-  const okDate = (s?: string) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
-  const custom = okDate(sp.desde) && okDate(sp.hasta) && sp.desde! <= sp.hasta!;
-  const presetKey = custom ? null : sp.r && PRESETS[sp.r] ? sp.r : "6m";
-  const desde = custom ? sp.desde! : PRESETS[presetKey!].desde;
-  const hasta = custom ? sp.hasta! : PRESETS[presetKey!].hasta;
-
+  // El período y su querystring salen de lib/reports.ts, que también alimenta
+  // el detalle de cada tarjeta: una sola definición para los dos.
+  const range = resolveRange(await searchParams);
+  const { desde, hasta, rangeDays, payrollFactor } = range;
   const months = monthsBetween(desde, hasta);
-  const rangeDays = Math.round((Date.parse(hasta) - Date.parse(desde)) / 86400_000) + 1;
-  const payrollFactor = rangeDays / 30.44; // prorrateo aproximado por días
 
   // Facturado y ganancia por mes y por tipo (servicio/repuesto), órdenes entregadas.
   const kindRows = await many<{ ym: string; kind: string; total: number; profit: number }>(
@@ -241,16 +214,14 @@ export default async function ReportsPage({
   const maxRev = Math.max(1, ...revSeries.map((r) => r.total));
   const maxCreated = Math.max(1, ...revSeries.map((r) => r.created));
 
-  const fmtDay = (s: string) =>
-    new Date(`${s}T12:00:00Z`).toLocaleDateString("es-GT", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      timeZone: "UTC",
-    });
-
-  const kpis = [
+  // Cada tarjeta abre su historial en /admin/reportes/[metrica], conservando el
+  // período elegido.
+  const kpis: {
+    metric: ReportMetric; label: string; value: string; icon: typeof Banknote;
+    tone: string; hint: string; highlight?: boolean;
+  }[] = [
     {
+      metric: "facturado",
       label: "Facturado",
       value: formatMoney(facturado),
       icon: Banknote,
@@ -258,6 +229,7 @@ export default async function ReportsPage({
       hint: `${deliveredTotal} órdenes entregadas · ticket ${formatMoney(avgTicket)}`,
     },
     {
+      metric: "cobrado",
       label: "Cobrado",
       value: formatMoney(collected.total),
       icon: Wallet,
@@ -265,6 +237,7 @@ export default async function ReportsPage({
       hint: "Pagos registrados en caja en el período",
     },
     {
+      metric: "margen",
       label: "Margen bruto",
       value: formatMoney(gross),
       icon: TrendingUp,
@@ -272,6 +245,7 @@ export default async function ReportsPage({
       hint: `Facturado menos ${formatMoney(itemsCost)} de costos de ítems`,
     },
     {
+      metric: "gastos",
       label: "Gastos",
       value: formatMoney(expensesTotal),
       icon: Receipt,
@@ -282,6 +256,7 @@ export default async function ReportsPage({
           : "Sin gastos registrados en el período",
     },
     {
+      metric: "planilla",
       label: "Planilla estimada",
       value: formatMoney(payrollRange),
       icon: Users2,
@@ -292,6 +267,7 @@ export default async function ReportsPage({
           : "Registra costos del equipo en Equipo",
     },
     {
+      metric: "neta",
       label: "Ganancia neta",
       value: formatMoney(net),
       icon: Scale,
@@ -300,13 +276,6 @@ export default async function ReportsPage({
       highlight: true,
     },
   ];
-
-  const chip = (active: boolean) =>
-    `inline-flex items-center rounded-full px-3.5 py-2 text-sm font-semibold transition-colors ${
-      active
-        ? "bg-sm-red text-white"
-        : "bg-white border border-slate-300 text-slate-600 hover:bg-slate-50"
-    }`;
 
   const breakdown = [
     { label: "Facturado (órdenes entregadas)", value: facturado, sign: "" },
@@ -322,70 +291,33 @@ export default async function ReportsPage({
       <PageTitle title="REPORTES" subtitle="Ventas, gastos y ganancia del taller" />
 
       {/* Filtro de período */}
-      <section className={`${card} p-4`}>
-        <div className="flex flex-wrap gap-2">
-          {Object.entries(PRESETS).map(([k, p]) => (
-            <Link key={k} href={`/admin/reportes?r=${k}`} className={chip(presetKey === k)}>
-              {p.label}
-            </Link>
-          ))}
-          {custom && <span className={chip(true)}>Personalizado</span>}
-        </div>
-        <form method="GET" className="mt-3 flex flex-wrap items-end gap-2">
-          <div>
-            <label htmlFor="desde" className="block text-xs font-medium text-slate-500 mb-1">
-              Desde
-            </label>
-            <input
-              id="desde"
-              name="desde"
-              type="date"
-              defaultValue={desde}
-              max={today}
-              className="border border-slate-300 rounded-xl px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label htmlFor="hasta" className="block text-xs font-medium text-slate-500 mb-1">
-              Hasta
-            </label>
-            <input
-              id="hasta"
-              name="hasta"
-              type="date"
-              defaultValue={hasta}
-              max={today}
-              className="border border-slate-300 rounded-xl px-3 py-2 text-sm"
-            />
-          </div>
-          <button
-            type="submit"
-            className="inline-flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 rounded-xl px-4 py-2 text-sm font-semibold transition-colors cursor-pointer"
-          >
-            Aplicar
-          </button>
-          <p className="text-xs text-slate-400 ml-auto">
-            Mostrando: <b>{fmtDay(desde)}</b> — <b>{fmtDay(hasta)}</b>
-          </p>
-        </form>
-      </section>
+      <ReportRangeFilter basePath="/admin/reportes" range={range} />
 
-      {/* KPIs del período */}
+      {/* KPIs del período — cada uno abre su historial */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 *:min-w-0">
         {kpis.map((k) => (
-          <div
+          <Link
             key={k.label}
-            className={`${card} p-4 ${k.highlight ? "ring-2 ring-accent-500/50" : ""}`}
+            href={`/admin/reportes/${k.metric}?${range.query}`}
+            className={`${card} p-4 group hover:border-sm-red/40 hover:shadow-md transition-all ${
+              k.highlight ? "ring-2 ring-accent-500/50" : ""
+            }`}
           >
-            <div className={`rounded-xl p-2 w-fit ${k.tone}`} aria-hidden="true">
-              <k.icon className="w-5 h-5" />
+            <div className="flex items-start gap-2">
+              <div className={`rounded-xl p-2 w-fit ${k.tone}`} aria-hidden="true">
+                <k.icon className="w-5 h-5" />
+              </div>
+              <ChevronRight
+                className="w-4 h-4 text-slate-300 group-hover:text-sm-red ml-auto shrink-0"
+                aria-hidden="true"
+              />
             </div>
             <p className="text-xl lg:text-2xl font-bold text-slate-900 mt-2 tabular-nums font-heading tracking-wide">
               {k.value}
             </p>
             <p className="text-xs text-slate-500 mt-0.5">{k.label}</p>
             <p className="text-[11px] text-slate-400 mt-1">{k.hint}</p>
-          </div>
+          </Link>
         ))}
       </div>
 
