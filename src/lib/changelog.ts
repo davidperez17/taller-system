@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 // marcar cuántas novedades hay sin ver.
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 32,
+    date: "2026-07-18",
+    title: "Reportes: la ganancia de los carros que aún están en el taller",
+    description:
+      "Abajo del desglose «Del facturado a la ganancia» aparece un recuadro nuevo con los carros que siguen en el taller, cuánta ganancia dejarán al entregarse y cuánto de eso ya cobraste, más la «Proyectada si se entrega todo». Antes ese trabajo no aparecía por ningún lado hasta la entrega, y como el taller cobra por adelantado se veía la caja llena con la ganancia en cero o en rojo. Se puede tocar para ver carro por carro cuánto deja cada uno. Va aparte de la Ganancia neta a propósito: esa sigue contando solo lo ya entregado, que es lo comparable entre meses; si se mezclaran, la misma orden contaría dos veces —una al recibirla y otra al entregarla— y ningún mes cuadraría contra otro. También se aclararon las tarjetas de arriba: «Cobrado» ahora dice cuánto de lo cobrado es de trabajo sin entregar, y «Ganancia neta» avisa que no es la caja.",
+  },
+  {
     id: 31,
     date: "2026-07-18",
     title: "Descuentos: rebaja el total sin tocar los precios",

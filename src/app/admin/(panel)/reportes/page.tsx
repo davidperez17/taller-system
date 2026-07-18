@@ -7,7 +7,7 @@ import {
 import { many, one } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { formatMoney, STATUS_META, STATUS_FLOW, type OrderStatus } from "@/lib/status";
-import { resolveRange, type ReportMetric } from "@/lib/reports";
+import { resolveRange, loadWorkInProgress, type ReportMetric } from "@/lib/reports";
 import { ORDER_ITEM_NET_SQL, ORDER_TOTALS_SQL } from "@/lib/totals";
 import ReportRangeFilter from "@/components/admin/ReportRangeFilter";
 import { PageTitle, card } from "@/components/admin/ui";
@@ -158,6 +158,10 @@ export default async function ReportsPage({
     };
   });
   const maxMechRev = Math.max(1, ...mechanics.map((mm) => mm.revenue));
+
+  // Foto de HOY, deliberadamente fuera del rango: ver más abajo por qué no se
+  // suma a la ganancia neta.
+  const wip = await loadWorkInProgress();
 
   const firstCosted = await one<{ d: string | null }>(
     "SELECT MIN(created_at) AS d FROM order_items WHERE unit_cost > 0"
@@ -381,6 +385,56 @@ export default async function ReportsPage({
               </li>
             ))}
           </ul>
+
+          {/* Lo que todavía está en el taller. Va DESPUÉS de la ganancia neta y
+              separado a propósito: es una foto de hoy, no del período, y al
+              entregarse su margen pasará a contar en el mes de la entrega. Si se
+              sumara arriba, la misma orden contaría dos veces y comparar meses
+              dejaría de significar algo. */}
+          {wip.orders > 0 && (
+            <Link
+              href={`/admin/reportes/encurso?${range.query}`}
+              className="mt-4 block rounded-xl border border-dashed border-slate-300 p-3 transition-colors hover:border-sm-red hover:bg-slate-50 group"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Todavía en el taller
+                </span>
+                <ChevronRight
+                  className="w-4 h-4 text-slate-300 group-hover:text-sm-red shrink-0"
+                  aria-hidden="true"
+                />
+              </div>
+              <div className="mt-2 flex items-center justify-between gap-3 text-sm">
+                <span className="text-slate-500">
+                  {wip.orders === 1 ? "1 carro sin entregar" : `${wip.orders} carros sin entregar`}
+                  {wip.collected > 0.009 && (
+                    <span className="text-slate-400"> · {formatMoney(wip.collected)} ya cobrado</span>
+                  )}
+                </span>
+                <span className="tabular-nums font-semibold text-slate-800 shrink-0">
+                  {formatMoney(wip.margin)}
+                </span>
+              </div>
+              <div className="mt-2 flex items-center justify-between gap-3 border-t border-slate-200 pt-2">
+                <span className="text-sm font-semibold text-slate-800">
+                  Proyectada si se entrega todo
+                </span>
+                <span
+                  className={`tabular-nums font-bold text-base shrink-0 ${
+                    net + wip.margin >= 0 ? "text-accent-700" : "text-red-600"
+                  }`}
+                >
+                  {formatMoney(net + wip.margin)}
+                </span>
+              </div>
+              <p className="mt-2 text-[11px] text-slate-400">
+                Es una estimación de hoy: no cambia al mover las fechas y todavía se pueden
+                agregar o quitar conceptos antes de entregar.
+              </p>
+            </Link>
+          )}
+
           {(expensesTotal === 0 || payrollMonthly === 0) && (
             <p className="mt-3 text-[11px] text-slate-400">
               {expensesTotal === 0 && (

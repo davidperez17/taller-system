@@ -1,6 +1,7 @@
 import { many, one } from "./db";
 import {
   formatMoney, formatDate, formatDateShort, formatDay, ROLES, EXPENSE_CATEGORIES,
+  STATUS_META, type OrderStatus,
 } from "./status";
 import { ORDER_ITEM_NET_SQL } from "./totals";
 
@@ -93,6 +94,7 @@ export const REPORT_METRICS = [
   "gastos",
   "planilla",
   "neta",
+  "encurso",
 ] as const;
 export type ReportMetric = (typeof REPORT_METRICS)[number];
 
@@ -124,11 +126,66 @@ export type MetricDetail = {
   truncated: number;
   emptyText: string;
   note?: string;
+  // La métrica es una FOTO del estado actual, no un flujo del período: el rango
+  // de fechas no la afecta. La página oculta el filtro y cambia el rótulo del
+  // total, para no prometer un recorte que no existe. Lo declara la métrica y no
+  // lo decide la página con un if por nombre: así una métrica futura del mismo
+  // tipo se comporta bien sin tocar el render.
+  snapshot?: boolean;
 };
 
 // Tope de filas listadas. El total SIEMPRE sale de un SUM aparte, así que
 // recortar la lista no falsea el número: solo se avisa cuántas faltan.
 const LIMIT = 500;
+
+// ---------- Trabajo en curso ----------
+
+export type WorkInProgress = {
+  orders: number;
+  /** Lo que se facturará al entregar (ya con descuento aplicado). */
+  revenue: number;
+  cost: number;
+  margin: number;
+  /** Parte de esas órdenes que el cliente ya pagó por adelantado. */
+  collected: number;
+};
+
+// Los carros que están en el taller AHORA y la ganancia que dejarán al
+// entregarse. El taller cobra por adelantado, así que sin esto el dueño ve
+// trabajo hecho y cobrado que no aparece por ningún lado hasta la entrega.
+//
+// Es una FOTO del estado actual, no una métrica de período: una orden abierta lo
+// está hoy, sin importar el rango elegido arriba. Por eso no recibe desde/hasta
+// —filtrarla por fechas la volvería incompleta (una orden de junio que sigue
+// abierta es dinero que va a entrar, y desaparecería del rango "este mes")— y
+// por eso vive aparte de la ganancia neta en vez de sumarse a ella: al
+// entregarse, ese margen pasa a contar en el mes de la entrega, y mezclarlos
+// haría que la misma orden cuente en dos períodos.
+//
+// Una sola función para la tarjeta y para su detalle: si divergieran, el
+// historial contradiría al número que lo abrió.
+export async function loadWorkInProgress(): Promise<WorkInProgress> {
+  const agg = (await one<{ orders: number; revenue: number; cost: number }>(
+    `SELECT COUNT(DISTINCT o.id)::int AS orders,
+            COALESCE(SUM(i.net), 0)::float8 AS revenue,
+            COALESCE(SUM(i.cost), 0)::float8 AS cost
+       FROM orders o
+       LEFT JOIN ${ORDER_ITEM_NET_SQL} i ON i.order_id = o.id
+      WHERE o.status NOT IN ('entregado','cancelado')`
+  ))!;
+  const paid = (await one<{ total: number }>(
+    `SELECT COALESCE(SUM(p.amount), 0)::float8 AS total
+       FROM payments p JOIN orders o ON o.id = p.order_id
+      WHERE o.status NOT IN ('entregado','cancelado')`
+  ))!;
+  return {
+    orders: agg.orders,
+    revenue: agg.revenue,
+    cost: agg.cost,
+    margin: agg.revenue - agg.cost,
+    collected: paid.total,
+  };
+}
 
 const plural = (n: number, uno: string, varios: string) =>
   `${n} ${n === 1 ? uno : varios}`;
@@ -338,6 +395,50 @@ export async function loadMetricDetail(
       truncated: 0,
       emptyText: "Nadie del equipo tiene costo mensual registrado. Agrégalo en Equipo.",
       note: "Es una estimación: se prorratea el costo mensual por los días del período, no se marcan horas reales.",
+    };
+  }
+
+  if (metric === "encurso") {
+    const wip = await loadWorkInProgress();
+    const rows = await many<{
+      id: number; folio: string; plate: string; client: string | null; status: OrderStatus;
+      created_at: string; venta: number; costo: number;
+    }>(
+      `SELECT o.id, o.folio, v.plate, c.name AS client, o.status, o.created_at,
+              COALESCE(SUM(i.net), 0)::float8 AS venta,
+              COALESCE(SUM(i.cost), 0)::float8 AS costo
+         FROM orders o
+         JOIN vehicles v ON v.id = o.vehicle_id
+         LEFT JOIN clients c ON c.id = v.client_id
+         LEFT JOIN ${ORDER_ITEM_NET_SQL} i ON i.order_id = o.id
+        WHERE o.status NOT IN ('entregado','cancelado')
+        GROUP BY o.id, o.folio, v.plate, c.name, o.status, o.created_at
+        ORDER BY (COALESCE(SUM(i.net), 0) - COALESCE(SUM(i.cost), 0)) DESC
+        LIMIT ${LIMIT}`
+    );
+    return {
+      label: "En el taller",
+      description:
+        "Cada carro que sigue en el taller y la ganancia que dejará al entregarse.",
+      total: wip.margin,
+      summary: [
+        { label: "Por facturar", value: formatMoney(wip.revenue) },
+        { label: "Costo de ítems", value: formatMoney(wip.cost) },
+        { label: "Ya cobrado", value: formatMoney(wip.collected) },
+      ],
+      rows: rows.map((r) => ({
+        key: String(r.id),
+        title: `${r.folio} · ${r.plate}`,
+        subtitle: `${r.client ?? "Sin cliente"} · ${STATUS_META[r.status]?.label ?? r.status}`,
+        extra: `Ingresó ${formatDateShort(r.created_at)} · por facturar ${formatMoney(r.venta)} − costo ${formatMoney(r.costo)}`,
+        amount: r.venta - r.costo,
+        href: `/admin/ordenes/${r.id}`,
+      })),
+      countLabel: plural(wip.orders, "carro en el taller", "carros en el taller"),
+      truncated: Math.max(0, wip.orders - rows.length),
+      emptyText: "No hay carros en el taller: todo está entregado.",
+      note: "Es una estimación: todavía se pueden agregar o quitar conceptos antes de entregar. No sustituye a la ganancia neta, que solo cuenta lo ya cerrado —cuando el carro salga, este margen pasará a contar en el mes de la entrega.",
+      snapshot: true,
     };
   }
 

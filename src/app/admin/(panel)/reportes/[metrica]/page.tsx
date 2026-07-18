@@ -43,12 +43,14 @@ export default async function ReportDetailPage({
         }
       />
 
-      <ReportRangeFilter basePath={basePath} range={range} />
+      {/* Una métrica-foto no se recorta por fechas: mostrarle el filtro sería
+          prometer un filtrado que no ocurre. */}
+      {!detail.snapshot && <ReportRangeFilter basePath={basePath} range={range} />}
 
-      {/* Total del período + desglose de cabecera */}
+      {/* Total + desglose de cabecera */}
       <section className={`${card} p-5`}>
         <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-          Total del período
+          {detail.snapshot ? "Ahora mismo" : "Total del período"}
         </p>
         <p
           className={`text-3xl font-bold tabular-nums font-heading tracking-wide mt-1 ${
@@ -123,8 +125,9 @@ export default async function ReportDetailPage({
         )}
         {detail.truncated > 0 && (
           <p className="px-4 lg:px-5 py-3 border-t border-slate-100 bg-slate-50 text-xs text-slate-500">
-            Se listan las {detail.rows.length} más recientes; faltan {detail.truncated} del
-            período. El total de arriba sí las incluye todas — acota el período para verlas.
+            Se listan {detail.rows.length}; faltan {detail.truncated}. El total de arriba sí las
+            incluye todas
+            {detail.snapshot ? "." : " — acota el período para verlas."}
           </p>
         )}
       </section>
