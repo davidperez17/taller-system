@@ -5,6 +5,7 @@ import { sendPushToStaff } from "@/lib/push";
 import { STAFF_NOTIFS } from "@/lib/notifications";
 import { logActivity } from "@/lib/activity";
 import { formatMoney } from "@/lib/status";
+import { ORDER_TOTALS_SQL } from "@/lib/totals";
 import { hitLimit, clientIp } from "@/lib/rate-limit";
 
 const NOW_SQL = "to_char(now(),'YYYY-MM-DD HH24:MI:SS')";
@@ -47,7 +48,7 @@ export async function POST(
   }
 
   const totalRow = await one<{ total: number }>(
-    "SELECT COALESCE(SUM(qty * unit_price), 0)::float8 AS total FROM order_items WHERE order_id = ?",
+    `SELECT total FROM ${ORDER_TOTALS_SQL} t WHERE t.order_id = ?`,
     [order.id]
   );
   const total = totalRow?.total ?? 0;

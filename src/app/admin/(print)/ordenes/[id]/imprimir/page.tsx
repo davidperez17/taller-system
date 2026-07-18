@@ -7,6 +7,7 @@ import { getSessionUser } from "@/lib/auth";
 import {
   VEHICLE_TYPES, RECEPTION_EVENT_TITLE, formatMoney, formatDate, formatDateShort,
 } from "@/lib/status";
+import { totalsOf, type DiscountType } from "@/lib/totals";
 import { btnSecondary } from "@/components/admin/ui";
 import brand from "@/lib/brand.json";
 import PrintButton from "./PrintButton";
@@ -28,6 +29,7 @@ export default async function PrintOrderPage({ params }: { params: Promise<{ id:
     estimated_delivery: string | null; created_at: string;
     plate: string; type: string; brand: string | null; model: string | null;
     year: string | null; color: string | null; client_name: string; client_phone: string | null;
+    discount_type: DiscountType | null; discount_value: number;
   }>(
     `SELECT o.*, v.plate, v.type, v.brand, v.model, v.year, v.color,
             c.name AS client_name, c.phone AS client_phone
@@ -43,7 +45,11 @@ export default async function PrintOrderPage({ params }: { params: Promise<{ id:
     "SELECT description, qty, unit_price FROM order_items WHERE order_id = ? ORDER BY id",
     [order.id]
   );
-  const total = items.reduce((s, i) => s + i.qty * i.unit_price, 0);
+  const { subtotal, discount, total } = totalsOf(
+    items,
+    order.discount_type,
+    order.discount_value
+  );
 
   const reception = await one<{ detail: string | null }>(
     "SELECT detail FROM order_events WHERE order_id = ? AND title = ? ORDER BY id LIMIT 1",
@@ -181,6 +187,28 @@ export default async function PrintOrderPage({ params }: { params: Promise<{ id:
                 ))}
               </tbody>
               <tfoot>
+                {discount > 0.009 && (
+                  <>
+                    <tr>
+                      <td className="pt-2 text-slate-500">Subtotal</td>
+                      <td />
+                      <td className="pt-2 text-right tabular-nums text-slate-500">
+                        {formatMoney(subtotal)}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="text-slate-500">
+                        {order.discount_type === "porcentaje"
+                          ? `Descuento (${order.discount_value}%)`
+                          : "Descuento"}
+                      </td>
+                      <td />
+                      <td className="text-right tabular-nums text-slate-500">
+                        - {formatMoney(discount)}
+                      </td>
+                    </tr>
+                  </>
+                )}
                 <tr>
                   <td className="py-2 font-semibold">Total</td>
                   <td />

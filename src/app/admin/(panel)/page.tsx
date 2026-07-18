@@ -8,6 +8,7 @@ import { getSessionUser } from "@/lib/auth";
 import { getActivityHistory } from "@/lib/activity";
 import { timeAgo } from "@/lib/activity-meta";
 import { STATUS_META, STATUS_FLOW, formatMoney, formatDate, type OrderStatus } from "@/lib/status";
+import { ORDER_TOTALS_SQL } from "@/lib/totals";
 import {
   StatusBadge, PlateBadge, VehicleTypeIcon, PageTitle, card, btnPrimary, btnSecondary,
 } from "@/components/admin/ui";
@@ -32,8 +33,8 @@ export default async function DashboardPage() {
        AND substr(delivered_at, 1, 7) = to_char(now(), 'YYYY-MM')`
   ))!;
   const revenueMonth = (await one<{ total: number }>(
-    `SELECT COALESCE(SUM(i.qty * i.unit_price), 0)::float8 AS total
-       FROM order_items i JOIN orders o ON o.id = i.order_id
+    `SELECT COALESCE(SUM(t.total), 0)::float8 AS total
+       FROM ${ORDER_TOTALS_SQL} t JOIN orders o ON o.id = t.order_id
        WHERE o.status = 'entregado'
        AND substr(o.delivered_at, 1, 7) = to_char(now(), 'YYYY-MM')`
   ))!;

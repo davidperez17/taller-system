@@ -33,7 +33,7 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
   const { id } = await params;
   const data = await getQuoteWithItems(Number(id));
   if (!data) notFound();
-  const { quote, items, total } = data;
+  const { quote, items, subtotal, discount, total } = data;
 
   const isAdmin = user.role === "admin";
   const pending = quote.status === "pendiente";
@@ -260,8 +260,16 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
               orderId={quote.id}
               items={items.map((i) => ({ ...i, stock: null }))}
               isAdmin={isAdmin}
+              subtotal={subtotal}
+              discount={discount}
+              discountType={quote.discount_type}
+              discountValue={quote.discount_value}
               total={total}
               profit={profit}
+              // El mecánico ya está redirigido arriba, así que quien llega aquí
+              // (admin o asesor) puede descontar.
+              canDiscount
+              maxDiscountAmount={subtotal}
               mode="quote"
               readOnly={!pending}
             />

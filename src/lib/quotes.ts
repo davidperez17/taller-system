@@ -4,6 +4,7 @@ import { sendPushToStaff } from "./push";
 import { STAFF_NOTIFS } from "./notifications";
 import { logActivity } from "./activity";
 import { formatMoney, type QuoteStatus } from "./status";
+import { totalsOf, quoteTotalSql, type DiscountType } from "./totals";
 
 const NOW_SQL = "to_char(now(),'YYYY-MM-DD HH24:MI:SS')";
 
@@ -39,6 +40,8 @@ export type QuoteRow = {
   decided_via: "cliente" | "staff" | null;
   decided_by: number | null;
   decision_total: number | null;
+  discount_type: DiscountType | null;
+  discount_value: number;
   order_id: number | null;
   created_by: number | null;
   created_at: string;
@@ -94,7 +97,13 @@ export const FOLLOWUP_DUE_SQL = `(q.status = 'pendiente' AND q.sent_at IS NOT NU
 
 export async function getQuoteWithItems(
   id: number
-): Promise<{ quote: QuoteDetail; items: QuoteItemRow[]; total: number } | null> {
+): Promise<{
+  quote: QuoteDetail;
+  items: QuoteItemRow[];
+  subtotal: number;
+  discount: number;
+  total: number;
+} | null> {
   const quote = await one<QuoteDetail>(
     `SELECT q.*,
             COALESCE(c.name, q.client_name) AS display_client_name,
@@ -116,8 +125,12 @@ export async function getQuoteWithItems(
        FROM quote_items WHERE quote_id = ? ORDER BY id`,
     [id]
   );
-  const total = items.reduce((sum, i) => sum + i.qty * i.unit_price, 0);
-  return { quote, items, total };
+  const { subtotal, discount, total } = totalsOf(
+    items,
+    quote.discount_type,
+    quote.discount_value
+  );
+  return { quote, items, subtotal, discount, total };
 }
 
 // ---------- Vista pública ----------
@@ -146,6 +159,13 @@ export type PublicQuote = {
   decidedAt: string | null;
   decisionTotal: number | null;
   items: PublicQuoteItem[];
+  // El descuento SÍ es información del cliente (a diferencia de unit_cost y las
+  // notas internas): ve Subtotal / Descuento / Total para que la suma de los
+  // conceptos cuadre con lo que se le cobra.
+  subtotal: number;
+  discount: number;
+  discountType: DiscountType | null;
+  discountValue: number;
   total: number;
   // Solo si está aprobado y la orden ya existe: para enlazar al seguimiento.
   tracking?: { plate: string; code: string };
@@ -204,7 +224,9 @@ export async function getPublicQuote(
     decidedAt: q.decided_at,
     decisionTotal: q.decision_total,
     items,
-    total: items.reduce((sum, i) => sum + i.qty * i.unit_price, 0),
+    ...totalsOf(items, q.discount_type, q.discount_value),
+    discountType: q.discount_type,
+    discountValue: q.discount_value,
     tracking:
       q.status === "aprobado" && q.order_tracking_code
         ? { plate: q.plate, code: q.order_tracking_code }
@@ -282,7 +304,7 @@ export async function rejectQuote(
   const flipped = await one<{ id: number; folio: string }>(
     `UPDATE quotes SET status = 'rechazado', decided_at = ${NOW_SQL}, decided_via = ?,
         decided_by = ?, updated_at = ${NOW_SQL},
-        decision_total = (SELECT COALESCE(SUM(qty * unit_price), 0) FROM quote_items WHERE quote_id = quotes.id)
+        decision_total = ${quoteTotalSql("quotes")}
       WHERE id = ? AND status = 'pendiente' RETURNING id, folio`,
     [via, actor?.id ?? null, quoteId]
   );
@@ -337,7 +359,7 @@ export async function approveQuoteAndCreateOrder(
   const flipped = await one<{ id: number; folio: string; decision_total: number }>(
     `UPDATE quotes SET status = 'aprobado', decided_at = ${NOW_SQL}, decided_via = ?,
         decided_by = ?, updated_at = ${NOW_SQL},
-        decision_total = (SELECT COALESCE(SUM(qty * unit_price), 0) FROM quote_items WHERE quote_id = quotes.id)
+        decision_total = ${quoteTotalSql("quotes")}
       WHERE id = ? AND status = 'pendiente' RETURNING id, folio, decision_total`,
     [via, actor?.id ?? null, quoteId]
   );
@@ -477,9 +499,15 @@ export async function materializeOrderFromQuote(
       try {
         trackingCode = newTrackingCode();
         const info = await run(
+          // El descuento viaja a la orden: los conceptos se copian con su
+          // unit_price íntegro (es de cabecera, no por línea), así que sin estas
+          // dos columnas la orden recalcularía el total SIN descuento mientras
+          // approval_total sí lo lleva — y el aviso de "el total ya no coincide
+          // con el aprobado" saltaría en TODA orden convertida, para siempre.
           `INSERT INTO orders (folio, tracking_code, vehicle_id, status, description,
-              created_by, modality, approval_status, approval_at, approval_total)
-           VALUES (?, ?, ?, 'recibido', ?, ?, 'taller', 'aprobado', ${NOW_SQL}, ?) RETURNING id`,
+              created_by, modality, approval_status, approval_at, approval_total,
+              discount_type, discount_value)
+           VALUES (?, ?, ?, 'recibido', ?, ?, 'taller', 'aprobado', ${NOW_SQL}, ?, ?, ?) RETURNING id`,
           [
             folio,
             trackingCode,
@@ -487,6 +515,8 @@ export async function materializeOrderFromQuote(
             quote.description,
             actorId ?? quote.created_by,
             quote.decision_total ?? 0,
+            quote.discount_type,
+            quote.discount_value,
           ]
         );
         id = Number(info.lastInsertRowid);

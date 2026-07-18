@@ -475,7 +475,33 @@ export default function TrackingClient({
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr className="border-t border-sm-border">
+                  {(data.discount ?? 0) > 0.009 && (
+                    <>
+                      <tr className="border-t border-sm-border">
+                        <td colSpan={2} className="pt-3 pb-1 text-sm text-sm-muted">
+                          Subtotal
+                        </td>
+                        <td className="pt-3 pb-1 text-right text-sm text-sm-muted tabular-nums">
+                          {formatMoney(data.subtotal ?? 0)}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td colSpan={2} className="py-1 text-sm font-medium text-sm-ok">
+                          {data.discountType === "porcentaje"
+                            ? `Descuento (${data.discountValue}%)`
+                            : "Descuento"}
+                        </td>
+                        <td className="py-1 text-right text-sm font-semibold text-sm-ok tabular-nums">
+                          - {formatMoney(data.discount ?? 0)}
+                        </td>
+                      </tr>
+                    </>
+                  )}
+                  <tr
+                    className={
+                      (data.discount ?? 0) > 0.009 ? undefined : "border-t border-sm-border"
+                    }
+                  >
                     <td colSpan={2} className="py-3 font-semibold text-sm-graphite">
                       Total
                     </td>

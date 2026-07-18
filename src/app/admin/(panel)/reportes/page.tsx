@@ -8,6 +8,7 @@ import { many, one } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { formatMoney, STATUS_META, STATUS_FLOW, type OrderStatus } from "@/lib/status";
 import { resolveRange, type ReportMetric } from "@/lib/reports";
+import { ORDER_ITEM_NET_SQL, ORDER_TOTALS_SQL } from "@/lib/totals";
 import ReportRangeFilter from "@/components/admin/ReportRangeFilter";
 import { PageTitle, card } from "@/components/admin/ui";
 
@@ -56,9 +57,9 @@ export default async function ReportsPage({
   // Facturado y ganancia por mes y por tipo (servicio/repuesto), órdenes entregadas.
   const kindRows = await many<{ ym: string; kind: string; total: number; profit: number }>(
     `SELECT substr(o.delivered_at, 1, 7) AS ym, i.kind,
-            COALESCE(SUM(i.qty * i.unit_price), 0)::float8 AS total,
-            COALESCE(SUM(i.qty * (i.unit_price - i.unit_cost)), 0)::float8 AS profit
-       FROM orders o JOIN order_items i ON i.order_id = o.id
+            COALESCE(SUM(i.net), 0)::float8 AS total,
+            COALESCE(SUM(i.net - i.cost), 0)::float8 AS profit
+       FROM orders o JOIN ${ORDER_ITEM_NET_SQL} i ON i.order_id = o.id
       WHERE o.status = 'entregado' AND substr(o.delivered_at, 1, 10) BETWEEN ? AND ?
       GROUP BY ym, i.kind`,
     [desde, hasta]
@@ -81,10 +82,10 @@ export default async function ReportsPage({
   // Separa el canal; los gastos fijos siguen siendo del taller completo.
   const modalityRows = await many<{ modality: string; total: number; profit: number; n: number }>(
     `SELECT o.modality,
-            COALESCE(SUM(i.qty * i.unit_price), 0)::float8 AS total,
-            COALESCE(SUM(i.qty * (i.unit_price - i.unit_cost)), 0)::float8 AS profit,
+            COALESCE(SUM(i.net), 0)::float8 AS total,
+            COALESCE(SUM(i.net - i.cost), 0)::float8 AS profit,
             COUNT(DISTINCT o.id)::int AS n
-       FROM orders o LEFT JOIN order_items i ON i.order_id = o.id
+       FROM orders o LEFT JOIN ${ORDER_ITEM_NET_SQL} i ON i.order_id = o.id
       WHERE o.status = 'entregado' AND substr(o.delivered_at, 1, 10) BETWEEN ? AND ?
       GROUP BY o.modality`,
     [desde, hasta]
@@ -114,12 +115,12 @@ export default async function ReportsPage({
     id: number; name: string; monthly_cost: number; revenue: number; profit: number;
   }>(
     `SELECT u.id, u.name, u.monthly_cost,
-            COALESCE(SUM(i.qty * i.unit_price), 0)::float8 AS revenue,
-            COALESCE(SUM(i.qty * (i.unit_price - i.unit_cost)), 0)::float8 AS profit
+            COALESCE(SUM(i.net), 0)::float8 AS revenue,
+            COALESCE(SUM(i.net - i.cost), 0)::float8 AS profit
        FROM users u
        JOIN orders o ON o.assigned_to = u.id AND o.status = 'entregado'
         AND substr(o.delivered_at, 1, 10) BETWEEN ? AND ?
-       LEFT JOIN order_items i ON i.order_id = o.id
+       LEFT JOIN ${ORDER_ITEM_NET_SQL} i ON i.order_id = o.id
       GROUP BY u.id, u.name, u.monthly_cost
       ORDER BY revenue DESC
       LIMIT 8`,
@@ -161,13 +162,12 @@ export default async function ReportsPage({
   const activeTotal = byStatus.reduce((s, r) => s + r.n, 0);
   const receivable = (await one<{ total: number }>(
     `SELECT COALESCE(SUM(t.saldo), 0)::float8 AS total FROM (
-       SELECT COALESCE(SUM(i.qty * i.unit_price), 0) - COALESCE(pg.paid, 0) AS saldo
+       SELECT COALESCE(ot.total, 0) - COALESCE(pg.paid, 0) AS saldo
          FROM orders o
-         LEFT JOIN order_items i ON i.order_id = o.id
+         LEFT JOIN ${ORDER_TOTALS_SQL} ot ON ot.order_id = o.id
          LEFT JOIN (SELECT order_id, SUM(amount) AS paid FROM payments GROUP BY order_id) pg
            ON pg.order_id = o.id
         WHERE o.status != 'cancelado'
-        GROUP BY o.id, pg.paid
      ) t WHERE t.saldo > 0.009`
   ))!;
   const inv = (await one<{ value: number; low: number }>(

@@ -4,6 +4,7 @@ import { Plus, Search, ChevronRight, FileText } from "lucide-react";
 import { many, normalizePlate } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { FOLLOWUP_DUE_SQL } from "@/lib/quotes";
+import { quoteTotalSql } from "@/lib/totals";
 import { QUOTE_STATUS_META, formatMoney, formatDate, type QuoteStatus } from "@/lib/status";
 import { PageTitle, PlateBadge, VehicleTypeIcon, card, btnPrimary, inputCls } from "@/components/admin/ui";
 import QuoteStatusChip, { ExpiredChip, FollowupChip } from "@/components/admin/QuoteStatusChip";
@@ -59,8 +60,7 @@ export default async function QuotesPage({
             q.decision_total, q.order_id,
             o.folio AS order_folio,
             COALESCE(c.name, q.client_name) AS client,
-            (SELECT COALESCE(SUM(i.qty * i.unit_price), 0) FROM quote_items i
-              WHERE i.quote_id = q.id)::float8 AS total,
+            ${quoteTotalSql("q")} AS total,
             (q.valid_until IS NOT NULL AND q.status = 'pendiente'
               AND q.valid_until < to_char(now(),'YYYY-MM-DD')) AS expired,
             ${FOLLOWUP_DUE_SQL} AS followup_due

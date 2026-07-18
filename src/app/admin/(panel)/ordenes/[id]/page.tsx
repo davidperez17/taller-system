@@ -14,6 +14,7 @@ import {
   updateOrderInfoAction, addPaymentAction, deletePaymentAction,
 } from "@/app/admin/actions";
 import { getSessionUser } from "@/lib/auth";
+import { totalsOf, type DiscountType } from "@/lib/totals";
 import ItemPicker from "@/components/admin/ItemPicker";
 import OrderItemsEditor from "@/components/admin/OrderItemsEditor";
 import SubmitButton from "@/components/admin/SubmitButton";
@@ -41,6 +42,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
     approval_status: "pendiente" | "aprobado" | "rechazado";
     approval_at: string | null; approval_total: number | null;
     modality: string; service_location: string | null;
+    discount_type: DiscountType | null; discount_value: number;
   }>(
     `SELECT o.*, v.plate, v.type, v.brand, v.model, v.year, v.color,
               c.id AS client_id, c.name AS client_name, c.phone AS client_phone
@@ -65,7 +67,11 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
        WHERE i.order_id = ? ORDER BY i.id`,
     [order.id]
   );
-  const total = items.reduce((s, i) => s + i.qty * i.unit_price, 0);
+  const { subtotal, discount, total } = totalsOf(
+    items,
+    order.discount_type,
+    order.discount_value
+  );
   const costTotal = items.reduce((s, i) => s + i.qty * i.unit_cost, 0);
   const profit = total - costTotal;
   const margin = total > 0 ? profit / total : 0;
@@ -202,12 +208,26 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 re-cotizar o cancelar la orden.
               </p>
             )}
+            {/* Separado por signo: cobrar de más es el riesgo (avisar), cobrar
+                de menos es solo información. Antes un descuento deliberado
+                disparaba el mismo aviso alarmante que un total inflado.
+                approval_total NO se re-sincroniza: es la prueba de lo que el
+                cliente autorizó. */}
             {order.approval_status === "aprobado" &&
               order.approval_total != null &&
-              Math.abs(total - order.approval_total) > 0.009 && (
+              total - order.approval_total > 0.009 && (
                 <p className="mt-3 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
-                  Ojo: el total actual ({formatMoney(total)}) ya no coincide con el aprobado por el
-                  cliente ({formatMoney(order.approval_total)}).
+                  Ojo: el total actual ({formatMoney(total)}) es mayor que el aprobado por el
+                  cliente ({formatMoney(order.approval_total)}). Confírmaselo antes de cobrar.
+                </p>
+              )}
+            {order.approval_status === "aprobado" &&
+              order.approval_total != null &&
+              order.approval_total - total > 0.009 && (
+                <p className="mt-3 text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
+                  El total bajó a {formatMoney(total)} desde los{" "}
+                  {formatMoney(order.approval_total)} que aprobó el cliente (descuento o conceptos
+                  retirados). Paga menos de lo acordado.
                 </p>
               )}
             <StatusChangeForm orderId={order.id} currentStatus={order.status} />
@@ -337,8 +357,15 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               orderId={order.id}
               items={items}
               isAdmin={isAdmin}
+              subtotal={subtotal}
+              discount={discount}
+              discountType={order.discount_type}
+              discountValue={order.discount_value}
               total={total}
               profit={profit}
+              canDiscount={me?.role !== "mecanico"}
+              // Tope: el descuento no puede dejar el total bajo lo ya cobrado.
+              maxDiscountAmount={Math.max(0, subtotal - paid)}
             />
             <ItemPicker orderId={order.id} parts={pickerParts} services={pickerServices} isAdmin={isAdmin} />
           </section>

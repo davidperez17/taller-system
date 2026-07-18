@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 // marcar cuántas novedades hay sin ver.
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 31,
+    date: "2026-07-18",
+    title: "Descuentos: rebaja el total sin tocar los precios",
+    description:
+      "Ahora puedes aplicar un descuento sobre el total de un presupuesto o de una orden, en porcentaje («10%») o en monto fijo («Q500»), con el botón «Aplicar descuento» debajo de los conceptos. Antes la única forma de rebajar era poner el precio de un concepto en 0, lo que ensuciaba el costeo y no dejaba rastro de la negociación. El cliente lo ve desglosado —Subtotal, Descuento, Total— en el enlace público, en el PDF y en el seguimiento, así que la suma de los conceptos siempre cuadra con lo que se le cobra. El descuento viaja solo del presupuesto a la orden al aprobarse, y se descuenta también de Caja, Reportes e Inicio: lo facturado es lo que de verdad se cobró. No se puede dejar el total por debajo de lo que el cliente ya pagó, y en una orden ya aprobada el aviso de «el total cambió» ahora distingue si subió (hay que confirmárselo antes de cobrar) o si bajó (paga menos de lo acordado). Los mecánicos no pueden aplicar descuentos.",
+  },
+  {
     id: 30,
     date: "2026-07-17",
     title: "«Nuevo presupuesto» a un toque desde Inicio",

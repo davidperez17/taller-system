@@ -1,6 +1,7 @@
 import { createHash, timingSafeEqual } from "crypto";
 import { one, many, normalizePlate } from "./db";
 import { STATUS_FLOW, type OrderStatus, type OrderModality } from "./status";
+import { totalsOf, type DiscountType } from "./totals";
 
 export type PublicEvent = {
   id: number;
@@ -52,6 +53,10 @@ export type TrackingResult = {
   events?: PublicEvent[];
   detailed?: boolean;
   items?: PublicItem[];
+  subtotal?: number;
+  discount?: number;
+  discountType?: DiscountType | null;
+  discountValue?: number;
   total?: number;
   paid?: number;
   history?: { folio: string; status: OrderStatus; description: string; created_at: string }[];
@@ -88,6 +93,8 @@ export async function getTracking(rawPlate: string, code?: string | null): Promi
     approval_status: "pendiente" | "aprobado" | "rechazado";
     approval_at: string | null;
     approval_total: number | null;
+    discount_type: DiscountType | null;
+    discount_value: number;
   };
 
   // Orden activa = la más reciente no entregada/cancelada; si no hay, la última.
@@ -174,7 +181,9 @@ export async function getTracking(rawPlate: string, code?: string | null): Promi
     events,
     detailed: true,
     items,
-    total: items.reduce((sum, i) => sum + i.qty * i.unit_price, 0),
+    ...totalsOf(items, order.discount_type, order.discount_value),
+    discountType: order.discount_type,
+    discountValue: order.discount_value,
     paid:
       (
         await one<{ paid: number }>(

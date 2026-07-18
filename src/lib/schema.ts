@@ -322,4 +322,25 @@ export const MIGRATIONS: string[][] = [
     `ALTER TABLE quotes ADD COLUMN IF NOT EXISTS followed_up_at TEXT`,
     `CREATE INDEX IF NOT EXISTS idx_quotes_sent ON quotes(sent_at)`,
   ],
+  // v16 — descuento sobre el TOTAL del presupuesto/orden, no por concepto. Hasta
+  // aquí la única forma de rebajar era poner unit_price = 0 en un concepto
+  // ("cortesía"), lo que ensucia el costeo y no deja rastro de la negociación.
+  //
+  // Dos modalidades: 'porcentaje' (0-100) o 'monto' (Q fijos, topado al
+  // subtotal). NULL + 0 es la ÚNICA representación de "sin descuento": así todo
+  // CASE cae al ELSE 0 y no hay ambigüedad entre ('monto',0) y (NULL,0).
+  //
+  // Sin CHECK a propósito: ADD CONSTRAINT no tiene IF NOT EXISTS y rompería la
+  // idempotencia que exige la cabecera de este archivo (mismo criterio que
+  // orders.modality en v13). La whitelist vive en readDiscount, en actions.ts.
+  //
+  // El índice de order_items(order_id) faltaba y ahora pesa: las expresiones de
+  // lib/totals.ts agregan por order_id en cada reporte.
+  [
+    `ALTER TABLE quotes ADD COLUMN IF NOT EXISTS discount_type TEXT`,
+    `ALTER TABLE quotes ADD COLUMN IF NOT EXISTS discount_value DOUBLE PRECISION NOT NULL DEFAULT 0`,
+    `ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_type TEXT`,
+    `ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_value DOUBLE PRECISION NOT NULL DEFAULT 0`,
+    `CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id)`,
+  ],
 ];

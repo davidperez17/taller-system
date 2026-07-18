@@ -5,6 +5,7 @@ import {
   type OrderStatus, type QuoteStatus,
 } from "./status";
 import { EXPIRED_SQL } from "./quotes";
+import { totalsOf, type DiscountType } from "./totals";
 import brand from "./brand.json";
 
 // Build standalone: trae las métricas de fuente embebidas (el build normal las
@@ -39,6 +40,11 @@ export type OrderDocData = {
   events: { title: string; detail: string | null; created_at: string; has_photos: boolean }[];
   paid: number;
   reception: string | null;
+  subtotal: number;
+  discount: number;
+  total: number;
+  discount_type: DiscountType | null;
+  discount_value: number;
   // Solo para kind "presupuesto" (pre-orden): vigencia y estado real del quote.
   valid_until?: string | null;
   quote_status?: QuoteStatus;
@@ -46,10 +52,12 @@ export type OrderDocData = {
 };
 
 export async function loadOrderDocData(orderId: number): Promise<OrderDocData | null> {
-  const order = await one<Omit<OrderDocData, "items" | "events" | "paid" | "reception">>(
+  const order = await one<
+    Omit<OrderDocData, "items" | "events" | "paid" | "reception" | "subtotal" | "discount" | "total">
+  >(
     `SELECT o.id, o.folio, o.tracking_code, o.status, o.description, o.diagnosis,
             o.km, o.fuel_level, o.estimated_delivery, o.created_at, o.delivered_at,
-            o.approval_status, o.approval_at,
+            o.approval_status, o.approval_at, o.discount_type, o.discount_value,
             v.plate, v.type, v.brand, v.model, v.year, v.color,
             c.name AS client_name, c.phone AS client_phone,
             u.name AS mechanic
@@ -87,6 +95,7 @@ export async function loadOrderDocData(orderId: number): Promise<OrderDocData | 
   return {
     ...order,
     items,
+    ...totalsOf(items, order.discount_type, order.discount_value),
     events: events.map((e) => ({
       title: e.title,
       detail: e.detail,
@@ -108,10 +117,12 @@ export async function loadQuoteDocData(quoteId: number): Promise<OrderDocData | 
     vehicle_year: string | null; vehicle_color: string | null; description: string;
     valid_until: string | null; decided_at: string | null; created_at: string;
     client_name: string | null; client_phone: string | null; expired: boolean;
+    discount_type: DiscountType | null; discount_value: number;
   }>(
     `SELECT q.id, q.folio, q.public_code, q.status, q.plate, q.vehicle_type,
             q.vehicle_brand, q.vehicle_model, q.vehicle_year, q.vehicle_color,
             q.description, q.valid_until, q.decided_at, q.created_at,
+            q.discount_type, q.discount_value,
             COALESCE(c.name, q.client_name) AS client_name,
             COALESCE(c.phone, q.client_phone) AS client_phone,
             ${EXPIRED_SQL} AS expired
@@ -151,6 +162,9 @@ export async function loadQuoteDocData(quoteId: number): Promise<OrderDocData | 
     client_phone: q.client_phone,
     mechanic: null,
     items,
+    ...totalsOf(items, q.discount_type, q.discount_value),
+    discount_type: q.discount_type,
+    discount_value: q.discount_value,
     events: [],
     paid: 0,
     reception: null,
@@ -361,7 +375,7 @@ export async function buildOrderPdf(
     para("El presupuesto aún no tiene conceptos cargados.");
   } else {
     tableHead();
-    const total = data.items.reduce((s, i) => s + i.qty * i.unit_price, 0);
+    const total = data.total;
     for (const it of data.items) {
       const label = `${it.description}  ·  ${it.kind === "repuesto" ? "Repuesto" : it.kind === "servicio" ? "Servicio" : it.kind}`;
       const h = doc.heightOfString(label, { width: C_QTY - C_DESC - 8 }) + 8;
@@ -406,6 +420,18 @@ export async function buildOrderPdf(
       doc.y = yy + (opts?.big ? 17 : 14);
       doc.x = M;
     };
+    // Con descuento el pie se apila: sin el subtotal, la suma de los importes de
+    // arriba no cuadraría con el total y se leería como un error del taller.
+    if (data.discount > 0.009) {
+      totalRow("Subtotal", formatMoney(data.subtotal));
+      totalRow(
+        data.discount_type === "porcentaje"
+          ? `Descuento (${data.discount_value}%)`
+          : "Descuento",
+        `- ${formatMoney(data.discount)}`,
+        { color: GREEN }
+      );
+    }
     totalRow("Total", formatMoney(total), { big: true });
     if (kind === "informe") {
       totalRow("Pagado", formatMoney(data.paid), { color: GREEN });

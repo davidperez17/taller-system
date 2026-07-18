@@ -2,6 +2,7 @@ import { many, one } from "./db";
 import {
   formatMoney, formatDate, formatDateShort, formatDay, ROLES, EXPENSE_CATEGORIES,
 } from "./status";
+import { ORDER_ITEM_NET_SQL } from "./totals";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Reportes: resolución del período y detalle de cada KPI.
@@ -141,10 +142,10 @@ export async function loadMetricDetail(
   if (metric === "facturado" || metric === "margen") {
     const isMargin = metric === "margen";
     const agg = (await one<{ total: number; cost: number; n: number }>(
-      `SELECT COALESCE(SUM(i.qty * i.unit_price), 0)::float8 AS total,
-              COALESCE(SUM(i.qty * i.unit_cost), 0)::float8 AS cost,
+      `SELECT COALESCE(SUM(i.net), 0)::float8 AS total,
+              COALESCE(SUM(i.cost), 0)::float8 AS cost,
               COUNT(DISTINCT o.id)::int AS n
-         FROM orders o JOIN order_items i ON i.order_id = o.id
+         FROM orders o JOIN ${ORDER_ITEM_NET_SQL} i ON i.order_id = o.id
         WHERE o.status = 'entregado' AND substr(o.delivered_at, 1, 10) BETWEEN ? AND ?`,
       [desde, hasta]
     ))!;
@@ -153,12 +154,12 @@ export async function loadMetricDetail(
       modality: string; total: number; cost: number;
     }>(
       `SELECT o.id, o.folio, v.plate, c.name AS client, o.delivered_at, o.modality,
-              COALESCE(SUM(i.qty * i.unit_price), 0)::float8 AS total,
-              COALESCE(SUM(i.qty * i.unit_cost), 0)::float8 AS cost
+              COALESCE(SUM(i.net), 0)::float8 AS total,
+              COALESCE(SUM(i.cost), 0)::float8 AS cost
          FROM orders o
          JOIN vehicles v ON v.id = o.vehicle_id
          LEFT JOIN clients c ON c.id = v.client_id
-         JOIN order_items i ON i.order_id = o.id
+         JOIN ${ORDER_ITEM_NET_SQL} i ON i.order_id = o.id
         WHERE o.status = 'entregado' AND substr(o.delivered_at, 1, 10) BETWEEN ? AND ?
         GROUP BY o.id, o.folio, v.plate, c.name, o.delivered_at, o.modality
         ORDER BY o.delivered_at DESC, o.id DESC
@@ -207,8 +208,8 @@ export async function loadMetricDetail(
       truncated: Math.max(0, agg.n - rows.length),
       emptyText: "No hay órdenes entregadas en este período.",
       note: isMargin
-        ? "El margen descuenta el costo registrado en cada ítem. Los ítems sin costo cuentan como costo 0 y suben el margen."
-        : "Solo cuentan las órdenes entregadas: una orden en curso todavía no factura.",
+        ? "El margen descuenta el costo registrado en cada ítem. Los ítems sin costo cuentan como costo 0 y suben el margen. Si la orden llevó descuento, se reparte entre sus conceptos."
+        : "Solo cuentan las órdenes entregadas: una orden en curso todavía no factura. Lo facturado es neto de descuentos: si la orden llevó uno, aquí cuenta lo que se cobró, no la suma de los conceptos.",
     };
   }
 
@@ -343,9 +344,9 @@ export async function loadMetricDetail(
   // neta — no es una lista de hechos sino la fórmula; cada renglón lleva a su
   // propio detalle.
   const inv = (await one<{ total: number; cost: number }>(
-    `SELECT COALESCE(SUM(i.qty * i.unit_price), 0)::float8 AS total,
-            COALESCE(SUM(i.qty * i.unit_cost), 0)::float8 AS cost
-       FROM orders o JOIN order_items i ON i.order_id = o.id
+    `SELECT COALESCE(SUM(i.net), 0)::float8 AS total,
+            COALESCE(SUM(i.cost), 0)::float8 AS cost
+       FROM orders o JOIN ${ORDER_ITEM_NET_SQL} i ON i.order_id = o.id
       WHERE o.status = 'entregado' AND substr(o.delivered_at, 1, 10) BETWEEN ? AND ?`,
     [desde, hasta]
   ))!;

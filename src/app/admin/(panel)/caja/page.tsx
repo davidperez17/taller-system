@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Banknote, CreditCard, Landmark, Wallet } from "lucide-react";
 import { many, one } from "@/lib/db";
 import { formatMoney, formatDate, STATUS_META, type OrderStatus } from "@/lib/status";
+import { ORDER_TOTALS_SQL } from "@/lib/totals";
 import { PageTitle, card, inputCls, labelCls, btnSecondary, PlateBadge } from "@/components/admin/ui";
 
 export const dynamic = "force-dynamic";
@@ -74,8 +75,7 @@ export default async function CajaPage({
        FROM orders o
        JOIN vehicles v ON v.id = o.vehicle_id
        JOIN clients c ON c.id = v.client_id
-       LEFT JOIN (SELECT order_id, SUM(qty * unit_price) AS total FROM order_items GROUP BY order_id) i
-         ON i.order_id = o.id
+       LEFT JOIN ${ORDER_TOTALS_SQL} i ON i.order_id = o.id
        LEFT JOIN (SELECT order_id, SUM(amount) AS paid FROM payments GROUP BY order_id) pg
          ON pg.order_id = o.id
       WHERE o.status != 'cancelado' AND COALESCE(i.total, 0) - COALESCE(pg.paid, 0) > 0.009

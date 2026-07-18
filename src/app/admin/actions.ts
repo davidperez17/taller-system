@@ -11,7 +11,10 @@ import {
 } from "@/lib/auth";
 import { sendPushToPlate, sendPushToStaff } from "@/lib/push";
 import { hitLimit, clientIp } from "@/lib/rate-limit";
-import { str, strOrNull } from "@/lib/validate";
+import { str, strOrNull, num } from "@/lib/validate";
+import {
+  ORDER_TOTALS_SQL, isDiscountType, round2, type DiscountType,
+} from "@/lib/totals";
 import {
   STATUS_META, RECEPTION_EVENT_TITLE, EXPENSE_CATEGORIES, VEHICLE_TYPES, formatMoney,
   type OrderStatus,
@@ -1128,7 +1131,7 @@ export async function addPaymentAction(formData: FormData) {
   // No cobrar de más: el pago no puede exceder el saldo pendiente.
   const row = await one<{ total: number; paid: number; folio: string }>(
     `SELECT o.folio,
-       (SELECT COALESCE(SUM(qty * unit_price), 0) FROM order_items WHERE order_id = o.id)::float8 AS total,
+       (SELECT t.total FROM ${ORDER_TOTALS_SQL} t WHERE t.order_id = o.id)::float8 AS total,
        (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE order_id = o.id)::float8 AS paid
      FROM orders o WHERE o.id = ?`,
     [orderId]
@@ -1313,6 +1316,28 @@ function validUntilOrNull(formData: FormData): string | null {
   return v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null;
 }
 
+// Descuento del formulario → (tipo, valor) normalizados. Compartido por
+// presupuestos y órdenes.
+//
+// "" en el select es "sin descuento" y se normaliza a (NULL, 0), la única
+// representación válida (ver migración v16). Un valor 0 con tipo elegido también
+// cae ahí: a diferencia de unit_price —donde 0 es una cortesía deliberada— un
+// descuento de 0 no significa nada distinto de no tenerlo.
+//
+// num() ya recorta por min/max y absorbe NaN, así que el tope del porcentaje se
+// aplica aquí y no hace falta validación extra.
+function readDiscount(formData: FormData): { type: DiscountType | null; value: number } {
+  const raw = String(formData.get("discount_type") || "").trim();
+  const type = isDiscountType(raw) ? raw : null;
+  if (!type) return { type: null, value: 0 };
+  const value = num(formData, "discount_value", {
+    min: 0,
+    max: type === "porcentaje" ? 100 : Number.MAX_SAFE_INTEGER,
+  });
+  if (!(value > 0)) return { type: null, value: 0 };
+  return { type, value: round2(value) };
+}
+
 export async function createQuoteAction(
   _prev: { error?: string } | null,
   formData: FormData
@@ -1470,6 +1495,74 @@ export async function updateQuoteInfoAction(formData: FormData) {
   );
   revalidatePath(`/admin/presupuestos/${quoteId}`);
   revalidatePath("/admin/presupuestos");
+}
+
+// Descuento sobre el TOTAL del presupuesto.
+//
+// Aquí NO se usa PENDING_GUARD_SQL: esa constante es la forma EXISTS(...) para
+// escrituras contra quote_items, que necesitan consultar el estado de otra
+// tabla. Este UPDATE ya escribe sobre quotes, así que el guard va directo en su
+// WHERE (igual que updateQuoteInfoAction). El motivo de fondo es el mismo:
+// check-then-act deja pasar la aprobación del cliente entre las dos queries y
+// congelaría decision_total con un descuento que el cliente nunca vio.
+export async function setQuoteDiscountAction(formData: FormData) {
+  const user = await requireUser();
+  if (user.role === "mecanico") return;
+  const quoteId = Number(formData.get("quote_id"));
+  if (!quoteId) return;
+
+  const { type, value } = readDiscount(formData);
+
+  await run(
+    `UPDATE quotes SET discount_type = ?, discount_value = ?, updated_at = ${NOW_SQL}
+      WHERE id = ? AND status = 'pendiente'`,
+    [type, value, quoteId]
+  );
+  revalidatePath(`/admin/presupuestos/${quoteId}`);
+  revalidatePath("/admin/presupuestos");
+}
+
+// Descuento sobre el TOTAL de una orden ya generada.
+//
+// Las órdenes no tienen un estado congelado como 'pendiente', así que el guard
+// equivalente son dos invariantes, ambos inline en el WHERE: una orden cancelada
+// no se edita, y el descuento no puede dejar el total por debajo de lo ya
+// cobrado (saldo negativo imposible de conciliar, y rompería el tope de
+// addPaymentAction).
+export async function setOrderDiscountAction(formData: FormData) {
+  const user = await requireUser();
+  if (user.role === "mecanico") return;
+  const orderId = Number(formData.get("order_id"));
+  if (!orderId) return;
+
+  const { type, value } = readDiscount(formData);
+
+  // La rama se elige en TS sobre un tipo que ya pasó por la whitelist de
+  // readDiscount, de modo que quede UN solo `?` para el valor. Repetir el mismo
+  // parámetro tres veces sería frágil: toPg numera los `?` por posición y es
+  // fácil descuadrarlos al editar la query.
+  const discExpr =
+    type === "porcentaje"
+      ? "s.subtotal * ? / 100"
+      : type === "monto"
+        ? "LEAST(?, s.subtotal)"
+        : "0";
+
+  await run(
+    `UPDATE orders o SET discount_type = ?, discount_value = ?, updated_at = ${NOW_SQL}
+       FROM (SELECT COALESCE(SUM(qty * unit_price), 0)::float8 AS subtotal
+               FROM order_items WHERE order_id = ?) s,
+            (SELECT COALESCE(SUM(amount), 0)::float8 AS paid
+               FROM payments WHERE order_id = ?) p
+      WHERE o.id = ?
+        AND o.status <> 'cancelado'
+        AND s.subtotal - (${discExpr}) >= p.paid - 0.009
+      RETURNING o.id`,
+    [type, value, orderId, orderId, orderId, ...(type ? [value] : [])]
+  );
+  revalidatePath(`/admin/ordenes/${orderId}`);
+  revalidatePath("/admin/caja");
+  revalidatePath("/admin");
 }
 
 // Espejo de addOrderItemAction SIN tocar stock: cotizar no reserva piezas (el
@@ -1659,15 +1752,18 @@ export async function duplicateQuoteAction(formData: FormData) {
     client_phone: string | null; plate: string; vehicle_type: string;
     vehicle_brand: string | null; vehicle_model: string | null; vehicle_year: string | null;
     vehicle_color: string | null; description: string; notes: string | null; folio: string;
+    discount_type: DiscountType | null; discount_value: number;
   }>("SELECT * FROM quotes WHERE id = ?", [quoteId]);
   if (!src) return;
 
   const { folio, value: newId } = await withFolioRetry("quotes", async (folio) => {
     const info = await run(
+      // El descuento se copia: re-cotizar conserva la política comercial que ya
+      // se acordó con el cliente.
       `INSERT INTO quotes (folio, public_code, client_id, vehicle_id, client_name, client_phone,
           plate, vehicle_type, vehicle_brand, vehicle_model, vehicle_year, vehicle_color,
-          description, notes, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+          description, notes, created_by, discount_type, discount_value)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
       [
         folio,
         newTrackingCode(),
@@ -1684,6 +1780,8 @@ export async function duplicateQuoteAction(formData: FormData) {
         src.description,
         src.notes,
         user.id,
+        src.discount_type,
+        src.discount_value,
       ]
     );
     return Number(info.lastInsertRowid);

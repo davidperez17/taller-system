@@ -6,9 +6,11 @@ import {
   updateOrderItemAction, deleteOrderItemAction, updateQuoteItemAction, deleteQuoteItemAction,
 } from "@/app/admin/actions";
 import { formatMoney } from "@/lib/status";
+import { type DiscountType } from "@/lib/totals";
 import { btnPrimary, btnSecondary, inputCls, labelCls } from "@/components/admin/ui";
 import SubmitButton from "@/components/admin/SubmitButton";
 import ConfirmSubmitButton from "@/components/admin/ConfirmSubmitButton";
+import DiscountEditor from "@/components/admin/DiscountEditor";
 
 export type EditableItem = {
   id: number;
@@ -34,8 +36,14 @@ export default function OrderItemsEditor({
   orderId,
   items,
   isAdmin,
+  subtotal,
+  discount,
+  discountType,
+  discountValue,
   total,
   profit,
+  canDiscount = false,
+  maxDiscountAmount = 0,
   mode = "order",
   readOnly = false,
 }: {
@@ -43,8 +51,16 @@ export default function OrderItemsEditor({
   orderId: number;
   items: EditableItem[];
   isAdmin: boolean;
+  subtotal: number;
+  discount: number;
+  discountType: DiscountType | null;
+  discountValue: number;
+  // Ya descontado; profit = total − costo de los conceptos.
   total: number;
   profit: number;
+  // Admin y asesor pueden descontar; el mecánico no.
+  canDiscount?: boolean;
+  maxDiscountAmount?: number;
   mode?: EditorMode;
   readOnly?: boolean;
 }) {
@@ -54,6 +70,10 @@ export default function OrderItemsEditor({
 
   const profitCls = (n: number) => (n < -0.009 ? "text-red-600" : "text-accent-700");
   const colSpan = isAdmin ? 8 : 6;
+  const showBreak = discount > 0.009;
+  const discountLabel =
+    discountType === "porcentaje" ? `Descuento (${discountValue}%)` : "Descuento";
+
 
   return (
     <>
@@ -109,15 +129,29 @@ export default function OrderItemsEditor({
         ))}
       </ul>
 
-      <div className="mt-3 flex items-center justify-between border-t border-slate-200 pt-3 md:hidden">
-        <span className="font-semibold text-slate-800">Total</span>
-        <div className="text-right">
-          <p className="font-bold tabular-nums text-slate-900">{formatMoney(total)}</p>
-          {isAdmin && (
-            <p className={`text-xs font-medium tabular-nums ${profitCls(profit)}`}>
-              Ganancia {formatMoney(profit)}
-            </p>
-          )}
+      <div className="mt-3 space-y-1 border-t border-slate-200 pt-3 md:hidden">
+        {showBreak && (
+          <>
+            <div className="flex items-center justify-between text-sm text-slate-500">
+              <span>Subtotal</span>
+              <span className="tabular-nums">{formatMoney(subtotal)}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm font-medium text-accent-700">
+              <span>{discountLabel}</span>
+              <span className="tabular-nums">- {formatMoney(discount)}</span>
+            </div>
+          </>
+        )}
+        <div className="flex items-center justify-between">
+          <span className="font-semibold text-slate-800">Total</span>
+          <div className="text-right">
+            <p className="font-bold tabular-nums text-slate-900">{formatMoney(total)}</p>
+            {isAdmin && (
+              <p className={`text-xs font-medium tabular-nums ${profitCls(profit)}`}>
+                Ganancia {formatMoney(profit)}
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
@@ -196,25 +230,88 @@ export default function OrderItemsEditor({
           )}
         </tbody>
         <tfoot>
-          <tr className="border-t border-slate-200">
-            <td className="py-3 font-semibold text-slate-800">Total</td>
-            <td className="hidden lg:table-cell" />
-            <td />
-            {isAdmin && <td />}
-            <td />
-            <td className="py-3 text-right font-bold tabular-nums text-slate-900">
-              {formatMoney(total)}
-            </td>
-            {isAdmin && (
-              <td className={`py-3 text-right font-bold tabular-nums ${profitCls(profit)}`}>
-                {formatMoney(profit)}
-              </td>
-            )}
-            <td />
-          </tr>
+          {showBreak && (
+            <FootRow first isAdmin={isAdmin} label="Subtotal" amount={formatMoney(subtotal)} />
+          )}
+          {showBreak && (
+            <FootRow
+              isAdmin={isAdmin}
+              label={discountLabel}
+              amount={`- ${formatMoney(discount)}`}
+              tone="font-medium text-accent-700"
+            />
+          )}
+          <FootRow
+            first={!showBreak}
+            strong
+            isAdmin={isAdmin}
+            label="Total"
+            amount={formatMoney(total)}
+            profitCell={<span className={profitCls(profit)}>{formatMoney(profit)}</span>}
+          />
         </tfoot>
       </table>
+
+      {canDiscount && !readOnly && (
+        <DiscountEditor
+          id={orderId}
+          mode={mode}
+          type={discountType}
+          value={discountValue}
+          maxAmount={maxDiscountAmount}
+        />
+      )}
     </>
+  );
+}
+
+// Una fila del pie de la tabla. Las celdas vacías están calibradas a mano contra
+// el <thead> (Concepto | Tipo(lg) | Cant. | [Costo] | P. venta | Importe |
+// [Ganancia] | acciones) y con el desglose harían falta tres veces, así que
+// viven aquí una sola vez.
+//
+// No sirve un colSpan para tragarlas: la columna "Tipo" es hidden lg:table-cell,
+// o sea que entre md y lg la tabla tiene una columna menos y un colSpan fijo
+// pintaría una columna fantasma. Las celdas explícitas son la única forma
+// correcta.
+function FootRow({
+  label,
+  amount,
+  isAdmin,
+  tone,
+  strong,
+  profitCell,
+  first,
+}: {
+  label: string;
+  amount: string;
+  isAdmin: boolean;
+  tone?: string;
+  strong?: boolean;
+  profitCell?: React.ReactNode;
+  first?: boolean;
+}) {
+  return (
+    <tr className={first ? "border-t border-slate-200" : undefined}>
+      <td className={strong ? "py-3 font-semibold text-slate-800" : "py-1 text-slate-500"}>
+        {label}
+      </td>
+      <td className="hidden lg:table-cell" />
+      <td />
+      {isAdmin && <td />}
+      <td />
+      <td
+        className={
+          strong
+            ? "py-3 text-right font-bold tabular-nums text-slate-900"
+            : `py-1 text-right tabular-nums ${tone ?? "text-slate-500"}`
+        }
+      >
+        {amount}
+      </td>
+      {isAdmin && <td className="py-3 text-right font-bold tabular-nums">{profitCell}</td>}
+      <td />
+    </tr>
   );
 }
 

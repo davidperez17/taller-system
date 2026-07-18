@@ -261,11 +261,31 @@ function QuoteView({ quote, code }: { quote: PublicQuote; code: string }) {
                 </li>
               ))}
             </ul>
-            <div className="mt-3 pt-3 border-t border-sm-border flex items-center justify-between">
-              <span className="font-semibold text-sm-graphite">Total</span>
-              <span className="font-heading font-bold text-xl tabular-nums text-sm-graphite">
-                {formatMoney(quote.total)}
-              </span>
+            {/* Con descuento hay que mostrar el subtotal: si no, la suma de los
+                importes de arriba no cuadra con el total y se lee como error. */}
+            <div className="mt-3 pt-3 border-t border-sm-border space-y-1.5">
+              {quote.discount > 0.009 && (
+                <>
+                  <div className="flex items-center justify-between text-sm text-sm-muted">
+                    <span>Subtotal</span>
+                    <span className="tabular-nums">{formatMoney(quote.subtotal)}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm font-medium text-sm-ok">
+                    <span>
+                      {quote.discountType === "porcentaje"
+                        ? `Descuento (${quote.discountValue}%)`
+                        : "Descuento"}
+                    </span>
+                    <span className="tabular-nums">- {formatMoney(quote.discount)}</span>
+                  </div>
+                </>
+              )}
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-sm-graphite">Total</span>
+                <span className="font-heading font-bold text-xl tabular-nums text-sm-graphite">
+                  {formatMoney(quote.total)}
+                </span>
+              </div>
             </div>
           </>
         )}
