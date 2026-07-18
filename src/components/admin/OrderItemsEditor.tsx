@@ -74,6 +74,19 @@ export default function OrderItemsEditor({
   const discountLabel =
     discountType === "porcentaje" ? `Descuento (${discountValue}%)` : "Descuento";
 
+  // La ganancia por línea lleva su parte proporcional del descuento. Sin esto la
+  // columna suma la ganancia BRUTA mientras el pie muestra la neta, y el
+  // descuadre —exactamente el descuento— se lee como un error de cuentas en la
+  // misma tabla. El prorrateo es el mismo que aplica Reportes
+  // (ORDER_ITEM_NET_SQL en lib/totals.ts), así el detalle y los reportes cuentan
+  // igual. Sin descuento el factor es 1 y queda la fórmula de siempre.
+  //
+  // El importe sí se queda bruto: es lo que ve el cliente y tiene que sumar el
+  // subtotal que aparece justo debajo.
+  const netFactor = subtotal > 0.009 ? total / subtotal : 1;
+  const lineProfit = (it: EditableItem) =>
+    it.qty * it.unit_price * netFactor - it.qty * it.unit_cost;
+
 
   return (
     <>
@@ -106,8 +119,8 @@ export default function OrderItemsEditor({
                 {isAdmin && (
                   <p className="mt-0.5 text-xs tabular-nums text-slate-400">
                     Costo {formatMoney(it.unit_cost)} · Ganancia{" "}
-                    <span className={profitCls(it.qty * (it.unit_price - it.unit_cost))}>
-                      {formatMoney(it.qty * (it.unit_price - it.unit_cost))}
+                    <span className={profitCls(lineProfit(it))}>
+                      {formatMoney(lineProfit(it))}
                     </span>
                   </p>
                 )}
@@ -204,10 +217,10 @@ export default function OrderItemsEditor({
                 {isAdmin && (
                   <td
                     className={`px-2 py-2.5 text-right font-medium tabular-nums ${profitCls(
-                      it.qty * (it.unit_price - it.unit_cost)
+                      lineProfit(it)
                     )}`}
                   >
-                    {formatMoney(it.qty * (it.unit_price - it.unit_cost))}
+                    {formatMoney(lineProfit(it))}
                   </td>
                 )}
                 <td className="py-2.5 pl-2">
@@ -251,6 +264,13 @@ export default function OrderItemsEditor({
           />
         </tfoot>
       </table>
+
+      {showBreak && isAdmin && (
+        <p className="mt-2 text-xs text-slate-400">
+          La ganancia de cada concepto ya lleva su parte del descuento, así que la columna suma
+          la ganancia del total.
+        </p>
+      )}
 
       {canDiscount && !readOnly && (
         <DiscountEditor
