@@ -91,9 +91,19 @@ export default async function ReportsPage({
     [desde, hasta]
   );
 
-  const collected = (await one<{ total: number }>(
-    `SELECT COALESCE(SUM(amount), 0)::float8 AS total FROM payments
-      WHERE to_char(created_at::timestamp - interval '6 hours', 'YYYY-MM-DD') BETWEEN ? AND ?`,
+  // Cobrado y Ganancia neta miden universos distintos y viven en tarjetas
+  // vecinas: cobrado es CAJA (pagos recibidos, la orden esté entregada o no),
+  // mientras la neta solo cuenta el margen de lo ENTREGADO. Cuando entra mucho
+  // dinero por trabajo todavía en curso, cobrado sube y la neta no —y encima
+  // gastos y planilla del período sí se cargan completos, así que puede salir
+  // negativa con la caja llena. `sin_entregar` es justo esa brecha, y se muestra
+  // en la tarjeta para que el número no se lea como una contradicción.
+  const collected = (await one<{ total: number; sin_entregar: number }>(
+    `SELECT COALESCE(SUM(p.amount), 0)::float8 AS total,
+            COALESCE(SUM(CASE WHEN o.status <> 'entregado' THEN p.amount ELSE 0 END), 0)::float8
+              AS sin_entregar
+       FROM payments p LEFT JOIN orders o ON o.id = p.order_id
+      WHERE to_char(p.created_at::timestamp - interval '6 hours', 'YYYY-MM-DD') BETWEEN ? AND ?`,
     [desde, hasta]
   ))!;
 
@@ -240,7 +250,10 @@ export default async function ReportsPage({
       value: formatMoney(collected.total),
       icon: Wallet,
       tone: "bg-accent-50 text-accent-700",
-      hint: "Pagos registrados en caja en el período",
+      hint:
+        collected.sin_entregar > 0.009
+          ? `Incluye ${formatMoney(collected.sin_entregar)} de trabajo aún sin entregar, que todavía no cuenta como ganancia`
+          : "Pagos registrados en caja en el período",
     },
     {
       metric: "margen",
@@ -278,7 +291,7 @@ export default async function ReportsPage({
       value: formatMoney(net),
       icon: Scale,
       tone: net >= 0 ? "bg-accent-50 text-accent-700" : "bg-red-50 text-red-700",
-      hint: "Margen bruto − gastos − planilla",
+      hint: "Solo órdenes entregadas − gastos − planilla. No es la caja.",
       highlight: true,
     },
   ];

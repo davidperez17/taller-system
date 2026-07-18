@@ -261,7 +261,7 @@ export async function loadMetricDetail(
       countLabel: plural(agg.n, "pago registrado", "pagos registrados"),
       truncated: Math.max(0, agg.n - rows.length),
       emptyText: "No se registraron pagos en este período.",
-      note: "Cobrado no es lo mismo que facturado: aquí entra el dinero que ya se recibió, aunque la orden se haya entregado en otro mes.",
+      note: "Cobrado no es lo mismo que facturado: aquí entra el dinero que ya se recibió, aunque la orden se haya entregado en otro mes o siga en el taller. Por eso el cobrado no entra en la Ganancia neta, que solo cuenta lo entregado: puedes tener la caja llena y la ganancia en rojo si cobraste por adelantado trabajo que aún no sale.",
     };
   }
 
