@@ -91,7 +91,9 @@ export default async function ClaimsPage({
             {isAdmin ? formatMoney(total) : claims.length}
           </p>
           <p className="text-xs text-slate-500">
-            {claims.length} reclamo{claims.length === 1 ? "" : "s"} en {monthLabel}
+            {/* El número grande ya es el conteo para no-admin; no lo repitas ahí. */}
+            {isAdmin ? `${claims.length} ` : ""}
+            reclamo{claims.length === 1 ? "" : "s"} en {monthLabel}
             {openCount > 0 ? ` · ${openCount} sin cerrar` : ""}
           </p>
         </div>

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import {
-  ArrowLeft, MessageSquareText, MessageCircle, Wrench, Eye, EyeOff, Trash2, Phone, KeyRound, ExternalLink, Printer, FileDown, MapPin, ShieldAlert,
+  ArrowLeft, MessageSquareText, MessageCircle, Wrench, Eye, EyeOff, Trash2, Phone, KeyRound, ExternalLink, Printer, FileDown, MapPin, ShieldAlert, Plus,
 } from "lucide-react";
 import { waLink, WA_TEMPLATES } from "@/lib/whatsapp";
 import { one, many } from "@/lib/db";
@@ -592,7 +592,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
               <details className="mt-4 group">
                 <summary className="inline-flex items-center gap-1.5 text-sm font-medium text-sm-red hover:text-sm-red-hover cursor-pointer list-none">
-                  <ShieldAlert className="w-4 h-4" aria-hidden="true" /> Registrar reclamo
+                  <Plus className="w-4 h-4" aria-hidden="true" /> Registrar reclamo
                 </summary>
                 <form action={createClaimAction} className="mt-3 space-y-3">
                   <input type="hidden" name="order_id" value={order.id} />
