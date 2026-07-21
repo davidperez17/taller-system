@@ -107,6 +107,35 @@ export const EXPENSE_CATEGORIES: Record<string, string> = {
   otros: "Otros",
 };
 
+// Reclamos: pérdidas por repuesto defectuoso del proveedor, trabajo mal hecho,
+// queja del cliente/garantía u otro. El costo del repuesto ORIGINAL ya vive en
+// order_items.unit_cost; el monto del reclamo es solo la pérdida NUEVA (reposición,
+// reembolso, retrabajo), para no doble-contar en la ganancia neta de reportes.
+export const CLAIM_TYPES: Record<string, string> = {
+  repuesto_defectuoso: "Repuesto defectuoso",
+  trabajo_mal_hecho: "Trabajo mal hecho",
+  queja_cliente: "Queja del cliente / garantía",
+  otro: "Otro",
+};
+
+export type ClaimStatus = "abierto" | "en_proceso" | "resuelto" | "rechazado";
+// abierto → en_proceso → resuelto | rechazado. 'rechazado' = no procedió / sin
+// pérdida. Los colores reusan el mapa `tones` de StatusBadge (ui.tsx).
+export const CLAIM_STATUS_META: Record<ClaimStatus, { label: string; color: string }> = {
+  abierto: { label: "Abierto", color: "amber" },
+  en_proceso: { label: "En proceso", color: "blue" },
+  resuelto: { label: "Resuelto", color: "green" },
+  rechazado: { label: "Rechazado", color: "slate" },
+};
+
+// Responsable de la pérdida: responde "quién me está costando dinero".
+export const CLAIM_RESPONSIBLE: Record<string, string> = {
+  proveedor: "Proveedor",
+  taller: "Taller",
+  mecanico: "Mecánico",
+  cliente: "Cliente",
+};
+
 export const VEHICLE_TYPES: Record<string, string> = {
   auto: "Auto",
   moto: "Moto",

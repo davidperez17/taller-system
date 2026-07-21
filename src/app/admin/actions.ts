@@ -17,6 +17,7 @@ import {
 } from "@/lib/totals";
 import {
   STATUS_META, RECEPTION_EVENT_TITLE, EXPENSE_CATEGORIES, VEHICLE_TYPES, formatMoney,
+  CLAIM_TYPES, CLAIM_RESPONSIBLE, CLAIM_STATUS_META,
   type OrderStatus,
 } from "@/lib/status";
 import { CLIENT_PRESETS, STAFF_NOTIFS } from "@/lib/notifications";
@@ -404,9 +405,10 @@ export async function updateOrderStatusAction(formData: FormData) {
   revalidatePath("/admin");
 }
 
-// Fotos: hasta 4, jpeg/png/webp, 4 MB c/u, a Vercel Blob (requiere
-// BLOB_READ_WRITE_TOKEN; sin token se guarda el evento sin fotos).
-async function uploadOrderPhotos(orderId: number, formData: FormData): Promise<string[]> {
+// Fotos: hasta 4, jpeg/png/webp, 4 MB c/u, a Vercel Blob bajo `dir` (requiere
+// BLOB_READ_WRITE_TOKEN; sin token se guarda sin fotos). Genérico para reusarlo
+// en anotaciones (orders/…) y reclamos (claims/…).
+async function uploadPhotos(dir: string, formData: FormData): Promise<string[]> {
   const photoUrls: string[] = [];
   const photos = formData
     .getAll("photos")
@@ -417,7 +419,7 @@ async function uploadOrderPhotos(orderId: number, formData: FormData): Promise<s
     for (const photo of photos) {
       if (!["image/jpeg", "image/png", "image/webp"].includes(photo.type)) continue;
       if (photo.size > 4 * 1024 * 1024) continue;
-      const blob = await put(`orders/${orderId}/${photo.name || "foto.jpg"}`, photo, {
+      const blob = await put(`${dir}/${photo.name || "foto.jpg"}`, photo, {
         access: "public",
         addRandomSuffix: true,
       });
@@ -426,6 +428,9 @@ async function uploadOrderPhotos(orderId: number, formData: FormData): Promise<s
   }
   return photoUrls;
 }
+
+const uploadOrderPhotos = (orderId: number, formData: FormData) =>
+  uploadPhotos(`orders/${orderId}`, formData);
 
 export async function addOrderNoteAction(formData: FormData) {
   const user = await requireUser();
@@ -917,6 +922,126 @@ export async function setUserCostAction(formData: FormData) {
   await run("UPDATE users SET monthly_cost = ? WHERE id = ?", [cost, id]);
   revalidatePath("/admin/usuarios");
   revalidatePath("/admin/reportes");
+}
+
+/* ---------------- Reclamos ---------------- */
+
+// Revalida todo lo que un reclamo puede tocar: su listado, reportes (resta la
+// pérdida), el badge del NAV (calculado en el layout de /admin) y, si está
+// ligado a un carro, su detalle.
+function revalidateClaim(orderId: number | null) {
+  revalidatePath("/admin/reclamos");
+  revalidatePath("/admin/reportes");
+  revalidatePath("/admin");
+  if (orderId) revalidatePath(`/admin/ordenes/${orderId}`);
+}
+
+// Crear reclamo: admin y asesor (el mecánico no). El monto (la pérdida) solo lo
+// fija el admin; un reclamo abierto por un asesor entra en 0 y queda pendiente de
+// que el admin lo valore. El monto NUNCA re-declara el costo del repuesto original
+// (ya está en order_items.unit_cost): es la pérdida NUEVA, para no doble-contar.
+export async function createClaimAction(formData: FormData) {
+  const user = await requireUser();
+  if (user.role === "mecanico") return;
+  const claimedOn = str(formData, "claimed_on");
+  const type = str(formData, "type") || "repuesto_defectuoso";
+  const responsible = str(formData, "responsible") || "proveedor";
+  const description = str(formData, "description", { max: 2000 });
+  // Solo el admin fija la pérdida; el asesor registra el hecho (monto 0).
+  const amount = user.role === "admin" ? Math.max(0, Number(formData.get("amount")) || 0) : 0;
+  const orderId = Number(formData.get("order_id")) || null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(claimedOn) || !description) return;
+  // hasOwnProperty y no `in`: `in` recorre la cadena de prototipos.
+  if (!Object.prototype.hasOwnProperty.call(CLAIM_TYPES, type)) return;
+  if (!Object.prototype.hasOwnProperty.call(CLAIM_RESPONSIBLE, responsible)) return;
+
+  const info = await run(
+    `INSERT INTO claims (claimed_on, type, responsible, amount, description, order_id, created_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+    [claimedOn, type, responsible, amount, description, orderId, user.id]
+  );
+  const claimId = Number(info.lastInsertRowid);
+
+  const photoUrls = await uploadPhotos(`claims/${claimId}`, formData);
+  if (photoUrls.length > 0) {
+    await run("UPDATE claims SET photo_urls = ? WHERE id = ?", [
+      JSON.stringify(photoUrls),
+      claimId,
+    ]);
+  }
+
+  await logActivity({
+    type: "reclamo_nuevo",
+    title: `Reclamo: ${CLAIM_TYPES[type]}${amount > 0 ? ` · ${formatMoney(amount)}` : ""}`,
+    detail: description.slice(0, 140),
+    actorId: user.id,
+    actorName: user.name,
+    orderId,
+    url: orderId ? `/admin/ordenes/${orderId}` : "/admin/reclamos",
+  });
+  revalidateClaim(orderId);
+}
+
+// Valorar/gestionar reclamo: solo admin. Actualiza el monto (la pérdida), el
+// estado y la resolución; sella resolved_at al cerrarlo (resuelto/rechazado) y lo
+// limpia si se reabre.
+export async function updateClaimAction(formData: FormData) {
+  const user = await requireUser();
+  if (user.role !== "admin") return;
+  const id = Number(formData.get("id"));
+  const status = str(formData, "status") || "abierto";
+  const amount = Math.max(0, Number(formData.get("amount")) || 0);
+  const orderId = Number(formData.get("order_id")) || null;
+  if (!id) return;
+  if (!Object.prototype.hasOwnProperty.call(CLAIM_STATUS_META, status)) return;
+  // Estado previo: la notificación "reclamo resuelto" se emite solo en la
+  // TRANSICIÓN a resuelto, no cada vez que se guarda un reclamo ya resuelto (p.
+  // ej. al corregir el monto), para no ensuciar el feed con duplicados.
+  const prev = await one<{ status: string }>("SELECT status FROM claims WHERE id = ?", [id]);
+  if (!prev) return;
+  const closes = status === "resuelto" || status === "rechazado";
+  await run(
+    `UPDATE claims SET amount = ?, status = ?, resolution = ?,
+       resolved_at = ${closes ? NOW_SQL : "NULL"}, updated_at = ${NOW_SQL} WHERE id = ?`,
+    [amount, status, strOrNull(formData, "resolution", { max: 2000 }), id]
+  );
+  if (status === "resuelto" && prev.status !== "resuelto") {
+    await logActivity({
+      type: "reclamo_resuelto",
+      title: `Reclamo resuelto${amount > 0 ? ` · ${formatMoney(amount)}` : ""}`,
+      actorId: user.id,
+      actorName: user.name,
+      orderId,
+      url: orderId ? `/admin/ordenes/${orderId}` : "/admin/reclamos",
+    });
+  }
+  revalidateClaim(orderId);
+}
+
+// Borrar reclamo: solo admin. También limpia sus fotos del blob.
+export async function deleteClaimAction(formData: FormData) {
+  const user = await requireUser();
+  if (user.role !== "admin") return;
+  const id = Number(formData.get("id"));
+  if (!id) return;
+  const claim = await one<{ order_id: number | null; photo_urls: string | null }>(
+    "SELECT order_id, photo_urls FROM claims WHERE id = ?",
+    [id]
+  );
+  if (!claim) return;
+  await run("DELETE FROM claims WHERE id = ?", [id]);
+  if (claim.photo_urls) {
+    try {
+      const urls = JSON.parse(claim.photo_urls);
+      if (Array.isArray(urls) && urls.length > 0) {
+        const { del } = await import("@vercel/blob");
+        await del(urls);
+      }
+    } catch {
+      /* photo_urls corrupto o del falla: el borrado del reclamo ya está hecho */
+    }
+  }
+  revalidateClaim(claim.order_id);
 }
 
 /* ---------------- Inventario (repuestos) ---------------- */

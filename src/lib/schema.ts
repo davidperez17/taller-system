@@ -343,4 +343,46 @@ export const MIGRATIONS: string[][] = [
     `ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_value DOUBLE PRECISION NOT NULL DEFAULT 0`,
     `CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id)`,
   ],
+  // v17 — reclamos: pérdidas por repuesto defectuoso del proveedor, trabajo mal
+  // hecho, queja del cliente/garantía u otro. Cuenta como una resta propia en la
+  // ganancia neta de reportes (análogo a expenses), anclada a claimed_on.
+  //
+  // amount es la pérdida NETA e INCREMENTAL que el taller absorbe (0 = se registra
+  // el hecho sin impacto económico, p. ej. el proveedor repuso sin costo); NUNCA
+  // re-declara el costo del repuesto original, que ya vive en order_items.unit_cost
+  // y ya se descuenta del margen de su orden. Por eso el monto lo teclea el admin,
+  // no se deriva de los conceptos: así no se cuenta dos veces.
+  //
+  // Todas las FK van SET NULL (no CASCADE como payments/order_events): un reclamo
+  // es historia financiera del período —lo cuenta claimed_on, no la orden—, así que
+  // si la orden, el ítem, el repuesto o el usuario desaparecieran, la pérdida ya
+  // ocurrió y debe sobrevivir para no reescribir un período ya cerrado.
+  //
+  // Sin CHECK en type/status/responsible (mismo criterio que orders.modality en v13
+  // y los descuentos en v16): ADD CONSTRAINT no es idempotente. La whitelist vive en
+  // status.ts (CLAIM_TYPES / CLAIM_STATUS_META / CLAIM_RESPONSIBLE) y en actions.ts.
+  [
+    `CREATE TABLE IF NOT EXISTS claims (
+       id SERIAL PRIMARY KEY,
+       claimed_on TEXT NOT NULL,
+       type TEXT NOT NULL DEFAULT 'repuesto_defectuoso',
+       status TEXT NOT NULL DEFAULT 'abierto',
+       responsible TEXT NOT NULL DEFAULT 'proveedor',
+       amount DOUBLE PRECISION NOT NULL DEFAULT 0 CHECK (amount >= 0),
+       description TEXT NOT NULL,
+       resolution TEXT,
+       order_id INTEGER REFERENCES orders(id) ON DELETE SET NULL,
+       order_item_id INTEGER REFERENCES order_items(id) ON DELETE SET NULL,
+       part_id INTEGER REFERENCES parts(id) ON DELETE SET NULL,
+       responsible_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+       photo_urls TEXT,
+       resolved_at TEXT,
+       created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+       created_at TEXT NOT NULL DEFAULT to_char(now(),'YYYY-MM-DD HH24:MI:SS'),
+       updated_at TEXT NOT NULL DEFAULT to_char(now(),'YYYY-MM-DD HH24:MI:SS')
+     )`,
+    `CREATE INDEX IF NOT EXISTS idx_claims_date ON claims(claimed_on)`,
+    `CREATE INDEX IF NOT EXISTS idx_claims_order ON claims(order_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_claims_status ON claims(status)`,
+  ],
 ];

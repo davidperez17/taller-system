@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   Banknote, ClipboardList, TrendingUp, Wrench, Boxes, Wallet, HandCoins, Receipt, Users2, Scale,
-  MapPin, ChevronRight,
+  MapPin, ChevronRight, ShieldAlert,
 } from "lucide-react";
 import { many, one } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
@@ -120,6 +120,15 @@ export default async function ReportsPage({
   ))!.total;
   const payrollRange = payrollMonthly * payrollFactor;
 
+  // Reclamos del período (pérdidas por repuesto malo / trabajo mal hecho). Resta
+  // propia de la ganancia neta, anclada a claimed_on igual que los gastos.
+  const claims = (await one<{ total: number; n: number }>(
+    `SELECT COALESCE(SUM(amount), 0)::float8 AS total, COUNT(*)::int AS n
+       FROM claims WHERE claimed_on BETWEEN ? AND ?`,
+    [desde, hasta]
+  ))!;
+  const claimsTotal = claims.total;
+
   // Desempeño por mecánico en el rango: ingresos/ganancia + tiempo de entrega.
   const mechMoney = await many<{
     id: number; name: string; monthly_cost: number; revenue: number; profit: number;
@@ -218,7 +227,7 @@ export default async function ReportsPage({
     byModality[k].n += r.n;
   }
   const hasDomicilio = byModality.domicilio.n > 0;
-  const net = gross - expensesTotal - payrollRange;
+  const net = gross - expensesTotal - payrollRange - claimsTotal;
   const deliveredTotal = deliveredRows.reduce((s, r) => s + r.n, 0);
   const avgTicket = deliveredTotal > 0 ? facturado / deliveredTotal : 0;
 
@@ -290,12 +299,23 @@ export default async function ReportsPage({
           : "Registra costos del equipo en Equipo",
     },
     {
+      metric: "reclamos",
+      label: "Reclamos",
+      value: formatMoney(claimsTotal),
+      icon: ShieldAlert,
+      tone: "bg-red-50 text-red-700",
+      hint:
+        claims.n > 0
+          ? `${claims.n} reclamo${claims.n === 1 ? "" : "s"} · pérdidas del período`
+          : "Sin reclamos registrados en el período",
+    },
+    {
       metric: "neta",
       label: "Ganancia neta",
       value: formatMoney(net),
       icon: Scale,
       tone: net >= 0 ? "bg-accent-50 text-accent-700" : "bg-red-50 text-red-700",
-      hint: "Solo órdenes entregadas − gastos − planilla. No es la caja.",
+      hint: "Solo órdenes entregadas − gastos − planilla − reclamos. No es la caja.",
       highlight: true,
     },
   ];
@@ -306,6 +326,7 @@ export default async function ReportsPage({
     { label: "Margen bruto", value: gross, sign: "=", strong: true },
     { label: "Gastos del taller", value: -expensesTotal, sign: "−" },
     { label: "Planilla estimada del período", value: -payrollRange, sign: "−" },
+    { label: "Reclamos (pérdidas)", value: -claimsTotal, sign: "−" },
     { label: "Ganancia neta", value: net, sign: "=", strong: true, final: true },
   ];
 

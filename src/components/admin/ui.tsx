@@ -1,20 +1,33 @@
 import { Car, Bike, Truck, Wrench } from "lucide-react";
-import { STATUS_META, type OrderStatus } from "@/lib/status";
+import { STATUS_META, CLAIM_STATUS_META, type OrderStatus, type ClaimStatus } from "@/lib/status";
+
+const BADGE_TONES: Record<string, string> = {
+  slate: "bg-slate-100 text-slate-700",
+  blue: "bg-blue-100 text-blue-700",
+  amber: "bg-amber-100 text-amber-800",
+  violet: "bg-violet-100 text-violet-700",
+  green: "bg-accent-100 text-accent-700",
+  red: "bg-red-100 text-red-700",
+};
 
 export function StatusBadge({ status }: { status: string }) {
   const meta = STATUS_META[status as OrderStatus];
   if (!meta) return null;
-  const tones: Record<string, string> = {
-    slate: "bg-slate-100 text-slate-700",
-    blue: "bg-blue-100 text-blue-700",
-    amber: "bg-amber-100 text-amber-800",
-    violet: "bg-violet-100 text-violet-700",
-    green: "bg-accent-100 text-accent-700",
-    red: "bg-red-100 text-red-700",
-  };
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap ${tones[meta.color]}`}
+      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap ${BADGE_TONES[meta.color]}`}
+    >
+      {meta.label}
+    </span>
+  );
+}
+
+export function ClaimStatusBadge({ status }: { status: string }) {
+  const meta = CLAIM_STATUS_META[status as ClaimStatus];
+  if (!meta) return null;
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap ${BADGE_TONES[meta.color]}`}
     >
       {meta.label}
     </span>

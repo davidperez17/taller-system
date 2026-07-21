@@ -1,7 +1,7 @@
 import { many, one } from "./db";
 import {
   formatMoney, formatDate, formatDateShort, formatDay, ROLES, EXPENSE_CATEGORIES,
-  STATUS_META, type OrderStatus,
+  CLAIM_TYPES, CLAIM_RESPONSIBLE, STATUS_META, type OrderStatus,
 } from "./status";
 import { ORDER_ITEM_NET_SQL } from "./totals";
 
@@ -93,6 +93,7 @@ export const REPORT_METRICS = [
   "margen",
   "gastos",
   "planilla",
+  "reclamos",
   "neta",
   "encurso",
 ] as const;
@@ -398,6 +399,57 @@ export async function loadMetricDetail(
     };
   }
 
+  if (metric === "reclamos") {
+    const agg = (await one<{ total: number; n: number }>(
+      `SELECT COALESCE(SUM(amount), 0)::float8 AS total, COUNT(*)::int AS n
+         FROM claims WHERE claimed_on BETWEEN ? AND ?`,
+      [desde, hasta]
+    ))!;
+    const byResp = await many<{ responsible: string; total: number }>(
+      `SELECT responsible, COALESCE(SUM(amount), 0)::float8 AS total
+         FROM claims WHERE claimed_on BETWEEN ? AND ?
+        GROUP BY responsible ORDER BY total DESC`,
+      [desde, hasta]
+    );
+    const rows = await many<{
+      id: number; claimed_on: string; type: string; responsible: string; amount: number;
+      description: string; order_id: number | null; folio: string | null; plate: string | null;
+    }>(
+      `SELECT c.id, c.claimed_on, c.type, c.responsible, c.amount, c.description,
+              c.order_id, o.folio, v.plate
+         FROM claims c
+         LEFT JOIN orders o ON o.id = c.order_id
+         LEFT JOIN vehicles v ON v.id = o.vehicle_id
+        WHERE c.claimed_on BETWEEN ? AND ?
+        ORDER BY c.claimed_on DESC, c.id DESC
+        LIMIT ${LIMIT}`,
+      [desde, hasta]
+    );
+    return {
+      label: "Reclamos",
+      description: "Cada pérdida por repuesto defectuoso o trabajo mal hecho del período.",
+      total: agg.total,
+      summary: byResp.map((b) => ({
+        label: CLAIM_RESPONSIBLE[b.responsible] ?? b.responsible,
+        value: formatMoney(b.total),
+      })),
+      rows: rows.map((r) => ({
+        key: String(r.id),
+        title: CLAIM_TYPES[r.type] ?? r.type,
+        subtitle: `${formatDay(r.claimed_on)} · ${CLAIM_RESPONSIBLE[r.responsible] ?? r.responsible}${
+          r.folio ? ` · ${r.folio} ${r.plate ?? ""}` : ""
+        }`,
+        extra: r.description,
+        amount: r.amount,
+        href: r.order_id ? `/admin/ordenes/${r.order_id}` : "/admin/reclamos",
+      })),
+      countLabel: plural(agg.n, "reclamo registrado", "reclamos registrados"),
+      truncated: Math.max(0, agg.n - rows.length),
+      emptyText: "No hay reclamos registrados en este período.",
+      note: "El monto es la pérdida neta que absorbió el taller (reposición, reembolso o retrabajo). No re-cuenta el costo del repuesto ya vendido —su orden ya lo descontó—: aquí va solo la pérdida nueva.",
+    };
+  }
+
   if (metric === "encurso") {
     const wip = await loadWorkInProgress();
     const rows = await many<{
@@ -459,9 +511,13 @@ export async function loadMetricDetail(
     (await one<{ total: number }>(
       "SELECT COALESCE(SUM(monthly_cost), 0)::float8 AS total FROM users WHERE active = 1"
     ))!.total * range.payrollFactor;
+  const claims = (await one<{ total: number }>(
+    "SELECT COALESCE(SUM(amount), 0)::float8 AS total FROM claims WHERE claimed_on BETWEEN ? AND ?",
+    [desde, hasta]
+  ))!;
 
   const gross = inv.total - inv.cost;
-  const net = gross - exp.total - payroll;
+  const net = gross - exp.total - payroll - claims.total;
   const link = (m: string) => `/admin/reportes/${m}?${range.query}`;
 
   return {
@@ -470,7 +526,7 @@ export async function loadMetricDetail(
     total: net,
     summary: [
       { label: "Margen bruto", value: formatMoney(gross) },
-      { label: "Gastos + planilla", value: formatMoney(exp.total + payroll) },
+      { label: "Gastos + planilla + reclamos", value: formatMoney(exp.total + payroll + claims.total) },
     ],
     rows: [
       {
@@ -501,10 +557,17 @@ export async function loadMetricDetail(
         amount: -payroll,
         href: link("planilla"),
       },
+      {
+        key: "reclamos",
+        title: "Reclamos (pérdidas)",
+        subtitle: "Repuestos malos y trabajos rehechos del período",
+        amount: -claims.total,
+        href: link("reclamos"),
+      },
     ],
-    countLabel: "4 componentes",
+    countLabel: "5 componentes",
     truncated: 0,
     emptyText: "Sin movimientos en este período.",
-    note: "Ganancia neta = facturado − costo de ítems − gastos − planilla.",
+    note: "Ganancia neta = facturado − costo de ítems − gastos − planilla − reclamos.",
   };
 }

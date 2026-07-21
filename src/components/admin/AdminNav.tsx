@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, ClipboardList, Users, Car, UserCog, ExternalLink,
   Boxes, BarChart3, Bell, MoreHorizontal, X, BellRing, Wallet, Hammer, Receipt,
-  Megaphone, History, FileText,
+  Megaphone, History, FileText, ShieldAlert,
 } from "lucide-react";
 import type { SessionUser } from "@/lib/auth";
 import type { ActivityItem } from "@/lib/activity-meta";
@@ -22,7 +22,7 @@ type NavItem = {
   exact?: boolean;
   adminOnly?: boolean;
   noMechanic?: boolean;
-  alertKey?: "inventario" | "recordatorios" | "presupuestos";
+  alertKey?: "inventario" | "recordatorios" | "presupuestos" | "reclamos";
 };
 
 const NAV: NavItem[] = [
@@ -37,6 +37,13 @@ const NAV: NavItem[] = [
   },
   { href: "/admin/caja", label: "Caja", icon: Wallet, noMechanic: true },
   { href: "/admin/gastos", label: "Gastos", icon: Receipt, adminOnly: true },
+  {
+    href: "/admin/reclamos",
+    label: "Reclamos",
+    icon: ShieldAlert,
+    noMechanic: true,
+    alertKey: "reclamos",
+  },
   { href: "/admin/inventario", label: "Inventario", icon: Boxes, alertKey: "inventario" },
   { href: "/admin/servicios", label: "Servicios", icon: Hammer },
   { href: "/admin/reportes", label: "Reportes", icon: BarChart3, adminOnly: true },
@@ -52,7 +59,12 @@ const NAV: NavItem[] = [
 // Los 4 primeros van en la barra inferior móvil; el resto entra en "Más".
 const PRIMARY = ["/admin", "/admin/ordenes", "/admin/inventario", "/admin/reportes"];
 
-export type NavAlerts = { inventario?: number; recordatorios?: number; presupuestos?: number };
+export type NavAlerts = {
+  inventario?: number;
+  recordatorios?: number;
+  presupuestos?: number;
+  reclamos?: number;
+};
 
 export default function AdminNav({
   user,

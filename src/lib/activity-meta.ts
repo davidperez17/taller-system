@@ -14,7 +14,9 @@ export type ActivityType =
   | "presupuesto_enviado"
   | "presupuesto_seguimiento"
   | "presupuesto_aprobado"
-  | "presupuesto_rechazado";
+  | "presupuesto_rechazado"
+  | "reclamo_nuevo"
+  | "reclamo_resuelto";
 
 export type ActivityTone = "blue" | "green" | "amber" | "red" | "violet" | "slate";
 
@@ -45,6 +47,9 @@ export const ACTIVITY_META: Record<
   presupuesto_seguimiento: { label: "Seguimiento enviado", tone: "violet", icon: "message-circle" },
   presupuesto_aprobado: { label: "Presupuesto aprobado", tone: "green", icon: "file-check" },
   presupuesto_rechazado: { label: "Presupuesto rechazado", tone: "amber", icon: "file-x" },
+  // Módulo Reclamos (pérdidas por repuesto defectuoso o trabajo mal hecho).
+  reclamo_nuevo: { label: "Reclamo registrado", tone: "red", icon: "shield-alert" },
+  reclamo_resuelto: { label: "Reclamo resuelto", tone: "green", icon: "shield-check" },
 };
 
 // Fallback para tipos desconocidos (compatibilidad hacia adelante).

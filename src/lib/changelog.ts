@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 // marcar cuántas novedades hay sin ver.
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 33,
+    date: "2026-07-20",
+    title: "Reclamos: lleva el control de repuestos malos y trabajos rehechos",
+    description:
+      "Hay un apartado nuevo, «Reclamos», para registrar lo que cuesta dinero y antes no aparecía en ningún lado: repuestos que el proveedor mandó defectuosos, trabajos que hubo que rehacer y quejas del cliente. Cada reclamo lleva su tipo, el responsable (proveedor, taller, mecánico o cliente), una descripción y hasta fotos de evidencia, y se puede ligar al carro/orden que afectó. La pérdida en quetzales que absorbió el taller (la pieza de reposición, un reembolso o el retrabajo) resta en Reportes como una línea propia: la Ganancia neta ahora es facturado − costo − gastos − planilla − reclamos, con su tarjeta y su historial igual que las demás. En el detalle de cada orden aparece «Reclamos de este carro» y una «Ganancia después de reclamos», para que la cuenta de cada vehículo sea la real. Importante para no contar doble: el monto del reclamo es solo la pérdida NUEVA; el costo del repuesto original ya se descuenta en su orden. Lo pueden abrir el administrador y el asesor (el asesor lo registra y el administrador le pone el monto); el mecánico no ve el apartado. El menú marca en rojo cuántos reclamos siguen sin cerrar.",
+  },
+  {
     id: 32,
     date: "2026-07-18",
     title: "Reportes: la ganancia de los carros que aún están en el taller",

@@ -2,16 +2,17 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import {
-  ArrowLeft, MessageSquareText, MessageCircle, Wrench, Eye, EyeOff, Trash2, Phone, KeyRound, ExternalLink, Printer, FileDown, MapPin,
+  ArrowLeft, MessageSquareText, MessageCircle, Wrench, Eye, EyeOff, Trash2, Phone, KeyRound, ExternalLink, Printer, FileDown, MapPin, ShieldAlert,
 } from "lucide-react";
 import { waLink, WA_TEMPLATES } from "@/lib/whatsapp";
 import { one, many } from "@/lib/db";
 import {
-  STATUS_META, ROLES, formatMoney, formatDate, formatDateShort, type OrderStatus,
+  STATUS_META, ROLES, CLAIM_TYPES, CLAIM_RESPONSIBLE, formatMoney, formatDate, formatDateShort,
+  type OrderStatus,
 } from "@/lib/status";
 import {
   addOrderNoteAction, deleteOrderNoteAction,
-  updateOrderInfoAction, addPaymentAction, deletePaymentAction,
+  updateOrderInfoAction, addPaymentAction, deletePaymentAction, createClaimAction,
 } from "@/app/admin/actions";
 import { getSessionUser } from "@/lib/auth";
 import { totalsOf, type DiscountType } from "@/lib/totals";
@@ -22,6 +23,7 @@ import PhotoInput from "@/components/admin/PhotoInput";
 import StatusChangeForm from "@/components/admin/StatusChangeForm";
 import ConfirmSubmitButton from "@/components/admin/ConfirmSubmitButton";
 import EventDetailEditor from "@/components/admin/EventDetailEditor";
+import ClaimList, { type ClaimListItem } from "@/components/admin/ClaimList";
 import {
   StatusBadge, PlateBadge, VehicleTypeIcon, PageTitle, card, btnPrimary, btnSecondary, inputCls, labelCls,
 } from "@/components/admin/ui";
@@ -104,6 +106,24 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   const saldo = total - paid;
   const me = await getSessionUser();
   const isAdmin = me?.role === "admin";
+  const canClaim = me?.role !== "mecanico";
+
+  // Reclamos de este carro (repuesto malo, trabajo rehecho, queja). La pérdida
+  // registrada reduce la ganancia real del carro; se muestra aparte del margen de
+  // conceptos porque es dinero perdido, no un costo de venta.
+  const claims = canClaim
+    ? await many<ClaimListItem>(
+        `SELECT c.id, c.claimed_on, c.type, c.status, c.responsible, c.amount, c.description,
+                c.resolution, c.order_id, c.photo_urls, u.name AS author
+           FROM claims c
+           LEFT JOIN users u ON u.id = c.created_by
+          WHERE c.order_id = ? ORDER BY c.claimed_on DESC, c.id DESC`,
+        [order.id]
+      )
+    : [];
+  const claimsTotal = claims.reduce((s, c) => s + c.amount, 0);
+  // Día actual en Guatemala (UTC-6) para el default de la fecha del reclamo.
+  const todayGT = new Date(Date.now() - 6 * 3600_000).toISOString().slice(0, 10);
 
   const pickerParts = await many<{
     id: number; name: string; sku: string | null; stock: number; unit_price: number; cost: number;
@@ -425,6 +445,24 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                     </p>
                   </div>
                 </div>
+                {claimsTotal > 0.009 && (
+                  <div className="mt-3 border-t border-slate-200 pt-2.5 space-y-1 text-sm">
+                    <div className="flex justify-between gap-2">
+                      <span className="text-slate-500">Reclamos (pérdidas)</span>
+                      <span className="tabular-nums text-red-600">−{formatMoney(claimsTotal)}</span>
+                    </div>
+                    <div className="flex justify-between gap-2 font-semibold">
+                      <span className="text-slate-700">Ganancia después de reclamos</span>
+                      <span
+                        className={`tabular-nums ${
+                          profit - claimsTotal < -0.009 ? "text-red-600" : "text-accent-700"
+                        }`}
+                      >
+                        {formatMoney(profit - claimsTotal)}
+                      </span>
+                    </div>
+                  </div>
+                )}
                 {!hasCost && (
                   <p className="mt-2.5 text-xs text-slate-400">
                     Sin costos registrados: la ganancia mostrada equivale al total. Escribe el costo
@@ -524,6 +562,122 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               </p>
             )}
           </section>
+
+          {/* Reclamos de este carro — repuesto malo, trabajo rehecho o queja. No lo
+              ve el mecánico. La pérdida la valora el admin y resta en reportes. */}
+          {canClaim && (
+            <section className={`${card} p-5`}>
+              <h2 className="font-heading font-semibold text-lg text-slate-800 tracking-wide flex items-center gap-2">
+                <ShieldAlert className="w-4 h-4 text-sm-red" aria-hidden="true" /> RECLAMOS DE ESTE CARRO
+              </h2>
+
+              {claims.length > 0 ? (
+                <div className="mt-3">
+                  <ClaimList claims={claims} isAdmin={isAdmin} showOrder={false} />
+                  {isAdmin && claimsTotal > 0.009 && (
+                    <p className="mt-3 pt-3 border-t border-slate-200 flex items-center justify-between gap-2 text-sm">
+                      <span className="font-semibold text-slate-700">Pérdida total del carro</span>
+                      <span className="tabular-nums font-bold text-red-600">
+                        {formatMoney(claimsTotal)}
+                      </span>
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="mt-3 text-sm text-slate-400">
+                  Sin reclamos en este carro. Registra un repuesto que llegó mal o un trabajo que
+                  hubo que rehacer para llevar su control.
+                </p>
+              )}
+
+              <details className="mt-4 group">
+                <summary className="inline-flex items-center gap-1.5 text-sm font-medium text-sm-red hover:text-sm-red-hover cursor-pointer list-none">
+                  <ShieldAlert className="w-4 h-4" aria-hidden="true" /> Registrar reclamo
+                </summary>
+                <form action={createClaimAction} className="mt-3 space-y-3">
+                  <input type="hidden" name="order_id" value={order.id} />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label htmlFor="claim-date" className={labelCls}>
+                        Fecha *
+                      </label>
+                      <input
+                        id="claim-date"
+                        name="claimed_on"
+                        type="date"
+                        required
+                        defaultValue={todayGT}
+                        className={inputCls}
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="claim-type" className={labelCls}>
+                        Tipo
+                      </label>
+                      <select id="claim-type" name="type" className={inputCls}>
+                        {Object.entries(CLAIM_TYPES).map(([k, v]) => (
+                          <option key={k} value={k}>
+                            {v}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="claim-resp" className={labelCls}>
+                      Responsable
+                    </label>
+                    <select id="claim-resp" name="responsible" className={inputCls}>
+                      {Object.entries(CLAIM_RESPONSIBLE).map(([k, v]) => (
+                        <option key={k} value={k}>
+                          {v}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="claim-desc" className={labelCls}>
+                      Descripción *
+                    </label>
+                    <textarea
+                      id="claim-desc"
+                      name="description"
+                      rows={2}
+                      required
+                      placeholder="Ej. Se rehízo el frenado: la primera pastilla vino defectuosa."
+                      className={inputCls}
+                    />
+                  </div>
+                  {isAdmin && (
+                    <div>
+                      <label htmlFor="claim-amount" className={labelCls}>
+                        Pérdida (Q)
+                      </label>
+                      <input
+                        id="claim-amount"
+                        name="amount"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        defaultValue="0"
+                        inputMode="decimal"
+                        className={inputCls}
+                      />
+                    </div>
+                  )}
+                  <PhotoInput />
+                  <SubmitButton className={btnPrimary} pendingText="Registrando…">
+                    Registrar reclamo
+                  </SubmitButton>
+                  <p className="text-xs text-slate-400">
+                    {isAdmin
+                      ? "La pérdida es solo lo NUEVO (reposición, reembolso, retrabajo). El costo del repuesto original ya está descontado arriba: no lo repitas o contaría doble."
+                      : "El administrador valora la pérdida en Q después."}
+                  </p>
+                </form>
+              </details>
+            </section>
+          )}
         </div>
 
         {/* Columna lateral */}

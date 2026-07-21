@@ -28,6 +28,16 @@ export default async function PanelLayout({ children }: { children: React.ReactN
       : ((
           await one<{ n: number }>(`SELECT COUNT(*)::int AS n FROM quotes q WHERE ${FOLLOWUP_DUE_SQL}`)
         )?.n ?? 0);
+  // Reclamos abiertos/en proceso. El mecánico no ve el apartado, así que tampoco
+  // se paga el COUNT en su panel.
+  const openClaims =
+    user.role === "mecanico"
+      ? 0
+      : ((
+          await one<{ n: number }>(
+            `SELECT COUNT(*)::int AS n FROM claims WHERE status IN ('abierto','en_proceso')`
+          )
+        )?.n ?? 0);
   const notif = await getNotifCenter(user.id);
 
   return (
@@ -38,6 +48,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
           inventario: lowStock,
           recordatorios: dueReminders,
           presupuestos: staleQuotes,
+          reclamos: openClaims,
         }}
         notif={notif}
       />
