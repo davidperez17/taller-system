@@ -72,8 +72,9 @@ export default async function ClaimsPage({
         subtitle="Repuestos malos, trabajos rehechos y quejas: pérdidas por carro y su control"
       />
 
-      {/* Filtro de mes + resumen */}
-      <div className="flex items-end justify-between gap-3 flex-wrap">
+      {/* Filtro de mes + resumen. En móvil apila y el total se alinea a la
+          izquierda como el resto del contenido; en sm+ va a la derecha del filtro. */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <form method="GET" className="flex items-end gap-2">
           <div>
             <label htmlFor="mes" className={labelCls}>
@@ -85,7 +86,7 @@ export default async function ClaimsPage({
             Ver
           </button>
         </form>
-        <div className="text-right">
+        <div className="text-left sm:text-right">
           <p className="text-2xl font-bold text-slate-900 tabular-nums font-heading tracking-wide">
             {isAdmin ? formatMoney(total) : claims.length}
           </p>
