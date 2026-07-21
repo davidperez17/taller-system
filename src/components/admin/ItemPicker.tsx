@@ -276,7 +276,7 @@ export default function ItemPicker({
         </SubmitButton>
         {hint && (
           <p
-            className={`col-span-2 text-xs text-slate-400 ${
+            className={`col-span-2 text-xs text-slate-500 ${
               isAdmin ? "sm:col-span-5" : "sm:col-span-4"
             }`}
           >

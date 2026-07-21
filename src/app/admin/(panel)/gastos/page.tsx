@@ -103,7 +103,7 @@ export default async function ExpensesPage({
         {/* Lista del mes */}
         <section className={`${card} overflow-hidden lg:col-span-2`}>
           {expenses.length === 0 ? (
-            <p className="p-5 text-sm text-slate-400">
+            <p className="p-5 text-sm text-slate-500">
               Sin gastos registrados en este mes. Anota renta, luz, herramienta e insumos para que
               Reportes muestre la ganancia neta real.
             </p>
@@ -120,7 +120,7 @@ export default async function ExpensesPage({
                         <span className="text-sm text-slate-500 truncate">· {e.notes}</span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-400 mt-0.5">
+                    <p className="text-xs text-slate-500 mt-0.5">
                       {e.spent_on}
                       {e.author ? ` · ${e.author}` : ""}
                     </p>
@@ -131,7 +131,7 @@ export default async function ExpensesPage({
                   <form action={deleteExpenseAction} className="shrink-0">
                     <input type="hidden" name="id" value={e.id} />
                     <ConfirmSubmitButton
-                      className="text-xs font-medium text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
+                      className="text-xs font-medium text-slate-500 hover:text-red-500 transition-colors cursor-pointer"
                       confirmTitle="¿Quitar gasto?"
                       confirmMessage={`Se elimina el gasto de ${formatMoney(e.amount)} del registro. No se puede deshacer.`}
                       confirmLabel="Quitar"
@@ -208,7 +208,7 @@ export default async function ExpensesPage({
               <Receipt className="w-4 h-4" aria-hidden="true" /> Registrar gasto
             </SubmitButton>
           </form>
-          <p className="mt-3 text-xs text-slate-400 flex items-start gap-1.5">
+          <p className="mt-3 text-xs text-slate-500 flex items-start gap-1.5">
             <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden="true" />
             Los salarios del equipo no van aquí: regístralos como costo mensual en Equipo
             {payroll.total > 0

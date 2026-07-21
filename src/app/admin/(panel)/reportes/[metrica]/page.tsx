@@ -49,7 +49,7 @@ export default async function ReportDetailPage({
 
       {/* Total + desglose de cabecera */}
       <section className={`${card} p-5`}>
-        <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
           {detail.snapshot ? "Ahora mismo" : "Total del período"}
         </p>
         <p
@@ -59,12 +59,12 @@ export default async function ReportDetailPage({
         >
           {formatMoney(detail.total)}
         </p>
-        <p className="text-xs text-slate-400 mt-1">{detail.countLabel}</p>
+        <p className="text-xs text-slate-500 mt-1">{detail.countLabel}</p>
         {detail.summary.length > 0 && (
           <dl className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-3 gap-3 *:min-w-0">
             {detail.summary.map((s) => (
               <div key={s.label}>
-                <dt className="text-xs text-slate-400">{s.label}</dt>
+                <dt className="text-xs text-slate-500">{s.label}</dt>
                 <dd className="text-sm font-semibold text-slate-700 tabular-nums truncate">
                   {s.value}
                 </dd>
@@ -77,7 +77,7 @@ export default async function ReportDetailPage({
       {/* Historial */}
       <section className={`${card} overflow-hidden`}>
         {detail.rows.length === 0 ? (
-          <p className="p-8 text-center text-sm text-slate-400">{detail.emptyText}</p>
+          <p className="p-8 text-center text-sm text-slate-500">{detail.emptyText}</p>
         ) : (
           <ul className="divide-y divide-slate-100">
             {detail.rows.map((row) => {
@@ -86,10 +86,10 @@ export default async function ReportDetailPage({
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-slate-700 truncate">{row.title}</p>
                     {row.subtitle && (
-                      <p className="text-xs text-slate-400 mt-0.5 truncate">{row.subtitle}</p>
+                      <p className="text-xs text-slate-500 mt-0.5 truncate">{row.subtitle}</p>
                     )}
                     {row.extra && (
-                      <p className="text-[11px] text-slate-400 mt-0.5 truncate">{row.extra}</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5 truncate">{row.extra}</p>
                     )}
                   </div>
                   <span
@@ -133,7 +133,7 @@ export default async function ReportDetailPage({
       </section>
 
       {detail.note && (
-        <p className="flex items-start gap-2 text-xs text-slate-400">
+        <p className="flex items-start gap-2 text-xs text-slate-500">
           <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden="true" />
           {detail.note}
         </p>

@@ -232,7 +232,7 @@ export default function AdminTour({ autoStart, role }: { autoStart: boolean; rol
         <button
           onClick={close}
           aria-label="Omitir tutorial"
-          className="shrink-0 -m-1 p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors cursor-pointer"
+          className="shrink-0 -m-1 p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-600 transition-colors cursor-pointer"
         >
           <X className="w-5 h-5" aria-hidden="true" />
         </button>
@@ -251,7 +251,7 @@ export default function AdminTour({ autoStart, role }: { autoStart: boolean; rol
             }`}
           />
         ))}
-        <span className="ml-auto text-xs text-slate-400 tabular-nums">
+        <span className="ml-auto text-xs text-slate-500 tabular-nums">
           {idx + 1} de {steps.length}
         </span>
       </div>

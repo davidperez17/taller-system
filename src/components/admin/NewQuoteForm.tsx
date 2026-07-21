@@ -51,7 +51,7 @@ export default function NewQuoteForm({
               </option>
             ))}
           </select>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-500 mt-1">
             Si eliges uno aquí, se ignoran los campos de vehículo nuevo.
           </p>
         </div>
@@ -153,7 +153,7 @@ export default function NewQuoteForm({
                   inputMode="tel"
                   className={inputCls}
                 />
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-slate-500 mt-1">
                   Con teléfono podrás enviarle el presupuesto por WhatsApp.
                 </p>
               </div>
@@ -185,7 +185,7 @@ export default function NewQuoteForm({
               Vigente hasta (opcional)
             </label>
             <input id="valid_until" name="valid_until" type="date" className={inputCls} />
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-slate-500 mt-1">
               Pasada la fecha, el cliente ya no puede aprobarlo en línea.
             </p>
           </div>
@@ -217,7 +217,7 @@ export default function NewQuoteForm({
         {pending && <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />}
         {pending ? "Creando…" : "Crear presupuesto"}
       </button>
-      <p className="text-xs text-slate-400 -mt-2">
+      <p className="text-xs text-slate-500 -mt-2">
         Los conceptos y precios se agregan en el siguiente paso.
       </p>
     </form>

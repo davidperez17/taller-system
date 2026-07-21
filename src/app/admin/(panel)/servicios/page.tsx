@@ -34,7 +34,7 @@ export default async function ServicesPage() {
       <div className="grid lg:grid-cols-3 gap-5 items-start *:min-w-0">
         <section className={`${card} overflow-hidden lg:col-span-2`}>
           {services.length === 0 ? (
-            <p className="p-5 text-sm text-slate-400">
+            <p className="p-5 text-sm text-slate-500">
               Aún no hay servicios. Agrega los más comunes (cambio de aceite, frenos,
               afinamiento…) para cotizar más rápido en las órdenes.
             </p>
@@ -42,7 +42,7 @@ export default async function ServicesPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-xs uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                  <tr className="text-left text-xs uppercase tracking-wider text-slate-500 border-b border-slate-100">
                     <th className="py-2.5 pl-5 pr-2 font-semibold">Servicio</th>
                     <th className="py-2.5 px-2 font-semibold hidden sm:table-cell">Categoría</th>
                     <th className="py-2.5 px-2 font-semibold text-right">Precio</th>
@@ -83,7 +83,7 @@ export default async function ServicesPage() {
                             <form action={deleteServiceAction} className="inline">
                               <input type="hidden" name="id" value={s.id} />
                               <ConfirmSubmitButton
-                                className="text-xs font-medium text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
+                                className="text-xs font-medium text-slate-500 hover:text-red-500 transition-colors cursor-pointer"
                                 confirmTitle={`¿Quitar ${s.name}?`}
                                 confirmMessage="Se elimina este servicio del catálogo. No se puede deshacer."
                                 confirmLabel="Quitar"
@@ -232,7 +232,7 @@ export default async function ServicesPage() {
                 />
               </div>
             </div>
-            <p className="text-xs text-slate-400 flex items-start gap-1.5">
+            <p className="text-xs text-slate-500 flex items-start gap-1.5">
               <Hammer className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden="true" />
               El costo estimado (mano de obra, insumos) se usa para calcular la ganancia en
               reportes. Se guarda una copia en cada orden: cambiarlo después no altera órdenes

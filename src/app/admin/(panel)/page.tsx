@@ -162,7 +162,7 @@ export default async function DashboardPage() {
       <section className={`${card} overflow-hidden`}>
         <div className="p-5 pb-3 flex items-center justify-between">
           <h2 className="font-heading font-semibold text-lg text-slate-800 tracking-wide flex items-center gap-2">
-            <History className="w-5 h-5 text-slate-400" aria-hidden="true" /> ACTIVIDAD DEL EQUIPO
+            <History className="w-5 h-5 text-slate-500" aria-hidden="true" /> ACTIVIDAD DEL EQUIPO
           </h2>
           <Link
             href="/admin/actividad"
@@ -172,7 +172,7 @@ export default async function DashboardPage() {
           </Link>
         </div>
         {activity.length === 0 ? (
-          <p className="px-5 pb-5 text-sm text-slate-400">Sin actividad del equipo todavía.</p>
+          <p className="px-5 pb-5 text-sm text-slate-500">Sin actividad del equipo todavía.</p>
         ) : (
           <ul className="divide-y divide-slate-100">
             {activity.map((it) => (
@@ -198,7 +198,7 @@ export default async function DashboardPage() {
           </Link>
         </div>
         {recent.length === 0 ? (
-          <p className="px-5 pb-5 text-sm text-slate-400">
+          <p className="px-5 pb-5 text-sm text-slate-500">
             No hay órdenes activas. Crea la primera con “Nueva orden”.
           </p>
         ) : (
@@ -209,7 +209,7 @@ export default async function DashboardPage() {
                   href={`/admin/ordenes/${o.id}`}
                   className="flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50 transition-colors group"
                 >
-                  <span className="text-slate-400 shrink-0">
+                  <span className="text-slate-500 shrink-0">
                     <VehicleTypeIcon type={o.type} />
                   </span>
                   <div className="min-w-0 flex-1">
@@ -217,7 +217,7 @@ export default async function DashboardPage() {
                       <PlateBadge plate={o.plate} />
                       <span className="text-sm text-slate-600 truncate">{o.client}</span>
                     </div>
-                    <p className="text-xs text-slate-400 mt-0.5 truncate">
+                    <p className="text-xs text-slate-500 mt-0.5 truncate">
                       {o.folio} · {o.description || "Sin descripción"} · {formatDate(o.updated_at)}
                     </p>
                   </div>

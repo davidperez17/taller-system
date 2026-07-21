@@ -73,7 +73,7 @@ export default function StatusChangeForm({
       >
         {isCancel ? "Cancelar orden" : "Actualizar estado y notificar"}
       </SubmitButton>
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-slate-500">
         {isCancel
           ? "El motivo queda registrado en la línea de tiempo y se notifica al cliente."
           : "Al cambiar la etapa se envía una notificación push al cliente y se registra en su línea de tiempo."}

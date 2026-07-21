@@ -32,7 +32,7 @@ export default async function ClientsPage({
           <form className="flex gap-2" action="/admin/clientes" method="GET">
             <div className="relative flex-1">
               <Search
-                className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"
+                className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2"
                 aria-hidden="true"
               />
               <input
@@ -50,7 +50,7 @@ export default async function ClientsPage({
 
           <section className={`${card} overflow-hidden`}>
             {clients.length === 0 ? (
-              <p className="p-8 text-center text-sm text-slate-400">Sin resultados.</p>
+              <p className="p-8 text-center text-sm text-slate-500">Sin resultados.</p>
             ) : (
               <ul className="divide-y divide-slate-100">
                 {clients.map((c) => (
@@ -64,7 +64,7 @@ export default async function ClientsPage({
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-slate-800 truncate">{c.name}</p>
-                        <p className="text-xs text-slate-400 flex items-center gap-1">
+                        <p className="text-xs text-slate-500 flex items-center gap-1">
                           {c.phone && (
                             <>
                               <Phone className="w-3 h-3" aria-hidden="true" /> {c.phone} ·

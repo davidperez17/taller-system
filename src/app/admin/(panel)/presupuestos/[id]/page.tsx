@@ -96,7 +96,7 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
         <div className="lg:col-span-2 space-y-5">
           {/* Estado + decisión */}
           <section className={`${card} p-5`}>
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
               Estado del presupuesto
             </p>
             <div className="mt-1 flex items-center gap-2 flex-wrap">
@@ -209,11 +209,11 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
 
             {pending && (
               <div className="mt-4 pt-4 border-t border-slate-100">
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                   ¿El cliente ya respondió en persona o por llamada?
                 </p>
                 {items.length === 0 ? (
-                  <p className="mt-2 text-sm text-slate-400">
+                  <p className="mt-2 text-sm text-slate-500">
                     Agrega conceptos al presupuesto para poder registrarlo como aprobado.
                   </p>
                 ) : (
@@ -254,7 +254,7 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
               CONCEPTOS
             </h2>
             {items.length === 0 && !pending && (
-              <p className="mt-3 text-sm text-slate-400">Este presupuesto no tiene conceptos.</p>
+              <p className="mt-3 text-sm text-slate-500">Este presupuesto no tiene conceptos.</p>
             )}
             <OrderItemsEditor
               orderId={quote.id}
@@ -283,7 +283,7 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
               />
             )}
             {isAdmin && items.length > 0 && (
-              <p className="mt-3 flex items-center gap-1.5 text-xs text-slate-400">
+              <p className="mt-3 flex items-center gap-1.5 text-xs text-slate-500">
                 <EyeOff className="w-3.5 h-3.5" aria-hidden="true" />
                 Costo y ganancia son solo del equipo; el cliente ve únicamente precios de venta.
               </p>
@@ -296,7 +296,7 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
           {/* Vehículo y cliente (snapshot del presupuesto) */}
           <section className={`${card} p-5`}>
             <div className="flex items-center gap-3">
-              <span className="text-slate-400">
+              <span className="text-slate-500">
                 <VehicleTypeIcon type={quote.vehicle_type} className="w-7 h-7" />
               </span>
               <div className="min-w-0">
@@ -306,7 +306,7 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
             </div>
             <dl className="mt-4 space-y-2 text-sm">
               <div className="flex justify-between gap-2">
-                <dt className="text-slate-400">Cliente</dt>
+                <dt className="text-slate-500">Cliente</dt>
                 <dd className="text-right">
                   {quote.client_id ? (
                     <Link
@@ -321,7 +321,7 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
                     </span>
                   )}
                   {!quote.client_id && (
-                    <p className="text-[11px] text-slate-400">
+                    <p className="text-[11px] text-slate-500">
                       Se registrará en clientes si aprueba.
                     </p>
                   )}
@@ -329,25 +329,25 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
               </div>
               {quote.display_client_phone && (
                 <div className="flex justify-between gap-2">
-                  <dt className="text-slate-400">Teléfono</dt>
+                  <dt className="text-slate-500">Teléfono</dt>
                   <dd>
                     <a
                       href={`tel:${quote.display_client_phone}`}
                       className="font-medium text-slate-700 flex items-center gap-1"
                     >
-                      <Phone className="w-3.5 h-3.5 text-slate-400" aria-hidden="true" />
+                      <Phone className="w-3.5 h-3.5 text-slate-500" aria-hidden="true" />
                       {quote.display_client_phone}
                     </a>
                   </dd>
                 </div>
               )}
               <div className="flex justify-between gap-2">
-                <dt className="text-slate-400">Trabajo</dt>
+                <dt className="text-slate-500">Trabajo</dt>
                 <dd className="text-slate-700 text-right whitespace-pre-wrap">{quote.description}</dd>
               </div>
               {quote.notes && (
                 <div className="flex justify-between gap-2">
-                  <dt className="text-slate-400 shrink-0">Notas internas</dt>
+                  <dt className="text-slate-500 shrink-0">Notas internas</dt>
                   <dd className="text-slate-700 text-right whitespace-pre-wrap">{quote.notes}</dd>
                 </div>
               )}
@@ -379,7 +379,7 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
               </a>
             )}
             {!canSend && pending && (
-              <p className="mt-4 text-xs text-slate-400">
+              <p className="mt-4 text-xs text-slate-500">
                 {total <= 0
                   ? "Agrega conceptos para poder enviarlo por WhatsApp."
                   : "Sin teléfono del cliente: compártele el enlace o el PDF de abajo."}
@@ -397,13 +397,13 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
             </p>
             <div className="mt-3 space-y-2 text-sm">
               <div className="flex justify-between items-center gap-2">
-                <span className="text-slate-400">Folio</span>
+                <span className="text-slate-500">Folio</span>
                 <span className="plate-badge bg-white border border-sm-border rounded-md px-2.5 py-0.5 text-slate-700">
                   {quote.folio}
                 </span>
               </div>
               <div className="flex justify-between items-center gap-2">
-                <span className="text-slate-400">Código de acceso</span>
+                <span className="text-slate-500">Código de acceso</span>
                 <span className="plate-badge bg-white border border-sm-border rounded-md px-2.5 py-0.5 text-sm-red">
                   {quote.public_code}
                 </span>
@@ -425,7 +425,7 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
             >
               <FileDown className="w-4 h-4" aria-hidden="true" /> Descargar PDF
             </a>
-            <p className="mt-1.5 text-[11px] text-slate-400 text-center break-all">{publicUrl}</p>
+            <p className="mt-1.5 text-[11px] text-slate-500 text-center break-all">{publicUrl}</p>
           </section>
 
           {/* Datos editables (solo pendiente) */}

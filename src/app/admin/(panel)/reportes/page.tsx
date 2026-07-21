@@ -360,7 +360,7 @@ export default async function ReportsPage({
               {k.value}
             </p>
             <p className="text-xs text-slate-500 mt-0.5">{k.label}</p>
-            <p className="text-[11px] text-slate-400 mt-1">{k.hint}</p>
+            <p className="text-[11px] text-slate-500 mt-1">{k.hint}</p>
           </Link>
         ))}
       </div>
@@ -371,7 +371,7 @@ export default async function ReportsPage({
           <h2 className="font-heading font-semibold text-lg text-slate-800 tracking-wide">
             DEL FACTURADO A LA GANANCIA
           </h2>
-          <p className="text-xs text-slate-400 mt-0.5">Cómo se compone el resultado del período</p>
+          <p className="text-xs text-slate-500 mt-0.5">Cómo se compone el resultado del período</p>
           <ul className="mt-4">
             {breakdown.map((b) => (
               <li
@@ -389,7 +389,7 @@ export default async function ReportsPage({
                     b.strong ? "font-semibold text-slate-800" : "text-slate-500"
                   }
                 >
-                  {b.sign && <span className="inline-block w-4 text-slate-400">{b.sign}</span>}
+                  {b.sign && <span className="inline-block w-4 text-slate-500">{b.sign}</span>}
                   {b.label}
                 </span>
                 <span
@@ -418,7 +418,7 @@ export default async function ReportsPage({
               className="mt-4 block rounded-xl border border-dashed border-slate-300 p-3 transition-colors hover:border-sm-red hover:bg-slate-50 group"
             >
               <div className="flex items-center justify-between gap-3">
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                   Todavía en el taller
                 </span>
                 <ChevronRight
@@ -430,7 +430,7 @@ export default async function ReportsPage({
                 <span className="text-slate-500">
                   {wip.orders === 1 ? "1 carro sin entregar" : `${wip.orders} carros sin entregar`}
                   {wip.collected > 0.009 && (
-                    <span className="text-slate-400"> · {formatMoney(wip.collected)} ya cobrado</span>
+                    <span className="text-slate-500"> · {formatMoney(wip.collected)} ya cobrado</span>
                   )}
                 </span>
                 <span className="tabular-nums font-semibold text-slate-800 shrink-0">
@@ -449,7 +449,7 @@ export default async function ReportsPage({
                   {formatMoney(net + wip.margin)}
                 </span>
               </div>
-              <p className="mt-2 text-[11px] text-slate-400">
+              <p className="mt-2 text-[11px] text-slate-500">
                 Es una estimación de hoy: no cambia al mover las fechas y todavía se pueden
                 agregar o quitar conceptos antes de entregar.
               </p>
@@ -457,7 +457,7 @@ export default async function ReportsPage({
           )}
 
           {(expensesTotal === 0 || payrollMonthly === 0) && (
-            <p className="mt-3 text-[11px] text-slate-400">
+            <p className="mt-3 text-[11px] text-slate-500">
               {expensesTotal === 0 && (
                 <>
                   Aún no hay gastos en el período —{" "}
@@ -485,11 +485,11 @@ export default async function ReportsPage({
           <h2 className="font-heading font-semibold text-lg text-slate-800 tracking-wide">
             VENTAS POR TIPO
           </h2>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-500 mt-0.5">
             Servicios (mano de obra) vs. repuestos vendidos
           </p>
           {facturado === 0 ? (
-            <p className="mt-4 text-sm text-slate-400">Sin ventas en el período.</p>
+            <p className="mt-4 text-sm text-slate-500">Sin ventas en el período.</p>
           ) : (
             <ul className="mt-4 space-y-4">
               {(
@@ -502,7 +502,7 @@ export default async function ReportsPage({
                   <div className="flex items-center justify-between gap-2 text-sm">
                     <span className="font-medium text-slate-700">
                       {label}
-                      <span className="ml-2 text-xs text-slate-400">
+                      <span className="ml-2 text-xs text-slate-500">
                         {facturado > 0 ? Math.round((k.total / facturado) * 100) : 0}%
                       </span>
                     </span>
@@ -521,7 +521,7 @@ export default async function ReportsPage({
               ))}
             </ul>
           )}
-          <p className="mt-4 text-[11px] text-slate-400">
+          <p className="mt-4 text-[11px] text-slate-500">
             Entre paréntesis: ganancia después del costo registrado de cada ítem.
           </p>
         </section>
@@ -532,11 +532,11 @@ export default async function ReportsPage({
         <h2 className="font-heading font-semibold text-lg text-slate-800 tracking-wide">
           TALLER VS DOMICILIO
         </h2>
-        <p className="text-xs text-slate-400 mt-0.5">
+        <p className="text-xs text-slate-500 mt-0.5">
           Facturado y ganancia bruta por canal (órdenes entregadas del período)
         </p>
         {byModality.taller.n === 0 && byModality.domicilio.n === 0 ? (
-          <p className="mt-4 text-sm text-slate-400">Sin órdenes entregadas en el período.</p>
+          <p className="mt-4 text-sm text-slate-500">Sin órdenes entregadas en el período.</p>
         ) : (
           <div className="mt-4 grid sm:grid-cols-2 gap-3">
             {(
@@ -549,24 +549,24 @@ export default async function ReportsPage({
               return (
                 <div key={label} className="rounded-xl border border-slate-200 p-4">
                   <p className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
-                    <Icon className="w-4 h-4 text-slate-400" aria-hidden="true" /> {label}
-                    <span className="ml-auto text-xs text-slate-400 tabular-nums">
+                    <Icon className="w-4 h-4 text-slate-500" aria-hidden="true" /> {label}
+                    <span className="ml-auto text-xs text-slate-500 tabular-nums">
                       {mod.n} orden{mod.n === 1 ? "" : "es"}
                     </span>
                   </p>
                   <dl className="mt-3 space-y-1.5 text-sm">
                     <div className="flex justify-between gap-2">
-                      <dt className="text-slate-400">Facturado</dt>
+                      <dt className="text-slate-500">Facturado</dt>
                       <dd className="tabular-nums text-slate-700">{formatMoney(mod.total)}</dd>
                     </div>
                     <div className="flex justify-between gap-2">
-                      <dt className="text-slate-400">Ganancia bruta</dt>
+                      <dt className="text-slate-500">Ganancia bruta</dt>
                       <dd className="tabular-nums font-semibold text-accent-700">
                         {formatMoney(mod.profit)}
                       </dd>
                     </div>
                     <div className="flex justify-between gap-2">
-                      <dt className="text-slate-400">Margen</dt>
+                      <dt className="text-slate-500">Margen</dt>
                       <dd className="tabular-nums text-slate-700">{margin}%</dd>
                     </div>
                   </dl>
@@ -575,7 +575,7 @@ export default async function ReportsPage({
             })}
           </div>
         )}
-        <p className="mt-4 text-[11px] text-slate-400">
+        <p className="mt-4 text-[11px] text-slate-500">
           {hasDomicilio
             ? "El costo de ir (traslado) se cotiza como concepto, así que ya está descontado en la ganancia de domicilio. "
             : "Aún no hay servicios a domicilio entregados: marca la modalidad «A domicilio» al crear la orden. "}
@@ -590,7 +590,7 @@ export default async function ReportsPage({
             <h2 className="font-heading font-semibold text-lg text-slate-800 tracking-wide">
               INGRESOS Y GANANCIA POR MES
             </h2>
-            <p className="text-xs text-slate-400 mt-0.5">Órdenes entregadas en el período</p>
+            <p className="text-xs text-slate-500 mt-0.5">Órdenes entregadas en el período</p>
           </div>
           <div className="flex items-center gap-3 text-xs text-slate-500">
             <span className="flex items-center gap-1.5">
@@ -623,7 +623,7 @@ export default async function ReportsPage({
             </div>
           ))}
         </div>
-        <p className="mt-3 text-[11px] text-slate-400">
+        <p className="mt-3 text-[11px] text-slate-500">
           La ganancia bruta descuenta el costo registrado en cada ítem.
           {firstCosted?.d
             ? ` Hay costos registrados desde el ${firstCosted.d.slice(0, 10)}; los ítems anteriores cuentan con costo 0 y sobreestiman la ganancia.`
@@ -637,7 +637,7 @@ export default async function ReportsPage({
           <h2 className="font-heading font-semibold text-lg text-slate-800 tracking-wide">
             ÓRDENES RECIBIDAS
           </h2>
-          <p className="text-xs text-slate-400 mt-0.5">Nuevas por mes en el período</p>
+          <p className="text-xs text-slate-500 mt-0.5">Nuevas por mes en el período</p>
           <ul className="mt-4 space-y-2.5">
             {revSeries.map((r) => (
               <li key={r.key} className="flex items-center gap-3">
@@ -661,11 +661,11 @@ export default async function ReportsPage({
           <h2 className="font-heading font-semibold text-lg text-slate-800 tracking-wide flex items-center gap-2">
             <Wrench className="w-4 h-4 text-sm-red" aria-hidden="true" /> DESEMPEÑO POR MECÁNICO
           </h2>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-500 mt-0.5">
             Órdenes entregadas en el período, con costo y utilidad si su salario está registrado
           </p>
           {mechanics.length === 0 ? (
-            <p className="mt-4 text-sm text-slate-400">
+            <p className="mt-4 text-sm text-slate-500">
               No hay órdenes entregadas con mecánico asignado en este período.
             </p>
           ) : (
@@ -696,7 +696,7 @@ export default async function ReportsPage({
                         </b>
                       </>
                     ) : (
-                      <span className="text-slate-400"> · sin costo registrado</span>
+                      <span className="text-slate-500"> · sin costo registrado</span>
                     )}
                   </p>
                 </li>

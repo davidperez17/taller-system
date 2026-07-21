@@ -65,7 +65,7 @@ export default function CancelOrderButton({
                 type="button"
                 onClick={() => !pending && setOpen(false)}
                 aria-label="Cerrar"
-                className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"
+                className="p-1 text-slate-500 hover:text-slate-600 cursor-pointer"
               >
                 <X className="w-5 h-5" aria-hidden="true" />
               </button>
@@ -88,7 +88,7 @@ export default function CancelOrderButton({
                   className={inputCls}
                 />
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500">
                 El motivo queda en la línea de tiempo y se notifica al cliente.
               </p>
               <div className="flex gap-2 justify-end">

@@ -106,7 +106,7 @@ export default async function AnnouncementsPage() {
               <input id="ends_on" name="ends_on" type="date" className={inputCls} />
             </div>
           </div>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500">
             Sin fechas, la novedad se muestra hasta que la ocultes. Con fechas, solo dentro del rango.
           </p>
           <SubmitButton className={btnPrimary} pendingText="Publicando…">
@@ -118,11 +118,11 @@ export default async function AnnouncementsPage() {
       {/* Lista */}
       <section className="space-y-3">
         <h2 className="font-heading font-semibold text-slate-800 tracking-wide px-1">
-          PUBLICADAS <span className="text-sm font-normal text-slate-400">({activeCount} activas)</span>
+          PUBLICADAS <span className="text-sm font-normal text-slate-500">({activeCount} activas)</span>
         </h2>
 
         {items.length === 0 ? (
-          <p className={`${card} p-8 text-center text-sm text-slate-400`}>
+          <p className={`${card} p-8 text-center text-sm text-slate-500`}>
             Aún no hay novedades. Crea la primera arriba.
           </p>
         ) : (
@@ -142,7 +142,7 @@ export default async function AnnouncementsPage() {
                         <Eye className="w-3 h-3" aria-hidden="true" /> Visible
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                         <EyeOff className="w-3 h-3" aria-hidden="true" /> Oculta
                       </span>
                     )}
@@ -150,7 +150,7 @@ export default async function AnnouncementsPage() {
                   <h3 className="font-semibold text-slate-800 mt-2">{a.title}</h3>
                   <p className="text-sm text-slate-600 mt-1 whitespace-pre-wrap">{a.body}</p>
                   {(a.starts_on || a.ends_on) && (
-                    <p className="text-xs text-slate-400 mt-2">
+                    <p className="text-xs text-slate-500 mt-2">
                       Vigencia: {a.starts_on ? formatDay(a.starts_on) : "siempre"} →{" "}
                       {a.ends_on ? formatDay(a.ends_on) : "sin fin"}
                     </p>

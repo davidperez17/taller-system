@@ -21,7 +21,7 @@ export default async function NotificationsPage() {
         <h2 className="font-heading font-semibold text-slate-800 tracking-wide">
           AVISOS DEL PANEL EN ESTE DISPOSITIVO
         </h2>
-        <p className="mt-1 text-xs text-slate-400">
+        <p className="mt-1 text-xs text-slate-500">
           Recibe push cuando entra una orden nueva, el cliente responde un presupuesto,
           una orden queda lista o un repuesto baja del mínimo.
         </p>

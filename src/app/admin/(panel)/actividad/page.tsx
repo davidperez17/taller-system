@@ -38,7 +38,7 @@ export default async function ActivityPage({
       {/* Filtros */}
       <form method="GET" className={`${card} p-4 grid sm:grid-cols-[1fr_1fr_auto] gap-3 items-end`}>
         <div>
-          <label htmlFor="f-actor" className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+          <label htmlFor="f-actor" className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
             Quién
           </label>
           <select
@@ -56,7 +56,7 @@ export default async function ActivityPage({
           </select>
         </div>
         <div>
-          <label htmlFor="f-type" className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+          <label htmlFor="f-type" className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
             Tipo
           </label>
           <select
@@ -94,7 +94,7 @@ export default async function ActivityPage({
       {/* Timeline */}
       <section className={`${card} overflow-hidden`}>
         {items.length === 0 ? (
-          <p className="p-10 text-center text-sm text-slate-400">
+          <p className="p-10 text-center text-sm text-slate-500">
             No hay actividad registrada con estos filtros.
           </p>
         ) : (

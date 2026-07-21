@@ -41,7 +41,7 @@ export default async function VehiclesPage({
       <form className="flex gap-2" action="/admin/vehiculos" method="GET">
         <div className="relative flex-1">
           <Search
-            className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"
+            className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2"
             aria-hidden="true"
           />
           <input
@@ -59,7 +59,7 @@ export default async function VehiclesPage({
 
       <section className={`${card} overflow-hidden`}>
         {vehicles.length === 0 ? (
-          <p className="p-8 text-center text-sm text-slate-400">
+          <p className="p-8 text-center text-sm text-slate-500">
             Sin resultados. Los vehículos se registran desde la ficha del cliente o al crear una
             orden nueva.
           </p>
@@ -67,7 +67,7 @@ export default async function VehiclesPage({
           <ul className="divide-y divide-slate-100">
             {vehicles.map((v) => (
               <li key={v.id} className="flex items-center gap-3 px-4 lg:px-5 py-3.5">
-                <span className="text-slate-400 shrink-0">
+                <span className="text-slate-500 shrink-0">
                   <VehicleTypeIcon type={v.type} />
                 </span>
                 <div className="min-w-0 flex-1">
@@ -75,7 +75,7 @@ export default async function VehiclesPage({
                     <PlateBadge plate={v.plate} />
                     {v.active_status && <StatusBadge status={v.active_status} />}
                   </div>
-                  <p className="text-xs text-slate-400 mt-0.5 truncate">
+                  <p className="text-xs text-slate-500 mt-0.5 truncate">
                     {[v.brand, v.model, v.year, v.color].filter(Boolean).join(" ") || "Sin datos"} ·{" "}
                     <Link
                       href={`/admin/clientes/${v.client_id}`}

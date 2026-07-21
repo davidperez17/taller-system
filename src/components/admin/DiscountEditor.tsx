@@ -47,7 +47,7 @@ export default function DiscountEditor({
             <input type="hidden" name="discount_type" value="" />
             <input type="hidden" name="discount_value" value="0" />
             <ConfirmSubmitButton
-              className="rounded-lg px-2 py-1 text-xs font-medium text-slate-400 transition-colors hover:bg-slate-50 hover:text-sm-red cursor-pointer"
+              className="rounded-lg px-2 py-1 text-xs font-medium text-slate-500 transition-colors hover:bg-slate-50 hover:text-sm-red cursor-pointer"
               confirmTitle="¿Quitar el descuento?"
               confirmMessage="El total vuelve a la suma de los conceptos."
               confirmLabel="Quitar"
@@ -115,7 +115,7 @@ export default function DiscountEditor({
           className={inputCls}
         />
         {kind === "monto" && (
-          <p className="mt-1 text-xs text-slate-400">Máx. {formatMoney(maxAmount)}</p>
+          <p className="mt-1 text-xs text-slate-500">Máx. {formatMoney(maxAmount)}</p>
         )}
       </div>
 
@@ -128,7 +128,7 @@ export default function DiscountEditor({
         </button>
       </div>
 
-      <p className="col-span-2 -mt-1 text-xs text-slate-400">
+      <p className="col-span-2 -mt-1 text-xs text-slate-500">
         Se aplica sobre el total, no sobre un concepto. El cliente lo ve desglosado.
       </p>
     </form>

@@ -41,7 +41,7 @@ export default async function UsersPage() {
                 <div className="flex items-center gap-3">
                   <div
                     className={`w-9 h-9 rounded-full flex items-center justify-center font-semibold text-sm shrink-0 ${
-                      u.active ? "bg-sm-bg text-sm-red" : "bg-slate-100 text-slate-400"
+                      u.active ? "bg-sm-bg text-sm-red" : "bg-slate-100 text-slate-500"
                     }`}
                   >
                     {u.name.charAt(0).toUpperCase()}
@@ -60,7 +60,7 @@ export default async function UsersPage() {
                         </span>
                       )}
                     </p>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-slate-500">
                       @{u.username} · {ROLES[u.role]} · desde {formatDate(u.created_at)}
                     </p>
                   </div>
@@ -112,7 +112,7 @@ export default async function UsersPage() {
                       Guardar
                     </SubmitButton>
                   </form>
-                  <p className="mt-1 text-[11px] text-slate-400">
+                  <p className="mt-1 text-[11px] text-slate-500">
                     Se usa en Reportes para calcular la ganancia neta y el costo por trabajador.
                   </p>
                 </details>

@@ -113,7 +113,7 @@ export default async function CajaPage({
             {formatMoney(dayTotal)}
           </p>
           <p className="text-xs text-slate-500 mt-0.5">Cobrado el {day}</p>
-          <p className="text-[11px] text-slate-400 mt-1">{dayPayments.length} pagos</p>
+          <p className="text-[11px] text-slate-500 mt-1">{dayPayments.length} pagos</p>
         </div>
         {(Object.keys(METHOD_META) as (keyof typeof METHOD_META)[]).map((m) => {
           const meta = METHOD_META[m];
@@ -137,7 +137,7 @@ export default async function CajaPage({
             {formatMoney(monthRow?.total ?? 0)}
           </p>
           <p className="text-xs text-slate-500 mt-0.5">Cobrado en el mes</p>
-          <p className="text-[11px] text-slate-400 mt-1">{monthRow?.n ?? 0} pagos</p>
+          <p className="text-[11px] text-slate-500 mt-1">{monthRow?.n ?? 0} pagos</p>
         </div>
       </div>
 
@@ -149,12 +149,12 @@ export default async function CajaPage({
           </h2>
         </div>
         {dayPayments.length === 0 ? (
-          <p className="px-5 pb-5 pt-3 text-sm text-slate-400">Sin pagos registrados este día.</p>
+          <p className="px-5 pb-5 pt-3 text-sm text-slate-500">Sin pagos registrados este día.</p>
         ) : (
           <div className="mt-3 overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                <tr className="text-left text-xs uppercase tracking-wider text-slate-500 border-b border-slate-100">
                   <th className="py-2 pl-5 pr-2 font-semibold">Hora</th>
                   <th className="py-2 px-2 font-semibold">Orden</th>
                   <th className="py-2 px-2 font-semibold">Placa</th>
@@ -181,7 +181,7 @@ export default async function CajaPage({
                     <td className="py-2.5 px-2 text-slate-500 capitalize">
                       {p.method}
                       {p.reference && (
-                        <span className="ml-1 text-xs text-slate-400">({p.reference})</span>
+                        <span className="ml-1 text-xs text-slate-500">({p.reference})</span>
                       )}
                     </td>
                     <td className="py-2.5 px-2 text-slate-500">{p.author ?? "—"}</td>
@@ -207,14 +207,14 @@ export default async function CajaPage({
           </span>
         </div>
         {pending.length === 0 ? (
-          <p className="px-5 pb-5 pt-3 text-sm text-slate-400">
+          <p className="px-5 pb-5 pt-3 text-sm text-slate-500">
             No hay órdenes con saldo pendiente.
           </p>
         ) : (
           <div className="mt-3 overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                <tr className="text-left text-xs uppercase tracking-wider text-slate-500 border-b border-slate-100">
                   <th className="py-2 pl-5 pr-2 font-semibold">Orden</th>
                   <th className="py-2 px-2 font-semibold">Placa</th>
                   <th className="py-2 px-2 font-semibold">Cliente</th>

@@ -78,7 +78,7 @@ export default async function OrdersPage({
         {modalidad && <input type="hidden" name="modalidad" value={modalidad} />}
         <div className="relative flex-1">
           <Search
-            className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"
+            className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2"
             aria-hidden="true"
           />
           <input
@@ -112,7 +112,7 @@ export default async function OrdersPage({
       </div>
 
       <div className="flex items-center gap-2 -mx-4 px-4 lg:mx-0 lg:px-0 overflow-x-auto pb-0.5">
-        <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+        <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
           Modalidad
         </span>
         {MODALITY_FILTERS.map((mf) => (
@@ -134,7 +134,7 @@ export default async function OrdersPage({
 
       <section className={`${card} overflow-hidden`}>
         {orders.length === 0 ? (
-          <p className="p-8 text-center text-sm text-slate-400">
+          <p className="p-8 text-center text-sm text-slate-500">
             No se encontraron órdenes con estos filtros.
           </p>
         ) : (
@@ -145,7 +145,7 @@ export default async function OrdersPage({
                   href={`/admin/ordenes/${o.id}`}
                   className="flex items-center gap-3 pl-4 lg:pl-5 pr-2 py-3.5 hover:bg-slate-50 transition-colors group flex-1 min-w-0"
                 >
-                  <span className="text-slate-400 shrink-0">
+                  <span className="text-slate-500 shrink-0">
                     <VehicleTypeIcon type={o.type} />
                   </span>
                   <div className="min-w-0 flex-1">
@@ -160,7 +160,7 @@ export default async function OrdersPage({
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-400 mt-0.5 truncate">
+                    <p className="text-xs text-slate-500 mt-0.5 truncate">
                       {o.folio} · {o.client} · Actualizada {formatDate(o.updated_at)}
                     </p>
                   </div>

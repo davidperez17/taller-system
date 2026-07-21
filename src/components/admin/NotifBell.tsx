@@ -140,7 +140,7 @@ export default function NotifBell({
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label="Cerrar"
-                className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"
+                className="p-1 text-slate-500 hover:text-slate-600 cursor-pointer"
               >
                 <X className="w-5 h-5" aria-hidden="true" />
               </button>
@@ -148,7 +148,7 @@ export default function NotifBell({
 
             <div className="overflow-y-auto flex-1 min-h-0">
               {list.length === 0 ? (
-                <p className="px-4 py-10 text-center text-sm text-slate-400">
+                <p className="px-4 py-10 text-center text-sm text-slate-500">
                   Sin actividad del equipo todavía.
                 </p>
               ) : (
@@ -169,7 +169,7 @@ export default function NotifBell({
                           {it.detail && (
                             <p className="text-sm text-slate-500 mt-0.5 line-clamp-2">{it.detail}</p>
                           )}
-                          <p className="text-xs text-slate-400 mt-1">
+                          <p className="text-xs text-slate-500 mt-1">
                             {it.actor_name ?? "Sistema"} · {timeAgo(it.created_at)}
                           </p>
                         </div>

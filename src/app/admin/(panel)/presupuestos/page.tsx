@@ -88,7 +88,7 @@ export default async function QuotesPage({
         <input type="hidden" name="estado" value={estado} />
         <div className="relative flex-1">
           <Search
-            className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"
+            className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2"
             aria-hidden="true"
           />
           <input
@@ -125,7 +125,7 @@ export default async function QuotesPage({
         {quotes.length === 0 ? (
           <div className="p-8 text-center">
             <FileText className="w-8 h-8 text-slate-300 mx-auto" aria-hidden="true" />
-            <p className="mt-2 text-sm text-slate-400">
+            <p className="mt-2 text-sm text-slate-500">
               {estado === "todos" && !q
                 ? "Aún no hay presupuestos. Crea el primero para cotizarle a un cliente sin abrir una orden."
                 : estado === SIN_RESPUESTA && !q
@@ -141,7 +141,7 @@ export default async function QuotesPage({
                   href={`/admin/presupuestos/${p.id}`}
                   className="flex items-center gap-3 px-4 lg:px-5 py-3.5 hover:bg-slate-50 transition-colors group"
                 >
-                  <span className="text-slate-400 shrink-0">
+                  <span className="text-slate-500 shrink-0">
                     <VehicleTypeIcon type={p.vehicle_type} />
                   </span>
                   <div className="min-w-0 flex-1">
@@ -153,7 +153,7 @@ export default async function QuotesPage({
                       {p.expired && <ExpiredChip />}
                       {p.followup_due && <FollowupChip />}
                     </div>
-                    <p className="text-xs text-slate-400 mt-0.5 truncate">
+                    <p className="text-xs text-slate-500 mt-0.5 truncate">
                       {p.folio}
                       {p.client ? ` · ${p.client}` : ""} · {formatDate(p.created_at)}
                       {p.order_folio ? ` · Orden ${p.order_folio}` : ""}

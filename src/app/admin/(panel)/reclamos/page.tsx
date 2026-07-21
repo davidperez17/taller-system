@@ -117,7 +117,7 @@ export default async function ClaimsPage({
         {/* Lista del mes */}
         <section className={`${card} p-4 lg:p-5 lg:col-span-2`}>
           {claims.length === 0 ? (
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-slate-500">
               Sin reclamos en este mes. Registra un repuesto que llegó mal, un trabajo que hubo que
               rehacer o una queja del cliente para llevar el control por carro.
             </p>
@@ -219,7 +219,7 @@ export default async function ClaimsPage({
               <ShieldAlert className="w-4 h-4" aria-hidden="true" /> Registrar reclamo
             </SubmitButton>
           </form>
-          <p className="mt-3 text-xs text-slate-400 flex items-start gap-1.5">
+          <p className="mt-3 text-xs text-slate-500 flex items-start gap-1.5">
             <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden="true" />
             {isAdmin
               ? "La pérdida es solo lo NUEVO que cuesta el reclamo (la pieza de reposición, el reembolso o el retrabajo). El costo del repuesto original ya se descuenta en su orden: no lo pongas otra vez aquí o contaría doble."

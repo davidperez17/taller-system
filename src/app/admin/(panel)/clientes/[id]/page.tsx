@@ -86,17 +86,17 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
               VEHÍCULOS
             </h2>
             {vehicles.length === 0 ? (
-              <p className="text-sm text-slate-400 mt-2">Este cliente aún no tiene vehículos.</p>
+              <p className="text-sm text-slate-500 mt-2">Este cliente aún no tiene vehículos.</p>
             ) : (
               <ul className="mt-3 divide-y divide-slate-100">
                 {vehicles.map((v) => (
                   <li key={v.id} className="py-3 flex items-center gap-3">
-                    <span className="text-slate-400 shrink-0">
+                    <span className="text-slate-500 shrink-0">
                       <VehicleTypeIcon type={v.type} />
                     </span>
                     <div className="min-w-0 flex-1">
                       <PlateBadge plate={v.plate} />
-                      <p className="text-xs text-slate-400 mt-0.5 truncate">
+                      <p className="text-xs text-slate-500 mt-0.5 truncate">
                         {[v.brand, v.model, v.year, v.color].filter(Boolean).join(" ") || "Sin datos"}
                       </p>
                     </div>
@@ -108,7 +108,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                     </Link>
                     {me?.role === "admin" &&
                       (v.active_orders > 0 ? (
-                        <span className="text-[11px] font-medium text-slate-400 shrink-0">
+                        <span className="text-[11px] font-medium text-slate-500 shrink-0">
                           En taller
                         </span>
                       ) : (
@@ -117,7 +117,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                           <input type="hidden" name="client_id" value={client.id} />
                           <ConfirmSubmitButton
                             ariaLabel={`Quitar ${v.plate} y todo su historial`}
-                            className="text-xs font-medium text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
+                            className="text-xs font-medium text-slate-500 hover:text-red-500 transition-colors cursor-pointer"
                             confirmTitle={`¿Quitar ${v.plate}?`}
                             confirmMessage="Se borran también sus órdenes, historial y pagos. No se puede deshacer."
                             confirmLabel="Quitar"
@@ -131,7 +131,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
               </ul>
             )}
             {me?.role === "admin" && vehicles.length > 0 && (
-              <p className="mt-2 text-[11px] text-slate-400">
+              <p className="mt-2 text-[11px] text-slate-500">
                 Quitar un vehículo borra también sus órdenes, historial y pagos. Si está en el
                 taller, primero cancela o entrega su orden.
               </p>
@@ -204,7 +204,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
               HISTORIAL DE SERVICIOS
             </h2>
             {orders.length === 0 ? (
-              <p className="px-5 pb-5 text-sm text-slate-400">Sin órdenes registradas.</p>
+              <p className="px-5 pb-5 text-sm text-slate-500">Sin órdenes registradas.</p>
             ) : (
               <ul className="divide-y divide-slate-100">
                 {orders.map((o) => (
@@ -213,14 +213,14 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                       href={`/admin/ordenes/${o.id}`}
                       className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 transition-colors group"
                     >
-                      <span className="text-slate-400 shrink-0">
+                      <span className="text-slate-500 shrink-0">
                         <VehicleTypeIcon type={o.type} />
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-slate-700 truncate">
                           {o.folio} · {o.plate}
                         </p>
-                        <p className="text-xs text-slate-400 truncate">
+                        <p className="text-xs text-slate-500 truncate">
                           {o.description || "Sin descripción"} · {formatDate(o.updated_at)}
                         </p>
                       </div>

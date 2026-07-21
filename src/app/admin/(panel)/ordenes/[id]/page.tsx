@@ -197,7 +197,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           <section className={`${card} p-5`}>
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                   Estado actual
                 </p>
                 <div className="mt-1 flex items-center gap-2 flex-wrap">
@@ -343,7 +343,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                       )
                     )}
                     <EventPhotos raw={ev.photo_urls} />
-                    <p className="text-xs text-slate-400 mt-1">
+                    <p className="text-xs text-slate-500 mt-1">
                       {formatDate(ev.created_at)}
                       {ev.author ? ` · ${ev.author}` : ""}
                     </p>
@@ -397,7 +397,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             </h2>
             <div className="mt-3 grid grid-cols-3 gap-3 text-center">
               <div className="bg-slate-50 rounded-xl px-2 py-3">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Total</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Total</p>
                 <p className="font-heading font-bold text-base sm:text-lg text-slate-800 tabular-nums">{formatMoney(total)}</p>
               </div>
               <div className="bg-accent-50 rounded-xl px-2 py-3">
@@ -405,7 +405,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 <p className="font-heading font-bold text-base sm:text-lg text-accent-700 tabular-nums">{formatMoney(paid)}</p>
               </div>
               <div className={`rounded-xl px-2 py-3 ${saldo > 0.009 ? "bg-amber-50" : "bg-slate-50"}`}>
-                <p className={`text-[11px] font-semibold uppercase tracking-wider ${saldo > 0.009 ? "text-amber-700/70" : "text-slate-400"}`}>Saldo</p>
+                <p className={`text-[11px] font-semibold uppercase tracking-wider ${saldo > 0.009 ? "text-amber-700/70" : "text-slate-500"}`}>Saldo</p>
                 <p className={`font-heading font-bold text-base sm:text-lg tabular-nums ${saldo > 0.009 ? "text-amber-700" : "text-slate-500"}`}>{formatMoney(saldo)}</p>
               </div>
             </div>
@@ -413,19 +413,19 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             {/* Rentabilidad — solo admin. El cliente nunca ve costo ni ganancia. */}
             {isAdmin && items.length > 0 && (
               <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/70 p-4">
-                <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                   <EyeOff className="w-3.5 h-3.5" aria-hidden="true" />
                   Rentabilidad · solo el equipo la ve
                 </p>
                 <div className="mt-2.5 grid grid-cols-3 gap-3 text-center">
                   <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Costo</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Costo</p>
                     <p className="font-heading font-bold text-base sm:text-lg tabular-nums text-slate-700">
                       {formatMoney(costTotal)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Ganancia</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Ganancia</p>
                     <p
                       className={`font-heading font-bold text-base sm:text-lg tabular-nums ${
                         profit < -0.009 ? "text-red-600" : "text-accent-700"
@@ -435,7 +435,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                     </p>
                   </div>
                   <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Margen</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Margen</p>
                     <p
                       className={`font-heading font-bold text-base sm:text-lg tabular-nums ${
                         profit < -0.009 ? "text-red-600" : "text-slate-700"
@@ -464,7 +464,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                   </div>
                 )}
                 {!hasCost && (
-                  <p className="mt-2.5 text-xs text-slate-400">
+                  <p className="mt-2.5 text-xs text-slate-500">
                     Sin costos registrados: la ganancia mostrada equivale al total. Escribe el costo
                     real de cada concepto en la tabla de arriba para ver el margen verdadero.
                   </p>
@@ -479,14 +479,14 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-slate-700">
                         {formatMoney(p.amount)}
-                        <span className="ml-2 text-[11px] uppercase tracking-wide text-slate-400 capitalize">
+                        <span className="ml-2 text-[11px] uppercase tracking-wide text-slate-500 capitalize">
                           {p.method}
                         </span>
                         {p.reference && (
-                          <span className="ml-2 text-xs text-slate-400">ref. {p.reference}</span>
+                          <span className="ml-2 text-xs text-slate-500">ref. {p.reference}</span>
                         )}
                       </p>
-                      <p className="text-xs text-slate-400 mt-0.5">
+                      <p className="text-xs text-slate-500 mt-0.5">
                         {formatDate(p.created_at)}
                         {p.author ? ` · ${p.author}` : ""}
                         {p.notes ? ` · ${p.notes}` : ""}
@@ -557,7 +557,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               </form>
             )}
             {payments.length === 0 && saldo <= 0.009 && (
-              <p className="text-sm text-slate-400 mt-3">
+              <p className="text-sm text-slate-500 mt-3">
                 Sin importes por cobrar: agrega conceptos al presupuesto primero.
               </p>
             )}
@@ -584,7 +584,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                   )}
                 </div>
               ) : (
-                <p className="mt-3 text-sm text-slate-400">
+                <p className="mt-3 text-sm text-slate-500">
                   Sin reclamos en este carro. Registra un repuesto que llegó mal o un trabajo que
                   hubo que rehacer para llevar su control.
                 </p>
@@ -669,7 +669,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                   <SubmitButton className={btnPrimary} pendingText="Registrando…">
                     Registrar reclamo
                   </SubmitButton>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-500">
                     {isAdmin
                       ? "La pérdida es solo lo NUEVO (reposición, reembolso, retrabajo). El costo del repuesto original ya está descontado arriba: no lo repitas o contaría doble."
                       : "El administrador valora la pérdida en Q después."}
@@ -685,7 +685,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           {/* Vehículo y cliente */}
           <section className={`${card} p-5`}>
             <div className="flex items-center gap-3">
-              <span className="text-slate-400">
+              <span className="text-slate-500">
                 <VehicleTypeIcon type={order.type} className="w-7 h-7" />
               </span>
               <div className="min-w-0">
@@ -697,7 +697,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             </div>
             <dl className="mt-4 space-y-2 text-sm">
               <div className="flex justify-between gap-2">
-                <dt className="text-slate-400">Cliente</dt>
+                <dt className="text-slate-500">Cliente</dt>
                 <dd>
                   <Link
                     href={`/admin/clientes/${order.client_id}`}
@@ -709,13 +709,13 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               </div>
               {order.client_phone && (
                 <div className="flex justify-between gap-2">
-                  <dt className="text-slate-400">Teléfono</dt>
+                  <dt className="text-slate-500">Teléfono</dt>
                   <dd>
                     <a
                       href={`tel:${order.client_phone}`}
                       className="font-medium text-slate-700 flex items-center gap-1"
                     >
-                      <Phone className="w-3.5 h-3.5 text-slate-400" aria-hidden="true" />
+                      <Phone className="w-3.5 h-3.5 text-slate-500" aria-hidden="true" />
                       {order.client_phone}
                     </a>
                   </dd>
@@ -723,9 +723,9 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               )}
               {order.modality === "domicilio" && order.service_location && (
                 <div className="flex justify-between gap-2">
-                  <dt className="text-slate-400 shrink-0">Ubicación</dt>
+                  <dt className="text-slate-500 shrink-0">Ubicación</dt>
                   <dd className="text-slate-700 text-right flex items-start gap-1">
-                    <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" aria-hidden="true" />
+                    <MapPin className="w-3.5 h-3.5 text-slate-500 mt-0.5 shrink-0" aria-hidden="true" />
                     {/^https?:\/\//.test(order.service_location) ? (
                       <a
                         href={order.service_location}
@@ -742,21 +742,21 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 </div>
               )}
               <div className="flex justify-between gap-2">
-                <dt className="text-slate-400">Kilometraje</dt>
+                <dt className="text-slate-500">Kilometraje</dt>
                 <dd className="text-slate-700">{order.km || "—"}</dd>
               </div>
               <div className="flex justify-between gap-2">
-                <dt className="text-slate-400">Combustible</dt>
+                <dt className="text-slate-500">Combustible</dt>
                 <dd className="text-slate-700">{order.fuel_level || "—"}</dd>
               </div>
               <div className="flex justify-between gap-2">
-                <dt className="text-slate-400">Entrega estimada</dt>
+                <dt className="text-slate-500">Entrega estimada</dt>
                 <dd className="text-slate-700">{formatDateShort(order.estimated_delivery)}</dd>
               </div>
             </dl>
             {waActions.length > 0 && (
               <div className="mt-4 pt-3 border-t border-slate-100">
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                   WhatsApp al cliente
                 </p>
                 <div className="mt-2 flex flex-wrap gap-2">
@@ -786,11 +786,11 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             </p>
             <div className="mt-3 space-y-2 text-sm">
               <div className="flex justify-between items-center gap-2">
-                <span className="text-slate-400">Placa</span>
+                <span className="text-slate-500">Placa</span>
                 <PlateBadge plate={order.plate} />
               </div>
               <div className="flex justify-between items-center gap-2">
-                <span className="text-slate-400">Código de acceso</span>
+                <span className="text-slate-500">Código de acceso</span>
                 <span className="plate-badge bg-white border border-sm-border rounded-md px-2.5 py-0.5 text-sm-red">
                   {order.tracking_code}
                 </span>
@@ -840,7 +840,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 <FileDown className="w-4 h-4" aria-hidden="true" /> Informe
               </a>
             </div>
-            <p className="mt-1.5 text-[11px] text-slate-400 text-center">
+            <p className="mt-1.5 text-[11px] text-slate-500 text-center">
               PDF para enviar al cliente por WhatsApp o correo.
             </p>
           </section>

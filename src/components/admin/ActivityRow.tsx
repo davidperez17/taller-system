@@ -54,13 +54,13 @@ export default function ActivityRow({
         <div className="flex items-center gap-2 flex-wrap">
           <p className="text-sm font-semibold text-slate-800">{item.title}</p>
           {showType && (
-            <span className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+            <span className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
               {meta.label}
             </span>
           )}
         </div>
         {item.detail && <p className="text-sm text-slate-500 mt-0.5">{item.detail}</p>}
-        <p className="text-xs text-slate-400 mt-1">
+        <p className="text-xs text-slate-500 mt-1">
           {item.actor_name ?? "Sistema"} · {timeLabel}
         </p>
       </div>

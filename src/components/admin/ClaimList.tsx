@@ -69,7 +69,7 @@ export default function ClaimList({
                 </p>
               )}
               <Thumbnails raw={c.photo_urls} alt="Foto del reclamo" />
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-slate-500 mt-1">
                 {formatDay(c.claimed_on)}
                 {c.author ? ` · ${c.author}` : ""}
               </p>
@@ -80,7 +80,7 @@ export default function ClaimList({
                   {c.amount > 0 ? formatMoney(c.amount) : "—"}
                 </span>
               ) : (
-                <span className="text-[11px] text-slate-400">Sin valorar</span>
+                <span className="text-[11px] text-slate-500">Sin valorar</span>
               )}
             </div>
           </div>
@@ -88,7 +88,7 @@ export default function ClaimList({
           {/* Gestión: solo admin (valorar monto, cambiar estado, resolver, borrar) */}
           {isAdmin && (
             <details className="mt-2">
-              <summary className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-sm-red cursor-pointer list-none">
+              <summary className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-sm-red cursor-pointer list-none">
                 <Settings2 className="w-3.5 h-3.5" aria-hidden="true" /> Gestionar
               </summary>
               <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3">
@@ -135,7 +135,7 @@ export default function ClaimList({
                     <ConfirmSubmitButton
                       submitAction={deleteClaimAction}
                       ariaLabel="Quitar reclamo"
-                      className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-red-500 transition-colors cursor-pointer"
                       confirmTitle="¿Quitar reclamo?"
                       confirmMessage="Se elimina el reclamo y sus fotos. Deja de contar en reportes. No se puede deshacer."
                       confirmLabel="Quitar"

@@ -66,7 +66,7 @@ export default async function RemindersPage() {
     const d = daysUntil(r.due_date);
     const tone =
       r.done
-        ? "text-slate-400"
+        ? "text-slate-500"
         : d < 0
           ? "text-red-600"
           : d <= 14
@@ -84,11 +84,11 @@ export default async function RemindersPage() {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <PlateBadge plate={r.plate} />
-            <span className={`text-sm ${r.done ? "line-through text-slate-400" : "text-slate-700"}`}>
+            <span className={`text-sm ${r.done ? "line-through text-slate-500" : "text-slate-700"}`}>
               {r.reason}
             </span>
           </div>
-          <p className="text-xs text-slate-400 mt-0.5 truncate">
+          <p className="text-xs text-slate-500 mt-0.5 truncate">
             {r.client}
             {[r.brand, r.model].filter(Boolean).length > 0 &&
               ` · ${[r.brand, r.model].filter(Boolean).join(" ")}`}
@@ -120,7 +120,7 @@ export default async function RemindersPage() {
                 }
                 target="_blank"
                 rel="noopener"
-                className="p-2 rounded-lg text-slate-400 hover:bg-accent-50 hover:text-accent-600 transition-colors shrink-0"
+                className="p-2 rounded-lg text-slate-500 hover:bg-accent-50 hover:text-accent-600 transition-colors shrink-0"
                 aria-label={`WhatsApp a ${r.client}`}
                 title="Enviar WhatsApp"
               >
@@ -129,7 +129,7 @@ export default async function RemindersPage() {
             )}
             <a
               href={`tel:${r.phone}`}
-              className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-sm-red transition-colors shrink-0"
+              className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-sm-red transition-colors shrink-0"
               aria-label={`Llamar a ${r.client}`}
               title={r.phone}
             >
@@ -140,7 +140,7 @@ export default async function RemindersPage() {
         <form action={toggleReminderAction}>
           <input type="hidden" name="id" value={r.id} />
           <SubmitButton
-            className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-accent-600 transition-colors cursor-pointer shrink-0 disabled:opacity-60"
+            className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-accent-600 transition-colors cursor-pointer shrink-0 disabled:opacity-60"
             ariaLabel={r.done ? "Marcar como pendiente" : "Marcar como hecho"}
             title={r.done ? "Reabrir" : "Marcar hecho"}
           >
@@ -150,7 +150,7 @@ export default async function RemindersPage() {
         <form action={deleteReminderAction}>
           <input type="hidden" name="id" value={r.id} />
           <ConfirmSubmitButton
-            className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-red-600 transition-colors cursor-pointer shrink-0"
+            className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-red-600 transition-colors cursor-pointer shrink-0"
             ariaLabel="Eliminar recordatorio"
             confirmTitle="¿Eliminar recordatorio?"
             confirmMessage="Se elimina este recordatorio. No se puede deshacer."
@@ -195,7 +195,7 @@ export default async function RemindersPage() {
           {pending.length === 0 && (
             <section className={`${card} p-8 text-center`}>
               <BellRing className="w-8 h-8 text-slate-300 mx-auto" aria-hidden="true" />
-              <p className="mt-2 text-sm text-slate-400">
+              <p className="mt-2 text-sm text-slate-500">
                 Sin recordatorios pendientes. Agrega uno con el formulario.
               </p>
             </section>
@@ -208,7 +208,7 @@ export default async function RemindersPage() {
                 <div className="px-5 pt-4 pb-2">
                   <h2 className={`font-heading font-semibold tracking-wide ${g.accent}`}>
                     {g.title}
-                    <span className="text-slate-400 font-sans font-normal text-sm ml-2">
+                    <span className="text-slate-500 font-sans font-normal text-sm ml-2">
                       {g.items.length}
                     </span>
                   </h2>
@@ -225,7 +225,7 @@ export default async function RemindersPage() {
             <details className={`${card} overflow-hidden`}>
               <summary className="px-5 py-4 cursor-pointer font-heading font-semibold tracking-wide text-slate-500">
                 COMPLETADOS
-                <span className="text-slate-400 font-sans font-normal text-sm ml-2">
+                <span className="text-slate-500 font-sans font-normal text-sm ml-2">
                   {done.length}
                 </span>
               </summary>
@@ -244,7 +244,7 @@ export default async function RemindersPage() {
             <BellPlus className="w-4 h-4 text-sm-red" aria-hidden="true" /> NUEVO RECORDATORIO
           </h2>
           {vehicles.length === 0 ? (
-            <p className="mt-3 text-sm text-slate-400">
+            <p className="mt-3 text-sm text-slate-500">
               Registra un vehículo primero para programar recordatorios.
             </p>
           ) : (

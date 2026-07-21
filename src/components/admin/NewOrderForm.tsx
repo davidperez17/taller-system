@@ -136,7 +136,7 @@ export default function NewOrderForm({
                 </p>
               )}
             </div>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-slate-500 mt-1">
               Dónde está el vehículo. Ayuda al técnico a ubicarse. El costo de ir se agrega
               después como un concepto en el presupuesto.
             </p>
@@ -166,7 +166,7 @@ export default function NewOrderForm({
               </option>
             ))}
           </select>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-500 mt-1">
             Si eliges uno aquí, se ignoran los campos de vehículo nuevo.
           </p>
         </div>
@@ -335,7 +335,7 @@ export default function NewOrderForm({
             placeholder="Ej. Rayón en puerta derecha, retrovisor flojo. Deja llaves y tarjeta de circulación."
             className={inputCls}
           />
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-500 mt-1">
             Golpes, rayones y pertenencias. Con fotos queda respaldo ante reclamos; el cliente
             lo ve en su línea de tiempo y sale en la orden impresa.
           </p>

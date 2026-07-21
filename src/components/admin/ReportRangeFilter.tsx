@@ -73,7 +73,7 @@ export default function ReportRangeFilter({
         >
           Aplicar
         </button>
-        <p className="text-xs text-slate-400 ml-auto">
+        <p className="text-xs text-slate-500 ml-auto">
           Mostrando: <b>{fmtDay(desde)}</b> — <b>{fmtDay(hasta)}</b>
         </p>
       </form>

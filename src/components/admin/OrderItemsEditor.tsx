@@ -107,7 +107,7 @@ export default function OrderItemsEditor({
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-medium text-slate-800 break-words">{it.description}</p>
-                    <p className="mt-0.5 text-xs capitalize text-slate-400">{it.kind}</p>
+                    <p className="mt-0.5 text-xs capitalize text-slate-500">{it.kind}</p>
                   </div>
                   <p className="shrink-0 font-semibold tabular-nums text-slate-900">
                     {formatMoney(it.qty * it.unit_price)}
@@ -117,7 +117,7 @@ export default function OrderItemsEditor({
                   {it.qty} × {formatMoney(it.unit_price)}
                 </p>
                 {isAdmin && (
-                  <p className="mt-0.5 text-xs tabular-nums text-slate-400">
+                  <p className="mt-0.5 text-xs tabular-nums text-slate-500">
                     Costo {formatMoney(it.unit_cost)} · Ganancia{" "}
                     <span className={profitCls(lineProfit(it))}>
                       {formatMoney(lineProfit(it))}
@@ -171,7 +171,7 @@ export default function OrderItemsEditor({
       {/* Escritorio: tabla */}
       <table className="mt-3 hidden w-full text-sm md:table">
         <thead>
-          <tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wider text-slate-400">
+          <tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wider text-slate-500">
             <th className="py-2 pr-2 font-semibold">Concepto</th>
             <th className="hidden px-2 py-2 font-semibold lg:table-cell">Tipo</th>
             <th className="px-2 py-2 text-right font-semibold">Cant.</th>
@@ -266,7 +266,7 @@ export default function OrderItemsEditor({
       </table>
 
       {showBreak && isAdmin && (
-        <p className="mt-2 text-xs text-slate-400">
+        <p className="mt-2 text-xs text-slate-500">
           La ganancia de cada concepto ya lleva su parte del descuento, así que la columna suma
           la ganancia del total.
         </p>
@@ -436,7 +436,7 @@ function ItemEditForm({
           className={inputCls}
         />
         {maxQty !== undefined && (
-          <p className="mt-1 text-xs text-slate-400">Máx. {maxQty} (stock disponible)</p>
+          <p className="mt-1 text-xs text-slate-500">Máx. {maxQty} (stock disponible)</p>
         )}
       </div>
 
@@ -483,7 +483,7 @@ function ItemEditForm({
         </button>
       </div>
       {isAdmin && (
-        <p className="col-span-2 -mt-1 text-xs text-slate-400">
+        <p className="col-span-2 -mt-1 text-xs text-slate-500">
           El costo es solo tuyo (rentabilidad); el cliente solo ve el precio de venta.
         </p>
       )}

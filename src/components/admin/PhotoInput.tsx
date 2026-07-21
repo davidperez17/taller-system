@@ -84,12 +84,12 @@ export default function PhotoInput() {
           <button
             type="button"
             onClick={clear}
-            className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-red-500 transition-colors cursor-pointer"
           >
             <X className="w-3.5 h-3.5" aria-hidden="true" /> Quitar
           </button>
         )}
-        <span className="text-xs text-slate-400">Máx. {MAX_PHOTOS} · se comprimen antes de subir</span>
+        <span className="text-xs text-slate-500">Máx. {MAX_PHOTOS} · se comprimen antes de subir</span>
       </div>
       {previews.length > 0 && (
         <div className="mt-2 flex gap-2 flex-wrap">

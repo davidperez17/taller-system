@@ -120,7 +120,7 @@ export default async function InventoryPage({
             {onlyLow && <input type="hidden" name="filtro" value="bajos" />}
             <div className="relative flex-1">
               <Search
-                className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"
+                className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2"
                 aria-hidden="true"
               />
               <input
@@ -144,7 +144,7 @@ export default async function InventoryPage({
 
           <section className={`${card} overflow-hidden`}>
             {parts.length === 0 ? (
-              <p className="p-8 text-center text-sm text-slate-400">
+              <p className="p-8 text-center text-sm text-slate-500">
                 {onlyLow
                   ? "Ningún repuesto por agotarse. Todo en orden."
                   : "Sin repuestos. Agrega el primero con el formulario."}
@@ -170,7 +170,7 @@ export default async function InventoryPage({
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-slate-400 mt-0.5 truncate">
+                          <p className="text-xs text-slate-500 mt-0.5 truncate">
                             {[
                               p.sku && `Cód. ${p.sku}`,
                               p.location,
@@ -190,7 +190,7 @@ export default async function InventoryPage({
                           >
                             {p.stock}
                           </p>
-                          <p className="text-[11px] text-slate-400">mín. {p.min_stock}</p>
+                          <p className="text-[11px] text-slate-500">mín. {p.min_stock}</p>
                         </div>
                       </div>
 

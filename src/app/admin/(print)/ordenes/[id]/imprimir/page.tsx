@@ -104,7 +104,7 @@ export default async function PrintOrderPage({ params }: { params: Promise<{ id:
         {/* Cliente y vehículo */}
         <section className="mt-5 grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-x-8">
           <div>
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
               Cliente
             </h2>
             <div className={row}>
@@ -117,7 +117,7 @@ export default async function PrintOrderPage({ params }: { params: Promise<{ id:
             </div>
           </div>
           <div>
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1 mt-4 sm:mt-0 print:mt-0">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1 mt-4 sm:mt-0 print:mt-0">
               Vehículo
             </h2>
             <div className={row}>
@@ -143,7 +143,7 @@ export default async function PrintOrderPage({ params }: { params: Promise<{ id:
 
         {/* Trabajo y estado al ingreso */}
         <section className="mt-5">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
             Trabajo solicitado
           </h2>
           <p className="text-sm whitespace-pre-wrap border border-slate-200 rounded-lg p-3">
@@ -152,7 +152,7 @@ export default async function PrintOrderPage({ params }: { params: Promise<{ id:
         </section>
         {reception?.detail && (
           <section className="mt-4">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
               Estado del vehículo al ingreso
             </h2>
             <p className="text-sm whitespace-pre-wrap border border-slate-200 rounded-lg p-3">
@@ -164,12 +164,12 @@ export default async function PrintOrderPage({ params }: { params: Promise<{ id:
         {/* Presupuesto */}
         {items.length > 0 && (
           <section className="mt-5">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
               Presupuesto
             </h2>
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs uppercase tracking-wider text-slate-400 border-b border-slate-300">
+                <tr className="text-left text-xs uppercase tracking-wider text-slate-500 border-b border-slate-300">
                   <th className="py-1.5 pr-2 font-semibold">Concepto</th>
                   <th className="py-1.5 px-2 font-semibold text-right">Cant.</th>
                   <th className="py-1.5 pl-2 font-semibold text-right">Importe</th>
@@ -216,7 +216,7 @@ export default async function PrintOrderPage({ params }: { params: Promise<{ id:
                 </tr>
               </tfoot>
             </table>
-            <p className="text-[11px] text-slate-400 mt-1">
+            <p className="text-[11px] text-slate-500 mt-1">
               Presupuesto sujeto a diagnóstico; cualquier trabajo adicional se consulta antes con el
               cliente.
             </p>
@@ -237,7 +237,7 @@ export default async function PrintOrderPage({ params }: { params: Promise<{ id:
               Código de acceso: <b className="plate-badge">{order.tracking_code}</b>
             </span>
           </div>
-          <p className="text-[11px] text-slate-400 mt-2">
+          <p className="text-[11px] text-slate-500 mt-2">
             Con la placa ves el avance; con el código de acceso ves también anotaciones, fotos y
             presupuesto. Guarda este comprobante.
           </p>
@@ -247,14 +247,14 @@ export default async function PrintOrderPage({ params }: { params: Promise<{ id:
         <section className="mt-10 print:mt-14 grid grid-cols-2 gap-10">
           <div className="border-t border-slate-400 pt-1.5 text-center">
             <p className="text-xs text-slate-500">Firma del cliente</p>
-            <p className="text-[11px] text-slate-400">{order.client_name}</p>
+            <p className="text-[11px] text-slate-500">{order.client_name}</p>
           </div>
           <div className="border-t border-slate-400 pt-1.5 text-center">
             <p className="text-xs text-slate-500">Por el taller</p>
-            <p className="text-[11px] text-slate-400">{me.name}</p>
+            <p className="text-[11px] text-slate-500">{me.name}</p>
           </div>
         </section>
-        <p className="text-[10px] text-slate-400 mt-6 text-center">
+        <p className="text-[10px] text-slate-500 mt-6 text-center">
           El cliente autoriza la revisión y los trabajos descritos. El taller no se hace responsable
           por objetos de valor no declarados al momento de la recepción.
         </p>

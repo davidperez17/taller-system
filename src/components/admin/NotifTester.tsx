@@ -161,7 +161,7 @@ export default function NotifTester({
                         <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide truncate">
                           San Miguel 96
                         </span>
-                        <span className="text-[11px] text-slate-400 shrink-0">ahora</span>
+                        <span className="text-[11px] text-slate-500 shrink-0">ahora</span>
                       </div>
                       <p className="text-sm font-semibold text-slate-800 mt-0.5">{title}</p>
                       <p className="text-xs text-slate-500 mt-0.5">{preset.body}</p>
@@ -169,7 +169,7 @@ export default function NotifTester({
                   </div>
                 </div>
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-medium text-slate-400">{preset.label}</span>
+                  <span className="text-xs font-medium text-slate-500">{preset.label}</span>
                   <button
                     type="button"
                     onClick={() => sendClient(preset)}
@@ -244,7 +244,7 @@ export default function NotifTester({
               <button
                 onClick={() => dismiss(t.id)}
                 aria-label="Cerrar"
-                className="p-1 rounded-md text-slate-400 hover:bg-slate-100 shrink-0"
+                className="p-1 rounded-md text-slate-500 hover:bg-slate-100 shrink-0"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -253,7 +253,7 @@ export default function NotifTester({
         ))}
       </div>
 
-      <p className="flex items-center gap-2 text-xs text-slate-400">
+      <p className="flex items-center gap-2 text-xs text-slate-500">
         <BellRing className="w-3.5 h-3.5" aria-hidden="true" />
         Todos los avisos de esta pantalla son de demostración. No cambian ninguna orden real.
       </p>
