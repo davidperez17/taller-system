@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 // marcar cuántas novedades hay sin ver.
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 35,
+    date: "2026-07-27",
+    title: "Instalar la app también desde el seguimiento",
+    description:
+      "El botón «Instalar la app» ya no está solo en la página de inicio: ahora también aparece en la pantalla de seguimiento, que es a la que el cliente vuelve una y otra vez mientras su carro está en el taller. En Android instala de una; en iPhone abre los pasos (Compartir → Agregar a inicio). Se oculta solo cuando el cliente ya la tiene instalada.",
+  },
+  {
     id: 34,
     date: "2026-07-27",
     title: "Avisos del cliente: el ofrecimiento vuelve, no se pierde",

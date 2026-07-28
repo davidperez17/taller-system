@@ -12,6 +12,8 @@ import { STATUS_FLOW, STATUS_META, type OrderStatus, formatMoney, formatDate, fo
 import type { TrackingResult } from "@/lib/tracking";
 import type { PublicAnnouncement } from "@/lib/announcements";
 import { subscribeToPush, saveVehicle, getSavedVehicles, registerSW } from "./pwa";
+import InstallButton from "@/components/InstallButton";
+import brand from "@/lib/brand.json";
 import Novedades from "./Novedades";
 
 const VEHICLE_ICON: Record<string, typeof Car> = { auto: Car, moto: Bike, camion: Truck, otro: Wrench };
@@ -305,6 +307,14 @@ export default function TrackingClient({
             </>
           )}
         </button>
+        {/* Instalar la app también desde el seguimiento: es la pantalla a la que
+            el cliente vuelve. El botón se oculta solo si ya está instalada. */}
+        <InstallButton
+          appName={brand.clientAppName}
+          label="Instalar la app"
+          tone="subtle"
+          className={`text-sm ${data.detailed ? "col-span-2" : ""}`}
+        />
       </section>
       {notifState === "denied" && (
         <div className="text-xs text-sm-warn bg-sm-warn-bg border border-sm-warn-border rounded-xl px-3 py-2.5 -mt-3">

@@ -16,7 +16,7 @@ declare global {
   }
 }
 
-type Tone = "primary" | "onDark";
+type Tone = "primary" | "onDark" | "subtle";
 type Variant = "button" | "menu";
 
 const TONES: Record<Tone, string> = {
@@ -24,6 +24,10 @@ const TONES: Record<Tone, string> = {
     "bg-sm-red hover:bg-sm-red-hover active:bg-sm-red-active text-white shadow-sm",
   onDark:
     "bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur",
+  // Secundario sobre fondo claro: no compite con la acción principal de la
+  // pantalla (en el seguimiento, activar los avisos).
+  subtle:
+    "bg-white hover:bg-sm-bg text-sm-graphite border border-sm-border shadow-sm",
 };
 
 export default function InstallButton({
