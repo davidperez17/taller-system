@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 // marcar cuántas novedades hay sin ver.
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 34,
+    date: "2026-07-27",
+    title: "Avisos del cliente: el ofrecimiento vuelve, no se pierde",
+    description:
+      "En la página de seguimiento, cuando al cliente le aparece el aviso «Activa los avisos de tu vehículo» y toca «Ahora no», antes desaparecía para siempre en ese teléfono y ya no se le volvía a ofrecer. Ahora solo se pospone: al día siguiente vuelve a aparecer. Y si el cliente le dio «No permitir» al navegador —ahí el navegador ya no deja volver a preguntar desde la página—, el seguimiento se lo dice claro y le muestra los pasos para reactivarlo en iPhone y en Android/computadora, en vez del mensaje suelto de antes. El botón «Avisarme de cambios» sigue siempre a la mano.",
+  },
+  {
     id: 33,
     date: "2026-07-20",
     title: "Reclamos: lleva el control de repuestos malos y trabajos rehechos",

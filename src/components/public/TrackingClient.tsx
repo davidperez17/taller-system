@@ -16,6 +16,10 @@ import Novedades from "./Novedades";
 
 const VEHICLE_ICON: Record<string, typeof Car> = { auto: Car, moto: Bike, camion: Truck, otro: Wrench };
 
+// Cuánto se pospone el pop de avisos cuando el cliente da "Ahora no". Vuelve a
+// ofrecerse pasado ese tiempo en lugar de desaparecer para siempre.
+const POP_SNOOZE_MS = 24 * 60 * 60 * 1000;
+
 export default function TrackingClient({
   initial,
   initialCode,
@@ -35,6 +39,7 @@ export default function TrackingClient({
   const [notifState, setNotifState] = useState<"idle" | "loading" | "on" | "denied">("idle");
   const [savedLocal, setSavedLocal] = useState(false);
   const [showNotifPop, setShowNotifPop] = useState(false);
+  const [showBlockedHelp, setShowBlockedHelp] = useState(false);
   const codeRef = useRef(code);
   codeRef.current = code;
 
@@ -71,6 +76,10 @@ export default function TrackingClient({
     setSavedLocal(getSavedVehicles().some((v) => v.plate === data.plate));
     if (typeof Notification !== "undefined" && Notification.permission === "granted") {
       setNotifState("on");
+    } else if (typeof Notification !== "undefined" && Notification.permission === "denied") {
+      // El cliente ya dijo "No permitir" en el navegador: se sabe desde el
+      // arranque, sin esperar a un intento de suscripción que siempre falla.
+      setNotifState("denied");
     }
 
     const poll = setInterval(() => {
@@ -109,16 +118,32 @@ export default function TrackingClient({
 
   async function enableNotifications() {
     if (!codeRef.current) return; // el botón solo se muestra en modo detallado
+    // El navegador solo pregunta una vez: si el cliente eligió "No permitir",
+    // requestPermission() se rechaza sola y no hay forma de volver a preguntar
+    // desde la página. En ese caso se explica cómo reactivarlo a mano.
+    if (typeof Notification !== "undefined" && Notification.permission === "denied") {
+      setNotifState("denied");
+      setShowBlockedHelp(true);
+      return;
+    }
     setNotifState("loading");
     const ok = await subscribeToPush(data.plate, codeRef.current);
     setNotifState(ok ? "on" : "denied");
+    if (!ok) {
+      setShowBlockedHelp(
+        typeof Notification !== "undefined" && Notification.permission === "denied"
+      );
+    }
   }
 
   const popKey = `sm96_notif_pop_${data.plate}`;
   function dismissNotifPop() {
     setShowNotifPop(false);
     try {
-      localStorage.setItem(popKey, "1"); // no volver a molestar en este equipo
+      // Descartar POSPONE, no calla para siempre: se guarda la hora y el pop
+      // vuelve a ofrecerse pasado POP_SNOOZE_MS. Antes se guardaba "1" y el
+      // cliente que daba "Ahora no" nunca volvía a ver la propuesta.
+      localStorage.setItem(popKey, String(Date.now()));
     } catch {
       /* localStorage bloqueado (modo privado): se acepta perder la preferencia */
     }
@@ -130,14 +155,18 @@ export default function TrackingClient({
 
   // Pop proactivo para activar avisos. Solo en modo detallado (hay código para
   // suscribir la placa), si el permiso aún no se decidió y el cliente no lo
-  // descartó antes. Un pequeño retraso para que no aparezca de golpe al cargar.
+  // pospuso hace poco. Un pequeño retraso para que no aparezca de golpe al cargar.
   useEffect(() => {
     if (!data.detailed) return;
     if (typeof window === "undefined" || !("Notification" in window) || !("PushManager" in window)) return;
     if (Notification.permission !== "default") return; // ya concedido o bloqueado: no molestar
     if (notifState === "on" || notifState === "loading") return;
     try {
-      if (localStorage.getItem(popKey) === "1") return;
+      const raw = localStorage.getItem(popKey);
+      const since = raw ? Number(raw) : 0;
+      // Los descartes viejos se guardaban como "1": quedan fuera de la ventana
+      // y el pop reaparece, que es justo lo que se busca.
+      if (since > 0 && Date.now() - since < POP_SNOOZE_MS) return;
     } catch {
       /* localStorage bloqueado: se muestra igual */
     }
@@ -278,9 +307,35 @@ export default function TrackingClient({
         </button>
       </section>
       {notifState === "denied" && (
-        <p className="text-xs text-sm-warn bg-sm-warn-bg border border-sm-warn-border rounded-xl px-3 py-2 -mt-3">
-          No se pudieron activar las notificaciones. Revisa los permisos de tu navegador.
-        </p>
+        <div className="text-xs text-sm-warn bg-sm-warn-bg border border-sm-warn-border rounded-xl px-3 py-2.5 -mt-3">
+          <p className="font-semibold">Los avisos están bloqueados en este equipo.</p>
+          <p className="mt-1">
+            El navegador solo pregunta una vez y aquí se eligió no permitirlos. Se vuelven a
+            activar desde los ajustes del teléfono.
+          </p>
+          <button
+            onClick={() => setShowBlockedHelp((v) => !v)}
+            className="mt-1.5 font-semibold underline underline-offset-2 cursor-pointer"
+            aria-expanded={showBlockedHelp}
+          >
+            {showBlockedHelp ? "Ocultar" : "Ver cómo activarlos"}
+          </button>
+          {showBlockedHelp && (
+            <ul className="mt-2 space-y-1.5 list-disc pl-4">
+              <li>
+                <span className="font-semibold">iPhone:</span> Ajustes → Notificaciones → busca
+                Multiservicios San Miguel 96 → Permitir notificaciones. Si abriste esta página en
+                Safari, primero agrégala a la pantalla de inicio (Compartir → Agregar a inicio) y
+                entra desde ahí.
+              </li>
+              <li>
+                <span className="font-semibold">Android / computadora:</span> toca el candado que
+                está junto a la dirección de esta página → Permisos (o Configuración del sitio) →
+                Notificaciones → Permitir. Luego recarga y vuelve a tocar «Avisarme de cambios».
+              </li>
+            </ul>
+          )}
+        </div>
       )}
 
       {/* Pop proactivo para activar avisos (solo en modo detallado). */}
