@@ -53,6 +53,25 @@
   --color-sm-warn-hover: #96460b;
   --color-sm-warn-bg: #fff7ed;
   --color-sm-warn-border: #fed7aa;
+
+  /* Semáforo de satisfacción post-entrega (v18). La paleta pública no tenía azul
+     y su ámbar (#b45309) es demasiado oscuro para leerse como "amarillo de
+     semáforo", así que estos tonos viven aparte y SOLO los usan los componentes
+     csat. Contraste medido sobre blanco:
+       csat-exc     #15803d → 5.02:1 ✔  (rasgos BLANCOS sobre el disco: 5.02:1 ✔)
+       csat-bien    #2563eb → 5.17:1 ✔  (rasgos BLANCOS sobre el disco: 5.17:1 ✔)
+       csat-reg     #f2b705 → 1.82:1 ✘  como gráfico suelto; por eso sus rasgos
+                    van en GRAFITO (9.34:1 ✔) y el aro/estrellas usan -ink
+       csat-reg-ink #a16207 → 4.92:1 ✔  (estrellas, aro del disco, borde elegido)
+       csat-mal     #c8102e → 5.88:1 ✔  (rasgos BLANCOS sobre el disco: 5.88:1 ✔)
+     Las etiquetas ("Excelente", "Bueno"…) van SIEMPRE en sm-graphite (16:1): el
+     color nunca es el único portador del significado (WCAG 1.4.1) y todo objeto
+     gráfico supera 3:1 (WCAG 1.4.11). */
+  --color-csat-exc: #15803d;
+  --color-csat-bien: #2563eb;
+  --color-csat-reg: #f2b705;
+  --color-csat-reg-ink: #a16207;
+  --color-csat-mal: #c8102e;
 }
 
 /* Cuerpo de las páginas públicas: Barlow (headings siguen en Barlow Condensed

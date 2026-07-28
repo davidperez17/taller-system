@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, ClipboardList, Users, Car, UserCog, ExternalLink,
   Boxes, BarChart3, Bell, MoreHorizontal, X, BellRing, Wallet, Hammer, Receipt,
-  Megaphone, History, FileText, ShieldAlert,
+  Megaphone, History, FileText, ShieldAlert, Smile,
 } from "lucide-react";
 import type { SessionUser } from "@/lib/auth";
 import type { ActivityItem } from "@/lib/activity-meta";
@@ -44,6 +44,8 @@ const NAV: NavItem[] = [
     noMechanic: true,
     alertKey: "reclamos",
   },
+  // Junto a Reclamos: los dos son voz del cliente y comparten el gate de rol.
+  { href: "/admin/satisfaccion", label: "Satisfacción", icon: Smile, noMechanic: true },
   { href: "/admin/inventario", label: "Inventario", icon: Boxes, alertKey: "inventario" },
   { href: "/admin/servicios", label: "Servicios", icon: Hammer },
   { href: "/admin/reportes", label: "Reportes", icon: BarChart3, adminOnly: true },

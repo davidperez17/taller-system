@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 // marcar cuántas novedades hay sin ver.
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 37,
+    date: "2026-07-28",
+    title: "El cliente califica el servicio y el taller ve qué opinan",
+    description:
+      "Cuando pasas una orden a «Entregado», al cliente le aparece en su página de seguimiento una tarjeta para calificar cómo lo atendimos: cuatro caritas de colores —Excelente, Bueno, Regular y Malo— con sus estrellas, toca una y listo. Si califica Regular o Malo se le pregunta qué falló (la atención, el tiempo de entrega, el precio, la calidad del trabajo u otro) y puede escribir un comentario; si califica bien, el comentario es opcional. Solo se puede calificar una vez y hace falta el código de acceso, así que la opinión es de verdad del dueño del carro. En cuanto entregas, al cliente le llega al teléfono la invitación a calificar con el enlace ya listo, y en la orden hay un botón nuevo «Pedir calificación» que abre WhatsApp con el mensaje escrito por si prefieres pedírselo tú. Del lado del taller hay un apartado nuevo, «Satisfacción», con el promedio, cuántos respondieron de las entregas del período, el porcentaje de excelentes, cómo se reparten los cuatro niveles y el listado de cada respuesta con su comentario y un botón para escribirle al cliente; el filtro de fechas es el mismo de Reportes. En Inicio aparece el promedio de los últimos 30 días y un aviso rojo si alguien calificó Regular o Malo, y en cada orden se ve la calificación de ese cliente con lo que escribió. Además, si alguien califica Regular o Malo, al administrador y al asesor les llega un aviso al teléfono para llamarlo el mismo día. Lo ven el administrador y el asesor; el mecánico no, igual que con Reclamos.",
+  },
+  {
     id: 36,
     date: "2026-07-27",
     title: "El cliente siempre puede aprobar, rechazar o hablar con un asesor",

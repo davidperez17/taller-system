@@ -354,8 +354,14 @@ export async function updateOrderStatusAction(formData: FormData) {
   // Cancelar exige motivo: se registra en la línea de tiempo y se notifica.
   if (status === "cancelado" && !note) return;
 
-  const order = await one<{ id: number; status: string; folio: string; plate: string }>(
-    `SELECT o.id, o.status, o.folio, v.plate FROM orders o
+  const order = await one<{
+    id: number;
+    status: string;
+    folio: string;
+    plate: string;
+    tracking_code: string;
+  }>(
+    `SELECT o.id, o.status, o.folio, o.tracking_code, v.plate FROM orders o
        JOIN vehicles v ON v.id = o.vehicle_id WHERE o.id = ?`,
     [orderId]
   );
@@ -375,10 +381,26 @@ export async function updateOrderStatusAction(formData: FormData) {
     [orderId, meta.client, note || meta.description, user.id]
   );
 
-  await sendPushToPlate(order.plate, {
-    title: `${order.plate}: ${meta.client}`,
-    body: note || meta.description,
-  });
+  // Al entregar, el aviso al cliente deja de ser un cambio de etapa más y se
+  // convierte en la invitación a calificar: es el único momento en que su opinión
+  // está fresca. Lleva el código en la URL para que caiga directo en el semáforo
+  // y no en el modo básico. No es una fuga: solo recibe este push quien ya
+  // demostró tener el código al suscribirse (ver /api/public/subscribe), y el
+  // payload viaja cifrado extremo a extremo. El texto del asesor (note) no se
+  // pierde: sigue publicado como el evento 'estado' que se acaba de insertar.
+  await sendPushToPlate(
+    order.plate,
+    status === "entregado"
+      ? {
+          title: `${order.plate}: ¡gracias por confiar en nosotros!`,
+          body: "Ya te entregamos tu vehículo. ¿Cómo te atendimos? Califícanos en un toque, nos ayuda a mejorar.",
+          url: `/seguimiento/${order.plate}?code=${order.tracking_code}#calificar`,
+        }
+      : {
+          title: `${order.plate}: ${meta.client}`,
+          body: note || meta.description,
+        }
+  );
 
   if (status === "listo") {
     await sendPushToStaff({

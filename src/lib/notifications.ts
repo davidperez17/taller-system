@@ -145,6 +145,15 @@ export const STAFF_NOTIFS = {
     title: "Presupuesto rechazado por el cliente",
     body: `El cliente rechazó el presupuesto de ${v.folio}. Contáctalo para acordar cómo seguir.`,
   }),
+  // Semáforo de satisfacción post-entrega: SOLO avisan las calificaciones bajas
+  // (Regular o Malo). Una queja se atiende hoy; un "Excelente" se lee en el
+  // panel cuando toque, sin interrumpir a nadie.
+  calificacion_baja: (v: { folio: string; nivel: string; motivos: string | null }) => ({
+    title: `Calificación ${v.nivel.toLowerCase()} de un cliente`,
+    body: `${v.folio}: el cliente calificó el servicio como ${v.nivel}.${
+      v.motivos ? ` Motivos: ${v.motivos}.` : ""
+    } Conviene llamarlo hoy.`,
+  }),
   // Presupuestos pre-orden (módulo Presupuestos, folio P-XXXX). Distintos de
   // aprobado/rechazado de arriba, que son la aprobación DENTRO de una orden.
   presupuesto_aprobado: (v: { folio: string; total: string; orden?: string | null }) => ({

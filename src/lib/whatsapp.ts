@@ -59,6 +59,16 @@ export const WA_TEMPLATES = {
     `Hola ${v.nombre}, le saludamos de ${brand.name}. ¿Qué le pareció el presupuesto ${v.folio} ` +
     `que le enviamos? Quedamos atentos por si tiene alguna duda o quiere que le expliquemos ` +
     `algún punto. Puede volver a verlo aquí: ${v.origin}/presupuesto/${v.folio}?code=${v.code}`,
+  // Invitación a calificar después de entregar. Va aparte de `listo`: aquel pide
+  // venir a recoger, este pide opinión, y el asesor lo manda el mismo día de la
+  // entrega o al siguiente. El ancla #calificar deja al cliente parado en el
+  // semáforo sin tener que buscarlo.
+  calificacion: (v: { nombre: string; placa: string; code: string; origin: string }) =>
+    `Hola ${v.nombre}, le saludamos de ${brand.name}. Ya le entregamos su vehículo placa ${v.placa} ` +
+    `y nos gustaría saber cómo le fue con nosotros. ¿Nos regala 10 segundos para calificar el servicio? ` +
+    `Solo toque la carita que mejor describa su experiencia, con su código *${v.code}* aquí: ` +
+    `${v.origin}${trackingUrl(v.placa)}?code=${v.code}#calificar — Su opinión nos ayuda a mejorar. ` +
+    `¡Muchas gracias por su confianza!`,
 } as const;
 
 // Único mensaje que escribe el CLIENTE, desde el bloque de decisión del

@@ -385,4 +385,39 @@ export const MIGRATIONS: string[][] = [
     `CREATE INDEX IF NOT EXISTS idx_claims_order ON claims(order_id)`,
     `CREATE INDEX IF NOT EXISTS idx_claims_status ON claims(status)`,
   ],
+  // v18 — semáforo de satisfacción post-entrega. El CLIENTE califica su servicio
+  // desde /seguimiento/[placa] cuando la orden queda en 'entregado', autenticado
+  // con el mismo tracking_code que ya usa para aprobar el presupuesto.
+  //
+  // UNA calificación por orden: order_id es UNIQUE. Neon por HTTP no da
+  // transacciones, así que la idempotencia anti-doble-envío se resuelve en una
+  // sola sentencia (INSERT ... SELECT ... ON CONFLICT (order_id) DO NOTHING
+  // RETURNING id): la guarda de "solo si está entregada" viaja en el SELECT y la
+  // de "solo una vez" en el índice único, sin ventana entre leer y escribir.
+  //
+  // ON DELETE CASCADE (y no SET NULL como en claims): la calificación no es
+  // historia financiera independiente, es una opinión SOBRE esta orden; sin la
+  // orden no significa nada y order_id es NOT NULL.
+  //
+  // Sin CHECK en rating (mismo criterio que orders.modality en v13, los
+  // descuentos en v16 y claims.type en v17): ADD CONSTRAINT no es idempotente.
+  // La whitelist 4/3/2/1 vive en status.ts (CSAT_LEVELS / isCsatRating).
+  //
+  // reasons: slugs separados por comas en un TEXT, no una tabla aparte —— con un
+  // solo INSERT la respuesta y sus motivos son atómicos sin transacción (con
+  // tabla hija una respuesta podría quedar huérfana de motivos si falla la
+  // segunda escritura), y el conteo por motivo sale igual de limpio con
+  // unnest(string_to_array(reasons, ',')).
+  [
+    `CREATE TABLE IF NOT EXISTS order_feedback (
+       id SERIAL PRIMARY KEY,
+       order_id INTEGER NOT NULL UNIQUE REFERENCES orders(id) ON DELETE CASCADE,
+       rating INTEGER NOT NULL,
+       reasons TEXT,
+       comment TEXT,
+       created_at TEXT NOT NULL DEFAULT to_char(now(),'YYYY-MM-DD HH24:MI:SS')
+     )`,
+    `CREATE INDEX IF NOT EXISTS idx_feedback_created ON order_feedback(created_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS idx_feedback_rating ON order_feedback(rating)`,
+  ],
 ];

@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   ClipboardList, Wrench, Ban, Wallet, CheckCircle2, XCircle, Bell, Pencil,
   FileText, FileCheck, FileX, Send, MessageCircle, ShieldAlert, ShieldCheck,
+  Star, Frown,
 } from "lucide-react";
 import {
   activityMeta, ACTIVITY_TONE_CLASS, type ActivityItem,
@@ -23,6 +24,8 @@ const ICONS: Record<string, typeof Bell> = {
   "message-circle": MessageCircle,
   "shield-alert": ShieldAlert,
   "shield-check": ShieldCheck,
+  star: Star,
+  frown: Frown,
 };
 
 // Fila de actividad reutilizable (dot de color + icono + título + autor·tiempo).

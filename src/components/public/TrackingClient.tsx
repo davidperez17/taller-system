@@ -17,6 +17,7 @@ import { waAdvisorLink } from "@/lib/whatsapp";
 import InstallButton from "@/components/InstallButton";
 import brand from "@/lib/brand.json";
 import Novedades from "./Novedades";
+import FeedbackCard from "./FeedbackCard";
 
 const VEHICLE_ICON: Record<string, typeof Car> = { auto: Car, moto: Bike, camion: Truck, otro: Wrench };
 
@@ -163,8 +164,12 @@ export default function TrackingClient({
   // Pop proactivo para activar avisos. Solo en modo detallado (hay código para
   // suscribir la placa), si el permiso aún no se decidió y el cliente no lo
   // pospuso hace poco. Un pequeño retraso para que no aparezca de golpe al cargar.
+  const askingCsat = data.order?.status === "entregado" && !data.feedback;
   useEffect(() => {
     if (!data.detailed) return;
+    // Con la calificación pendiente el pop se calla: una sola petición a la vez,
+    // y la que importa al entregar es la del semáforo.
+    if (askingCsat) return;
     if (typeof window === "undefined" || !("Notification" in window) || !("PushManager" in window)) return;
     if (Notification.permission !== "default") return; // ya concedido o bloqueado: no molestar
     if (notifState === "on" || notifState === "loading") return;
@@ -179,7 +184,7 @@ export default function TrackingClient({
     }
     const t = setTimeout(() => setShowNotifPop(true), 1500);
     return () => clearTimeout(t);
-  }, [data.detailed, notifState, popKey]);
+  }, [data.detailed, askingCsat, notifState, popKey]);
 
   function handleSave() {
     saveVehicle({ plate: data.plate, label: vehicleLabel(data), code: code || undefined });
@@ -271,6 +276,18 @@ export default function TrackingClient({
           )}
         </div>
       </section>
+
+      {/* Semáforo de satisfacción: solo con código (la calificación se autentica
+          con el tracking_code) y solo con la orden entregada. Si ya calificó, la
+          tarjeta se queda en "gracias" aunque la orden retroceda de estado. */}
+      {data.detailed && (order.status === "entregado" || data.feedback) && (
+        <FeedbackCard
+          plate={data.plate}
+          code={codeRef.current}
+          initial={data.feedback ?? null}
+          onSent={() => refresh()}
+        />
+      )}
 
       {/* Acciones — activar avisos requiere el código (propiedad de la orden) */}
       <section className={`grid gap-3 ${data.detailed ? "grid-cols-2" : "grid-cols-1"}`}>
@@ -694,6 +711,7 @@ export default function TrackingClient({
             Con el código de acceso de tu orden de servicio puedes ver las anotaciones del
             taller, el presupuesto, el diagnóstico y tu historial de visitas, y activar
             las notificaciones.
+            {order.status === "entregado" && " También puedes calificar el servicio que te dimos."}
           </p>
           <form onSubmit={unlockDetail} className="mt-3 flex gap-2">
             <label htmlFor="access-code" className="sr-only">

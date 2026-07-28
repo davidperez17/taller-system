@@ -16,7 +16,9 @@ export type ActivityType =
   | "presupuesto_aprobado"
   | "presupuesto_rechazado"
   | "reclamo_nuevo"
-  | "reclamo_resuelto";
+  | "reclamo_resuelto"
+  | "calificacion"
+  | "calificacion_baja";
 
 export type ActivityTone = "blue" | "green" | "amber" | "red" | "violet" | "slate";
 
@@ -50,6 +52,10 @@ export const ACTIVITY_META: Record<
   // Módulo Reclamos (pérdidas por repuesto defectuoso o trabajo mal hecho).
   reclamo_nuevo: { label: "Reclamo registrado", tone: "red", icon: "shield-alert" },
   reclamo_resuelto: { label: "Reclamo resuelto", tone: "green", icon: "shield-check" },
+  // Semáforo de satisfacción post-entrega (v18). Se separan en dos tipos para
+  // que la bitácora se pueda filtrar por "las que hay que atender".
+  calificacion: { label: "Calificación del cliente", tone: "green", icon: "star" },
+  calificacion_baja: { label: "Calificación baja", tone: "red", icon: "frown" },
 };
 
 // Fallback para tipos desconocidos (compatibilidad hacia adelante).

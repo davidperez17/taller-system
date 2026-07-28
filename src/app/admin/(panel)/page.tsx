@@ -13,6 +13,7 @@ import {
   StatusBadge, PlateBadge, VehicleTypeIcon, PageTitle, card, btnPrimary, btnSecondary,
 } from "@/components/admin/ui";
 import ActivityRow from "@/components/admin/ActivityRow";
+import CsatBadge from "@/components/admin/CsatBadge";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,9 @@ export default async function DashboardPage() {
   // (mismo gating que la nav), así que tampoco se le ofrece el atajo.
   const user = await getSessionUser();
   const canQuote = user?.role !== "mecanico";
+  // La satisfacción es voz del cliente (mismo gate que Reclamos): el mecánico no
+  // la ve, y la consulta ni siquiera se paga en su panel.
+  const canSeeCsat = user?.role !== "mecanico";
 
   const active = (await one<{ n: number }>(
     "SELECT COUNT(*)::int AS n FROM orders WHERE status NOT IN ('entregado','cancelado')"
@@ -38,6 +42,18 @@ export default async function DashboardPage() {
        WHERE o.status = 'entregado'
        AND substr(o.delivered_at, 1, 7) = to_char(now(), 'YYYY-MM')`
   ))!;
+
+  // created_at es TEXT 'YYYY-MM-DD HH:MM:SS' en UTC: la comparación lexicográfica
+  // contra el mismo formato es correcta.
+  const csat = canSeeCsat
+    ? (await one<{ n: number; promedio: number; bajas: number }>(
+        `SELECT COUNT(*)::int AS n,
+                COALESCE(AVG(rating), 0)::float8 AS promedio,
+                COALESCE(SUM(CASE WHEN rating <= 2 THEN 1 ELSE 0 END), 0)::int AS bajas
+           FROM order_feedback
+          WHERE created_at >= to_char(now() - interval '30 days', 'YYYY-MM-DD HH24:MI:SS')`
+      ))!
+    : { n: 0, promedio: 0, bajas: 0 };
 
   const byStatus = await many<{ status: OrderStatus; n: number }>(
     `SELECT status, COUNT(*)::int AS n FROM orders
@@ -157,6 +173,52 @@ export default async function DashboardPage() {
           ))}
         </div>
       </section>
+
+      {/* Satisfacción del cliente */}
+      {canSeeCsat && (
+        <section className={`${card} p-5`}>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="font-heading font-semibold text-lg text-slate-800 tracking-wide">
+              SATISFACCIÓN (30 DÍAS)
+            </h2>
+            <Link
+              href="/admin/satisfaccion"
+              className="text-sm font-medium text-sm-red hover:text-sm-red-hover"
+            >
+              Ver todo
+            </Link>
+          </div>
+          {csat.n === 0 ? (
+            <p className="mt-3 text-sm text-slate-500">
+              Nadie ha calificado todavía. Al pasar una orden a «Entregado» el cliente recibe la
+              invitación en su teléfono; también puedes pedírsela por WhatsApp desde la orden.
+            </p>
+          ) : (
+            <div className="mt-3 flex items-center gap-4 flex-wrap">
+              <CsatBadge rating={Math.max(1, Math.round(csat.promedio))} size="lg" />
+              <div>
+                <p className="text-2xl font-bold text-slate-900 tabular-nums font-heading tracking-wide">
+                  {csat.promedio.toFixed(1)} <span className="text-base text-slate-500">/ 4</span>
+                </p>
+                <p className="text-xs text-slate-500">
+                  {csat.n} calificaci{csat.n === 1 ? "ón" : "ones"} en los últimos 30 días
+                </p>
+              </div>
+              {csat.bajas > 0 && (
+                <Link
+                  href="/admin/satisfaccion?r=mes"
+                  className="ml-auto flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-800 hover:bg-red-100 transition-colors"
+                >
+                  <AlertTriangle className="w-4 h-4 shrink-0" aria-hidden="true" />
+                  <span>
+                    <b>{csat.bajas}</b> calificó Regular o Malo — conviene llamar
+                  </span>
+                </Link>
+              )}
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Actividad del equipo */}
       <section className={`${card} overflow-hidden`}>

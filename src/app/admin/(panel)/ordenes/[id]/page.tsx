@@ -2,12 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import {
-  ArrowLeft, MessageSquareText, MessageCircle, Wrench, Eye, EyeOff, Trash2, Phone, KeyRound, ExternalLink, Printer, FileDown, MapPin, ShieldAlert, Plus,
+  ArrowLeft, MessageSquareText, MessageCircle, Wrench, Eye, EyeOff, Trash2, Phone, KeyRound, ExternalLink, Printer, FileDown, MapPin, ShieldAlert, Plus, Smile,
 } from "lucide-react";
 import { waLink, WA_TEMPLATES } from "@/lib/whatsapp";
 import { one, many } from "@/lib/db";
 import {
-  STATUS_META, ROLES, CLAIM_TYPES, CLAIM_RESPONSIBLE, formatMoney, formatDate, formatDateShort,
+  STATUS_META, ROLES, CLAIM_TYPES, CLAIM_RESPONSIBLE, CSAT_REASONS, parseCsatReasons,
+  formatMoney, formatDate, formatDateShort,
   type OrderStatus,
 } from "@/lib/status";
 import {
@@ -23,6 +24,7 @@ import PhotoInput from "@/components/admin/PhotoInput";
 import StatusChangeForm from "@/components/admin/StatusChangeForm";
 import ConfirmSubmitButton from "@/components/admin/ConfirmSubmitButton";
 import EventDetailEditor from "@/components/admin/EventDetailEditor";
+import CsatBadge from "@/components/admin/CsatBadge";
 import ClaimList, { type ClaimListItem } from "@/components/admin/ClaimList";
 import {
   StatusBadge, PlateBadge, VehicleTypeIcon, PageTitle, card, btnPrimary, btnSecondary, inputCls, labelCls,
@@ -122,6 +124,19 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
       )
     : [];
   const claimsTotal = claims.reduce((s, c) => s + c.amount, 0);
+
+  // Calificación del cliente (semáforo post-entrega). Mismo gate que reclamos:
+  // es voz del cliente, no material del taller, y el mecánico no la ve.
+  const feedback = canClaim
+    ? await one<{
+        rating: number;
+        reasons: string | null;
+        comment: string | null;
+        created_at: string;
+      }>("SELECT rating, reasons, comment, created_at FROM order_feedback WHERE order_id = ?", [
+        order.id,
+      ])
+    : null;
   // Día actual en Guatemala (UTC-6) para el default de la fecha del reclamo.
   const todayGT = new Date(Date.now() - 6 * 3600_000).toISOString().slice(0, 10);
 
@@ -155,6 +170,9 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         "Presupuesto listo",
         WA_TEMPLATES.presupuesto({ ...base, total, code: order.tracking_code })
       );
+    } else if (order.status === "entregado" && !feedback) {
+      // Solo si todavía no calificó: pedirlo dos veces molesta.
+      push("Pedir calificación", WA_TEMPLATES.calificacion({ ...base, code: order.tracking_code }));
     } else if (order.status !== "cancelado") {
       push("Estado actual", WA_TEMPLATES.estado({ ...base, estado: meta.client }));
     }
@@ -682,6 +700,46 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
         {/* Columna lateral */}
         <div className="space-y-5">
+          {/* Calificación del cliente (semáforo post-entrega). Primera del aside
+              para que el asesor la vea sin bajar. */}
+          {canClaim && (feedback || order.status === "entregado") && (
+            <section className={`${card} p-5`}>
+              <h2 className="font-heading font-semibold text-slate-800 tracking-wide flex items-center gap-2">
+                <Smile className="w-4 h-4 text-sm-red" aria-hidden="true" /> CALIFICACIÓN DEL CLIENTE
+              </h2>
+              {feedback ? (
+                <>
+                  <div className="mt-3">
+                    <CsatBadge rating={feedback.rating} size="lg" />
+                  </div>
+                  {parseCsatReasons(feedback.reasons).length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {parseCsatReasons(feedback.reasons).map((r) => (
+                        <span
+                          key={r}
+                          className="text-[11px] font-medium bg-slate-100 text-slate-600 rounded-full px-2.5 py-1"
+                        >
+                          {CSAT_REASONS[r]}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {feedback.comment && (
+                    <p className="mt-3 text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 whitespace-pre-wrap">
+                      “{feedback.comment}”
+                    </p>
+                  )}
+                  <p className="mt-2 text-xs text-slate-500">{formatDate(feedback.created_at)}</p>
+                </>
+              ) : (
+                <p className="mt-2 text-sm text-slate-500">
+                  El cliente todavía no ha calificado. Ya le llegó la invitación al teléfono; si
+                  quieres, pídesela por WhatsApp con el botón «Pedir calificación».
+                </p>
+              )}
+            </section>
+          )}
+
           {/* Vehículo y cliente */}
           <section className={`${card} p-5`}>
             <div className="flex items-center gap-3">

@@ -151,6 +151,63 @@ export const CLAIM_RESPONSIBLE: Record<string, string> = {
   cliente: "Cliente",
 };
 
+// Semáforo de satisfacción post-entrega (v18). El cliente califica su servicio
+// desde /seguimiento/[placa] cuando la orden queda en 'entregado'.
+//
+// Los valores van de 4 (mejor) a 1 (peor) para que el promedio se lea como una
+// nota y el orden numérico sea el mismo orden visual (arriba lo bueno). Esta es
+// la whitelist: la tabla order_feedback no lleva CHECK (ver v18 en schema.ts).
+export type CsatRating = 1 | 2 | 3 | 4;
+
+export const CSAT_LEVELS: Record<
+  CsatRating,
+  { label: string; description: string; stars: number }
+> = {
+  // Las descripciones son cortas a propósito: en la fila del semáforo tienen una
+  // columna de ~20 caracteres y si envuelven a dos líneas la escalera queda
+  // despareja y deja de leerse de un vistazo.
+  4: { label: "Excelente", description: "Todo perfecto", stars: 4 },
+  3: { label: "Bueno", description: "Bien atendido", stars: 3 },
+  2: { label: "Regular", description: "Se puede mejorar", stars: 2 },
+  1: { label: "Malo", description: "No quedé conforme", stars: 1 },
+};
+
+// De mejor a peor: el orden en que se pintan las filas del semáforo.
+export const CSAT_ORDER: CsatRating[] = [4, 3, 2, 1];
+
+// Desde aquí hacia abajo se le piden motivos al cliente y se avisa al equipo.
+export const CSAT_LOW_MAX: CsatRating = 2;
+
+export function isCsatRating(n: unknown): n is CsatRating {
+  return n === 1 || n === 2 || n === 3 || n === 4;
+}
+
+export function isLowCsat(rating: number): boolean {
+  return rating <= CSAT_LOW_MAX;
+}
+
+// Motivos que se ofrecen SOLO cuando la calificación es Regular o Malo: sirven
+// para saber dónde falló sin obligar a escribir. Multi-selección; se guardan
+// como slugs separados por comas en order_feedback.reasons.
+export const CSAT_REASONS: Record<string, string> = {
+  atencion: "La atención",
+  tiempo: "El tiempo de entrega",
+  precio: "El precio",
+  calidad: "La calidad del trabajo",
+  otro: "Otro",
+};
+
+/** Parsea la columna reasons (CSV de slugs) descartando basura y duplicados. */
+export function parseCsatReasons(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  return [...new Set(raw.split(",").map((s) => s.trim()).filter((s) => s in CSAT_REASONS))];
+}
+
+/** Los motivos en texto legible, listos para un mensaje o un detalle. */
+export function csatReasonLabels(raw: string | null | undefined): string[] {
+  return parseCsatReasons(raw).map((r) => CSAT_REASONS[r]);
+}
+
 export const VEHICLE_TYPES: Record<string, string> = {
   auto: "Auto",
   moto: "Moto",

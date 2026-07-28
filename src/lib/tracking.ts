@@ -1,6 +1,6 @@
 import { createHash, timingSafeEqual } from "crypto";
 import { one, many, normalizePlate } from "./db";
-import { STATUS_FLOW, type OrderStatus, type OrderModality } from "./status";
+import { STATUS_FLOW, parseCsatReasons, type OrderStatus, type OrderModality } from "./status";
 import { totalsOf, type DiscountType } from "./totals";
 
 export type PublicEvent = {
@@ -60,6 +60,17 @@ export type TrackingResult = {
   total?: number;
   paid?: number;
   history?: { folio: string; status: OrderStatus; description: string; created_at: string }[];
+  // Calificación del cliente (semáforo post-entrega). SOLO en modo detallado:
+  //   undefined → modo básico, no se sabe (una opinión y su comentario son datos
+  //               del cliente; exponerlos por placa sería enumerable).
+  //   null      → detallado y todavía sin calificar.
+  //   objeto    → ya calificó; la tarjeta pasa a modo "gracias".
+  feedback?: {
+    rating: number;
+    reasons: string[];
+    comment: string | null;
+    created_at: string;
+  } | null;
 };
 
 // Comparación en tiempo constante sobre hashes (neutraliza también la
@@ -153,6 +164,18 @@ export async function getTracking(rawPlate: string, code?: string | null): Promi
     [order.id]
   );
 
+  // Se consulta siempre, no solo si está entregada: si la orden retrocediera de
+  // 'entregado' el cliente debe seguir viendo su "gracias" en vez de que
+  // desaparezca. Es un lookup por índice único; el sondeo de 25 s lo absorbe.
+  const fbRow = await one<{
+    rating: number;
+    reasons: string | null;
+    comment: string | null;
+    created_at: string;
+  }>("SELECT rating, reasons, comment, created_at FROM order_feedback WHERE order_id = ?", [
+    order.id,
+  ]);
+
   return {
     found: true,
     plate,
@@ -196,6 +219,14 @@ export async function getTracking(rawPlate: string, code?: string | null): Promi
          WHERE vehicle_id = ? AND id != ? ORDER BY created_at DESC LIMIT 10`,
       [vehicle.id, order.id]
     ),
+    feedback: fbRow
+      ? {
+          rating: fbRow.rating,
+          reasons: parseCsatReasons(fbRow.reasons),
+          comment: fbRow.comment,
+          created_at: fbRow.created_at,
+        }
+      : null,
   };
 }
 
