@@ -89,6 +89,7 @@ export function resolveRange(sp: {
 
 export const REPORT_METRICS = [
   "facturado",
+  "ticket",
   "cobrado",
   "margen",
   "gastos",
@@ -133,6 +134,10 @@ export type MetricDetail = {
   // lo decide la página con un if por nombre: así una métrica futura del mismo
   // tipo se comporta bien sin tocar el render.
   snapshot?: boolean;
+  // Rótulo del número grande cuando NO es una suma del período (p. ej. un
+  // promedio). Mismo criterio que `snapshot`: lo declara la métrica, la página
+  // solo lo pinta.
+  totalLabel?: string;
 };
 
 // Tope de filas listadas. El total SIEMPRE sale de un SUM aparte, así que
@@ -268,6 +273,98 @@ export async function loadMetricDetail(
       note: isMargin
         ? "El margen descuenta el costo registrado en cada ítem. Los ítems sin costo cuentan como costo 0 y suben el margen. Si la orden llevó descuento, se reparte entre sus conceptos."
         : "Solo cuentan las órdenes entregadas: una orden en curso todavía no factura. Lo facturado es neto de descuentos: si la orden llevó uno, aquí cuenta lo que se cobró, no la suma de los conceptos.",
+    };
+  }
+
+  // ---------- Ticket promedio ----------
+  //
+  // El número grande es un PROMEDIO, no una suma: facturado del período entre
+  // las órdenes entregadas. Se cuentan TODAS las entregadas —incluida alguna sin
+  // conceptos, que factura 0— para que el divisor sea el mismo que muestra la
+  // tarjeta de Facturado y los dos números no se contradigan.
+  if (metric === "ticket") {
+    const agg = (await one<{ total: number; n: number }>(
+      `SELECT COALESCE(SUM(i.net), 0)::float8 AS total,
+              (SELECT COUNT(*)::int FROM orders
+                WHERE status = 'entregado' AND substr(delivered_at, 1, 10) BETWEEN ? AND ?) AS n
+         FROM orders o JOIN ${ORDER_ITEM_NET_SQL} i ON i.order_id = o.id
+        WHERE o.status = 'entregado' AND substr(o.delivered_at, 1, 10) BETWEEN ? AND ?`,
+      [desde, hasta, desde, hasta]
+    ))!;
+    // Por tipo el divisor son las órdenes que LLEVARON ese tipo: dividir entre
+    // todas las entregadas daría "cuánto aporta cada línea al ticket", que es
+    // otra pregunta.
+    const kinds = await many<{ kind: string; total: number; n: number }>(
+      `SELECT i.kind,
+              COALESCE(SUM(i.net), 0)::float8 AS total,
+              COUNT(DISTINCT o.id)::int AS n
+         FROM orders o JOIN ${ORDER_ITEM_NET_SQL} i ON i.order_id = o.id
+        WHERE o.status = 'entregado' AND substr(o.delivered_at, 1, 10) BETWEEN ? AND ?
+        GROUP BY i.kind`,
+      [desde, hasta]
+    );
+    const kind = (k: string) => kinds.find((r) => r.kind === k) ?? { total: 0, n: 0 };
+    const serv = kind("servicio");
+    const rep = kind("repuesto");
+    const avg = (total: number, n: number) => (n > 0 ? total / n : 0);
+    const rows = await many<{
+      id: number; folio: string; plate: string; client: string | null; delivered_at: string;
+      total: number; serv: number; rep: number;
+    }>(
+      `SELECT o.id, o.folio, v.plate, c.name AS client, o.delivered_at,
+              COALESCE(SUM(i.net), 0)::float8 AS total,
+              COALESCE(SUM(i.net) FILTER (WHERE i.kind = 'servicio'), 0)::float8 AS serv,
+              COALESCE(SUM(i.net) FILTER (WHERE i.kind = 'repuesto'), 0)::float8 AS rep
+         FROM orders o
+         JOIN vehicles v ON v.id = o.vehicle_id
+         LEFT JOIN clients c ON c.id = v.client_id
+         LEFT JOIN ${ORDER_ITEM_NET_SQL} i ON i.order_id = o.id
+        WHERE o.status = 'entregado' AND substr(o.delivered_at, 1, 10) BETWEEN ? AND ?
+        GROUP BY o.id, o.folio, v.plate, c.name, o.delivered_at
+        ORDER BY total DESC, o.delivered_at DESC, o.id DESC
+        LIMIT ${LIMIT}`,
+      [desde, hasta]
+    );
+    return {
+      label: "Ticket promedio",
+      description: "Cuánto deja en promedio cada orden entregada, y cuánto de eso es mano de obra o repuestos.",
+      total: avg(agg.total, agg.n),
+      totalLabel: "Promedio del período",
+      summary: [
+        { label: "Facturado", value: formatMoney(agg.total) },
+        { label: "Órdenes entregadas", value: String(agg.n) },
+        {
+          label: "Ticket en servicios",
+          value: `${formatMoney(avg(serv.total, serv.n))} · ${serv.n} órd.`,
+        },
+        {
+          label: "Ticket en repuestos",
+          value: `${formatMoney(avg(rep.total, rep.n))} · ${rep.n} órd.`,
+        },
+      ],
+      rows: rows.map((r) => ({
+        key: String(r.id),
+        title: `${r.folio} · ${r.plate}`,
+        subtitle: `${r.client ?? "Sin cliente"} · ${formatDateShort(r.delivered_at)}`,
+        // En porcentaje y no en quetzales: el monto ya va a la derecha, y la
+        // línea se corta con "…" en móvil si lleva dos cifras completas.
+        extra:
+          r.total <= 0
+            ? null
+            : r.rep <= 0
+              ? "Todo mano de obra"
+              : r.serv <= 0
+                ? "Todo repuestos"
+                : `${Math.round((r.serv / r.total) * 100)}% mano de obra · ${Math.round(
+                    (r.rep / r.total) * 100
+                  )}% repuestos`,
+        amount: r.total,
+        href: `/admin/ordenes/${r.id}`,
+      })),
+      countLabel: plural(agg.n, "orden entregada", "órdenes entregadas"),
+      truncated: Math.max(0, agg.n - rows.length),
+      emptyText: "No hay órdenes entregadas en este período.",
+      note: "Las órdenes van de mayor a menor ticket. Una orden que llevó servicios Y repuestos cuenta en los dos promedios de arriba, así que sumarlos no da el ticket general: cada uno responde \"cuando vendo esto, ¿de cuánto es la venta?\".",
     };
   }
 

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   Banknote, ClipboardList, TrendingUp, Wrench, Boxes, Wallet, HandCoins, Receipt, Users2, Scale,
-  MapPin, ChevronRight, ShieldAlert,
+  MapPin, ChevronRight, ShieldAlert, Ticket,
 } from "lucide-react";
 import { many, one } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
@@ -55,10 +55,13 @@ export default async function ReportsPage({
   const months = monthsBetween(desde, hasta);
 
   // Facturado y ganancia por mes y por tipo (servicio/repuesto), órdenes entregadas.
-  const kindRows = await many<{ ym: string; kind: string; total: number; profit: number }>(
+  // El COUNT es por mes y tipo, pero se puede sumar entre meses sin inflarse:
+  // una orden se entrega una sola vez, así que vive en un único 'ym'.
+  const kindRows = await many<{ ym: string; kind: string; total: number; profit: number; n: number }>(
     `SELECT substr(o.delivered_at, 1, 7) AS ym, i.kind,
             COALESCE(SUM(i.net), 0)::float8 AS total,
-            COALESCE(SUM(i.net - i.cost), 0)::float8 AS profit
+            COALESCE(SUM(i.net - i.cost), 0)::float8 AS profit,
+            COUNT(DISTINCT o.id)::int AS n
        FROM orders o JOIN ${ORDER_ITEM_NET_SQL} i ON i.order_id = o.id
       WHERE o.status = 'entregado' AND substr(o.delivered_at, 1, 10) BETWEEN ? AND ?
       GROUP BY ym, i.kind`,
@@ -200,12 +203,16 @@ export default async function ReportsPage({
   ))!;
 
   // Agregados del rango.
-  const byKind = { servicio: { total: 0, profit: 0 }, repuesto: { total: 0, profit: 0 } };
+  const byKind = {
+    servicio: { total: 0, profit: 0, n: 0 },
+    repuesto: { total: 0, profit: 0, n: 0 },
+  };
   const revByMonth = new Map<string, { total: number; profit: number }>();
   for (const r of kindRows) {
     const k = r.kind === "repuesto" ? "repuesto" : "servicio";
     byKind[k].total += r.total;
     byKind[k].profit += r.profit;
+    byKind[k].n += r.n;
     const acc = revByMonth.get(r.ym) ?? { total: 0, profit: 0 };
     acc.total += r.total;
     acc.profit += r.profit;
@@ -230,6 +237,10 @@ export default async function ReportsPage({
   const net = gross - expensesTotal - payrollRange - claimsTotal;
   const deliveredTotal = deliveredRows.reduce((s, r) => s + r.n, 0);
   const avgTicket = deliveredTotal > 0 ? facturado / deliveredTotal : 0;
+  // Ticket por línea de negocio: cada uno se divide entre las órdenes que
+  // LLEVARON ese tipo, no entre todas las entregadas. Una orden con servicios y
+  // repuestos cuenta en los dos, así que los dos tickets no suman el general.
+  const avgKind = (k: { total: number; n: number }) => (k.n > 0 ? k.total / k.n : 0);
 
   const deliveredByMonth = new Map(deliveredRows.map((r) => [r.ym, r.n]));
   const createdByMonth = new Map(createdRows.map((r) => [r.ym, r.n]));
@@ -255,7 +266,17 @@ export default async function ReportsPage({
       value: formatMoney(facturado),
       icon: Banknote,
       tone: "bg-sm-bg text-sm-red",
-      hint: `${deliveredTotal} órdenes entregadas · ticket ${formatMoney(avgTicket)}`,
+      hint: `${deliveredTotal} ${deliveredTotal === 1 ? "orden entregada" : "órdenes entregadas"} en el período`,
+    },
+    {
+      metric: "ticket",
+      label: "Ticket promedio",
+      value: formatMoney(avgTicket),
+      icon: Ticket,
+      tone: "bg-sky-50 text-sky-700",
+      hint: `Servicios ${formatMoney(avgKind(byKind.servicio))} · repuestos ${formatMoney(
+        avgKind(byKind.repuesto)
+      )}`,
     },
     {
       metric: "cobrado",

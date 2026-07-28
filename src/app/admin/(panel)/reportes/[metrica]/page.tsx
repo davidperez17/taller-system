@@ -50,7 +50,7 @@ export default async function ReportDetailPage({
       {/* Total + desglose de cabecera */}
       <section className={`${card} p-5`}>
         <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-          {detail.snapshot ? "Ahora mismo" : "Total del período"}
+          {detail.totalLabel ?? (detail.snapshot ? "Ahora mismo" : "Total del período")}
         </p>
         <p
           className={`text-3xl font-bold tabular-nums font-heading tracking-wide mt-1 ${

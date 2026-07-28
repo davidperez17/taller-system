@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 // marcar cuántas novedades hay sin ver.
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 38,
+    date: "2026-07-28",
+    title: "Reportes: el ticket promedio, y cuánto de él es mano de obra o repuestos",
+    description:
+      "En Reportes hay una tarjeta nueva, «Ticket promedio», junto a Facturado, Margen y las demás: cuánto deja en promedio cada orden entregada del período. Abajo trae los dos promedios que antes no existían en ningún lado —cuánto es de servicios (mano de obra) y cuánto de repuestos— así se ve de un vistazo si el taller vive del trabajo o de la venta de piezas. Se puede tocar para abrir el historial, con las órdenes entregadas ordenadas de mayor a menor ticket y, en cada una, cuánto fue servicio y cuánto repuesto: sirve para ver qué trabajos son los que de verdad levantan el promedio. Un detalle para leerlo bien: una orden que llevó servicios Y repuestos cuenta en los dos promedios, así que sumarlos no da el ticket general; cada uno responde «cuando vendo esto, ¿de cuánto es la venta?». La tarjeta de Facturado ya no repite el ticket, solo dice cuántas órdenes se entregaron.",
+  },
+  {
     id: 37,
     date: "2026-07-28",
     title: "El cliente califica el servicio y el taller ve qué opinan",
