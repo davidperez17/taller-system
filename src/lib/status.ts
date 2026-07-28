@@ -84,6 +84,21 @@ export const STATUS_META: Record<
 // (fotos + observaciones). Lo crean createOrderAction y lo lee la orden impresa.
 export const RECEPTION_EVENT_TITLE = "Estado del vehículo al ingreso";
 
+// Etapas en las que el cliente todavía puede aprobar o rechazar el presupuesto
+// de su orden: hasta antes de que empiece la reparación. Después el trabajo ya
+// se hizo y responder no tendría efecto. Aprobar lleva la orden a 'repuestos'
+// (ninguna de estas etapas va más adelante, así que nunca retrocede).
+export const CLIENT_DECISION_STATUSES: OrderStatus[] = [
+  "recibido",
+  "diagnostico",
+  "aprobacion",
+  "repuestos",
+];
+
+export function canClientDecide(status: string): boolean {
+  return CLIENT_DECISION_STATUSES.includes(status as OrderStatus);
+}
+
 // Ciclo de vida de un presupuesto pre-orden (módulo Presupuestos). No confundir
 // con orders.approval_status: aquí el presupuesto existe ANTES de la orden y al
 // aprobarse la genera. 'cancelado' sustituye al borrado (historial permanente).

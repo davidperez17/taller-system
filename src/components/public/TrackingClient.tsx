@@ -8,10 +8,12 @@ import {
   CheckCircle2, Circle, CircleDot, HelpCircle, KeyRound, MessageSquareText,
   RefreshCw, SearchX, Wrench, CalendarClock, Receipt, History, LockKeyhole, FileDown, MapPin, X,
 } from "lucide-react";
-import { STATUS_FLOW, STATUS_META, type OrderStatus, formatMoney, formatDate, formatDateShort } from "@/lib/status";
+import { STATUS_FLOW, STATUS_META, type OrderStatus, canClientDecide, formatMoney, formatDate, formatDateShort } from "@/lib/status";
 import type { TrackingResult } from "@/lib/tracking";
 import type { PublicAnnouncement } from "@/lib/announcements";
 import { subscribeToPush, saveVehicle, getSavedVehicles, registerSW } from "./pwa";
+import ApprovalDecision, { type Decision } from "./ApprovalDecision";
+import { waAdvisorLink } from "@/lib/whatsapp";
 import InstallButton from "@/components/InstallButton";
 import brand from "@/lib/brand.json";
 import Novedades from "./Novedades";
@@ -42,6 +44,9 @@ export default function TrackingClient({
   const [savedLocal, setSavedLocal] = useState(false);
   const [showNotifPop, setShowNotifPop] = useState(false);
   const [showBlockedHelp, setShowBlockedHelp] = useState(false);
+  // Con una confirmación de presupuesto abierta se esconde el pop de avisos:
+  // es fijo abajo y tapaba los botones de decisión.
+  const [deciding, setDeciding] = useState(false);
   const codeRef = useRef(code);
   codeRef.current = code;
 
@@ -211,7 +216,13 @@ export default function TrackingClient({
   const finished = order.status === "entregado" || order.status === "cancelado";
 
   return (
-    <Shell plate={data.plate} refreshing={refreshing} onRefresh={() => refresh()} announcements={announcements}>
+    <Shell
+      plate={data.plate}
+      refreshing={refreshing}
+      onRefresh={() => refresh()}
+      announcements={announcements}
+      notifPopVisible={showNotifPop && !deciding}
+    >
       {/* Tarjeta vehículo + estado actual */}
       <section className="bg-white rounded-2xl border border-sm-border shadow-sm overflow-hidden animate-slide-up">
         <div className="p-5 flex items-start gap-4">
@@ -349,7 +360,7 @@ export default function TrackingClient({
       )}
 
       {/* Pop proactivo para activar avisos (solo en modo detallado). */}
-      {showNotifPop && (
+      {showNotifPop && !deciding && (
         <div className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pointer-events-none">
           <div className="pointer-events-auto mx-auto max-w-md bg-white border border-sm-border shadow-xl rounded-2xl p-4 flex items-start gap-3 animate-slide-up">
             <div className="bg-sm-bg text-sm-red rounded-xl p-2 shrink-0" aria-hidden="true">
@@ -628,15 +639,18 @@ export default function TrackingClient({
             </div>
           )}
 
-          {/* Aprobación del presupuesto por el cliente */}
-          {order.status === "aprobacion" &&
+          {/* Aprobación del presupuesto por el cliente: en cualquier etapa
+              previa a la reparación, no solo en 'aprobacion'. */}
+          {canClientDecide(order.status) &&
             order.approval_status === "pendiente" &&
             (data.items?.length ?? 0) > 0 && (
               <ApprovalBox
                 plate={data.plate}
+                folio={order.folio}
                 code={codeRef.current}
                 total={data.total ?? 0}
                 onDone={() => refresh()}
+                onDecidingChange={setDeciding}
               />
             )}
           {order.approval_status === "aprobado" && order.approval_at && (
@@ -713,25 +727,25 @@ export default function TrackingClient({
   );
 }
 
-// Aprobar/rechazar presupuesto con confirmación de dos pasos.
+// Aprobar/rechazar el presupuesto de la orden. La UI de la decisión (y la
+// doble confirmación del rechazo) vive en ApprovalDecision, compartida con el
+// presupuesto pre-orden.
 function ApprovalBox({
   plate,
+  folio,
   code,
   total,
   onDone,
+  onDecidingChange,
 }: {
   plate: string;
+  folio: string;
   code: string;
   total: number;
   onDone: () => void;
+  onDecidingChange: (deciding: boolean) => void;
 }) {
-  const [confirming, setConfirming] = useState<"aprobado" | "rechazado" | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-
-  async function send(decision: "aprobado" | "rechazado") {
-    setBusy(true);
-    setError("");
+  async function decide(decision: Decision): Promise<string | null> {
     try {
       const res = await fetch(`/api/public/track/${plate}/approve`, {
         method: "POST",
@@ -740,73 +754,25 @@ function ApprovalBox({
       });
       if (res.ok) {
         onDone();
-      } else {
-        const json = await res.json().catch(() => ({}));
-        setError(json.error || "No se pudo enviar tu respuesta. Intenta de nuevo.");
-        setConfirming(null);
+        return null;
       }
+      const json = await res.json().catch(() => ({}));
+      return json.error || "No se pudo enviar tu respuesta. Intenta de nuevo.";
     } catch {
-      setError("Sin conexión. Intenta de nuevo.");
-      setConfirming(null);
-    } finally {
-      setBusy(false);
+      return "Sin conexión. Intenta de nuevo.";
     }
   }
 
   return (
-    <div className="mt-4 bg-sm-bg border border-sm-border rounded-xl p-4">
-      <p className="text-sm font-semibold text-sm-graphite">
-        ¿Autorizas la reparación por {formatMoney(total)}?
-      </p>
-      <p className="text-xs text-sm-muted mt-0.5">
-        Al aprobar, el taller continúa con los repuestos y la reparación.
-      </p>
-      {confirming ? (
-        <div className="mt-3">
-          <p className="text-sm font-medium text-sm-graphite">
-            {confirming === "aprobado"
-              ? `Confirma: apruebas el presupuesto de ${formatMoney(total)}.`
-              : "Confirma: rechazas este presupuesto."}
-          </p>
-          <div className="mt-2 flex gap-2">
-            <button
-              onClick={() => send(confirming)}
-              disabled={busy}
-              className={`flex-1 rounded-xl py-2.5 text-sm font-semibold text-white transition-colors cursor-pointer ${
-                confirming === "aprobado"
-                  ? "bg-sm-ok hover:bg-sm-ok-hover"
-                  : "bg-sm-warn hover:bg-sm-warn-hover"
-              }`}
-            >
-              {busy ? "Enviando…" : "Sí, confirmar"}
-            </button>
-            <button
-              onClick={() => setConfirming(null)}
-              disabled={busy}
-              className="flex-1 rounded-xl py-2.5 text-sm font-semibold bg-white border border-sm-border text-sm-muted hover:bg-sm-bg transition-colors cursor-pointer"
-            >
-              Volver
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="mt-3 flex gap-2">
-          <button
-            onClick={() => setConfirming("aprobado")}
-            className="flex-1 rounded-xl py-2.5 text-sm font-semibold bg-sm-ok hover:bg-sm-ok-hover text-white transition-colors cursor-pointer"
-          >
-            Aprobar presupuesto
-          </button>
-          <button
-            onClick={() => setConfirming("rechazado")}
-            className="flex-1 rounded-xl py-2.5 text-sm font-semibold bg-white border border-sm-border text-sm-muted hover:bg-sm-bg transition-colors cursor-pointer"
-          >
-            Rechazar
-          </button>
-        </div>
-      )}
-      {error && <p className="text-sm text-sm-red mt-2">{error}</p>}
-    </div>
+    <ApprovalDecision
+      total={total}
+      question={`¿Autorizas la reparación por ${formatMoney(total)}?`}
+      hint="Al aprobar, el taller continúa con los repuestos y la reparación."
+      rejectWarning="el taller detiene el trabajo de tu vehículo y se pondrá en contacto contigo para acordar cómo seguir."
+      advisorHref={waAdvisorLink(`la placa ${plate} (orden ${folio})`, total)}
+      onDecide={decide}
+      onDecidingChange={onDecidingChange}
+    />
   );
 }
 
@@ -846,12 +812,14 @@ function Shell({
   refreshing,
   onRefresh,
   announcements = [],
+  notifPopVisible = false,
 }: {
   children: React.ReactNode;
   plate: string;
   refreshing?: boolean;
   onRefresh?: () => void;
   announcements?: PublicAnnouncement[];
+  notifPopVisible?: boolean;
 }) {
   return (
     <div className="pub min-h-dvh bg-sm-bg flex flex-col">
@@ -898,6 +866,10 @@ function Shell({
       <footer className="text-center text-xs text-sm-faint pb-6">
         Placa consultada: <span className="font-semibold">{plate}</span>
       </footer>
+      {/* Colchón para que el pop de avisos (fijo abajo) nunca deje tapado el
+          final de la página: sin esto, al llegar al fondo el último bloque
+          —hoy la decisión del presupuesto— queda debajo del pop. */}
+      {notifPopVisible && <div aria-hidden="true" className="h-28 shrink-0" />}
     </div>
   );
 }

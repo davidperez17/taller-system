@@ -60,3 +60,15 @@ export const WA_TEMPLATES = {
     `que le enviamos? Quedamos atentos por si tiene alguna duda o quiere que le expliquemos ` +
     `algún punto. Puede volver a verlo aquí: ${v.origin}/presupuesto/${v.folio}?code=${v.code}`,
 } as const;
+
+// Único mensaje que escribe el CLIENTE, desde el bloque de decisión del
+// presupuesto ("Hablar con asesor"): quiere revisar repuestos o precio antes
+// de aprobar o rechazar. `referencia` identifica de qué habla (placa y orden,
+// o folio del presupuesto).
+export function waAdvisorLink(referencia: string, total: number): string {
+  const phone = brand.whatsapp || brand.phone;
+  const message =
+    `Hola, le escribo por ${referencia}. Tengo dudas sobre el presupuesto de ` +
+    `${formatMoney(total)} y quisiera revisarlo con un asesor antes de responder.`;
+  return waLink(phone, message) ?? `tel:${(phone || "").replace(/[^\d+]/g, "")}`;
+}

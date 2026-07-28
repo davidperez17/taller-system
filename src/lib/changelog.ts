@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 // marcar cuántas novedades hay sin ver.
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 36,
+    date: "2026-07-27",
+    title: "El cliente siempre puede aprobar, rechazar o hablar con un asesor",
+    description:
+      "Antes los botones de «Aprobar / Rechazar» solo salían si la orden estaba justo en la etapa «Esperando tu aprobación»: si el presupuesto se cargaba estando en recibido, diagnóstico o repuestos, el cliente lo veía pero no podía responder y no quedaba registro de nada. Ahora los botones aparecen en cualquier etapa previa a la reparación, y al aprobar la orden avanza sola a «Esperando repuestos», con su aviso al equipo y su línea en la bitácora. Desde reparación en adelante ya no se muestran: el trabajo ya se hizo. En los presupuestos pre-orden pasa lo mismo con los vencidos: antes se quedaban sin botones, ahora el cliente puede responderlos igual (se le avisa que el precio puede haber cambiado y que el taller se lo confirma). Rechazar ahora pide DOS confirmaciones, la segunda con la advertencia de que el taller detiene el trabajo, para que nadie rechace por error de un toque. Y debajo de las dos opciones hay un tercer camino, «Hablar con asesor»: abre WhatsApp con el mensaje ya escrito (placa, orden o folio y el monto) para que quien duda de un repuesto o del precio pregunte en vez de rechazar. Sigue visible durante las confirmaciones, que es justo cuando el cliente se arrepiente.",
+  },
+  {
     id: 35,
     date: "2026-07-27",
     title: "Instalar la app también desde el seguimiento",

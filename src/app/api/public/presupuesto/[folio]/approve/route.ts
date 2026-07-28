@@ -45,12 +45,9 @@ export async function POST(
   if (quote.status !== "pendiente") {
     return NextResponse.json({ error: "El presupuesto ya fue respondido" }, { status: 409 });
   }
-  if (quote.expired) {
-    return NextResponse.json(
-      { error: "El presupuesto venció. Contacta al taller para actualizarlo." },
-      { status: 409 }
-    );
-  }
+  // Un presupuesto vencido SÍ se puede responder: interesa el registro de la
+  // decisión (y que aprobar abra la orden). El total queda congelado como
+  // siempre, y el taller confirma el precio con el cliente antes de empezar.
   if (quote.items === 0) {
     return NextResponse.json({ error: "El presupuesto aún no tiene conceptos" }, { status: 409 });
   }

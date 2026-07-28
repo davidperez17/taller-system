@@ -4,15 +4,17 @@ import { verifyPlateCode } from "@/lib/tracking";
 import { sendPushToStaff } from "@/lib/push";
 import { STAFF_NOTIFS } from "@/lib/notifications";
 import { logActivity } from "@/lib/activity";
-import { formatMoney } from "@/lib/status";
+import { formatMoney, canClientDecide, CLIENT_DECISION_STATUSES } from "@/lib/status";
 import { ORDER_TOTALS_SQL } from "@/lib/totals";
 import { hitLimit, clientIp } from "@/lib/rate-limit";
 
 const NOW_SQL = "to_char(now(),'YYYY-MM-DD HH24:MI:SS')";
 
 // El cliente aprueba o rechaza el presupuesto de su orden, autenticado con el
-// tracking_code impreso. Aprobación avanza la orden a 'repuestos'; el rechazo
-// la deja en 'aprobacion' para que el taller decida (re-cotizar o cancelar).
+// tracking_code impreso. Se puede responder en cualquier etapa previa a la
+// reparación (CLIENT_DECISION_STATUSES), no solo en 'aprobacion': aprobar
+// avanza la orden a 'repuestos'; el rechazo la deja donde está para que el
+// taller decida (re-cotizar o cancelar).
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ placa: string }> }
@@ -40,8 +42,11 @@ export async function POST(
     "SELECT id, folio, status, approval_status FROM orders WHERE id = ?",
     [match.orderId]
   );
-  if (!order || order.status !== "aprobacion") {
-    return NextResponse.json({ error: "La orden no está en etapa de aprobación" }, { status: 409 });
+  if (!order || !canClientDecide(order.status)) {
+    return NextResponse.json(
+      { error: "La reparación ya está en marcha. Contacta al taller." },
+      { status: 409 }
+    );
   }
   if (order.approval_status !== "pendiente") {
     return NextResponse.json({ error: "El presupuesto ya fue respondido" }, { status: 409 });
@@ -59,8 +64,10 @@ export async function POST(
     const updated = await run(
       `UPDATE orders SET approval_status = 'aprobado', approval_at = ${NOW_SQL},
          approval_total = ?, status = 'repuestos', updated_at = ${NOW_SQL}
-       WHERE id = ? AND approval_status = 'pendiente' RETURNING id`,
-      [total, order.id]
+       WHERE id = ? AND approval_status = 'pendiente'
+         AND status IN (${CLIENT_DECISION_STATUSES.map(() => "?").join(",")})
+       RETURNING id`,
+      [total, order.id, ...CLIENT_DECISION_STATUSES]
     );
     if (updated.rowCount === 0) {
       return NextResponse.json({ error: "El presupuesto ya fue respondido" }, { status: 409 });
@@ -90,8 +97,10 @@ export async function POST(
     const updated = await run(
       `UPDATE orders SET approval_status = 'rechazado', approval_at = ${NOW_SQL},
          approval_total = ?, updated_at = ${NOW_SQL}
-       WHERE id = ? AND approval_status = 'pendiente' RETURNING id`,
-      [total, order.id]
+       WHERE id = ? AND approval_status = 'pendiente'
+         AND status IN (${CLIENT_DECISION_STATUSES.map(() => "?").join(",")})
+       RETURNING id`,
+      [total, order.id, ...CLIENT_DECISION_STATUSES]
     );
     if (updated.rowCount === 0) {
       return NextResponse.json({ error: "El presupuesto ya fue respondido" }, { status: 409 });

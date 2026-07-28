@@ -291,14 +291,19 @@ function QuoteView({ quote, code }: { quote: PublicQuote; code: string }) {
         )}
 
         {/* Decisión del cliente */}
-        {quote.status === "pendiente" && quote.items.length > 0 && !quote.expired && (
-          <QuoteApprovalClient folio={quote.folio} code={code} total={quote.total} />
-        )}
         {quote.status === "pendiente" && quote.expired && (
           <p className="mt-4 text-sm text-sm-warn bg-sm-bg border border-sm-border rounded-xl px-3 py-2.5">
-            Este presupuesto venció el {formatDay(quote.validUntil!)}. Contacta al taller para
-            actualizarlo: los precios pueden haber cambiado.
+            Este presupuesto venció el {formatDay(quote.validUntil!)}: los precios pueden haber
+            cambiado. Puedes responderlo igual y el taller te confirma antes de empezar.
           </p>
+        )}
+        {quote.status === "pendiente" && quote.items.length > 0 && (
+          <QuoteApprovalClient
+            folio={quote.folio}
+            code={code}
+            total={quote.total}
+            expired={quote.expired}
+          />
         )}
 
         {quote.items.length > 0 && (
