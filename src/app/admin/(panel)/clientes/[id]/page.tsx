@@ -1,15 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Plus, ChevronRight, MessageCircle } from "lucide-react";
+import { ArrowLeft, Plus, ChevronRight, MessageCircle, History } from "lucide-react";
 import { one, many } from "@/lib/db";
 import { waLink } from "@/lib/whatsapp";
+import { ORDER_TOTALS_SQL } from "@/lib/totals";
+import { CLOSED_DAY_SQL } from "@/lib/history";
 import brand from "@/lib/brand.json";
 import {
   updateClientAction, createVehicleAction, deleteClientAction, deleteVehicleAction,
 } from "@/app/admin/actions";
 import SubmitButton from "@/components/admin/SubmitButton";
 import { getSessionUser } from "@/lib/auth";
-import { formatDate } from "@/lib/status";
+import { formatDate, formatDateShort, formatMoney } from "@/lib/status";
 import { VEHICLE_TYPES } from "@/lib/status";
 import {
   StatusBadge, PlateBadge, VehicleTypeIcon, PageTitle, card, btnPrimary, btnSecondary, inputCls, labelCls,
@@ -38,15 +40,64 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
     [client.id]
   );
 
+  const canSeeMoney = me?.role !== "mecanico";
+  const closedDay = CLOSED_DAY_SQL("o");
+
   const orders = await many<{
     id: number; folio: string; status: string; description: string; updated_at: string;
-    plate: string; type: string;
+    plate: string; type: string; closed_day: string; total: number;
   }>(
-    `SELECT o.id, o.folio, o.status, o.description, o.updated_at, v.plate, v.type
-       FROM orders o JOIN vehicles v ON v.id = o.vehicle_id
+    `SELECT o.id, o.folio, o.status, o.description, o.updated_at, v.plate, v.type,
+            ${closedDay} AS closed_day, t.total
+       FROM orders o
+       JOIN vehicles v ON v.id = o.vehicle_id
+       JOIN ${ORDER_TOTALS_SQL} t ON t.order_id = o.id
        WHERE v.client_id = ? ORDER BY o.created_at DESC LIMIT 50`,
     [client.id]
   );
+
+  // Totales de TODA su historia, no solo de las 50 listadas: las canceladas no
+  // facturan, así que el dinero se cuenta solo sobre las entregadas.
+  const agg = (await one<{
+    ordenes: number; entregadas: number; abiertas: number; facturado: number; ultima: string | null;
+  }>(
+    `SELECT COUNT(*)::int AS ordenes,
+            COUNT(*) FILTER (WHERE o.status = 'entregado')::int AS entregadas,
+            COUNT(*) FILTER (WHERE o.status NOT IN ('entregado','cancelado'))::int AS abiertas,
+            COALESCE(SUM(t.total) FILTER (WHERE o.status = 'entregado'), 0)::float8 AS facturado,
+            MAX(${closedDay}) FILTER (WHERE o.status = 'entregado') AS ultima
+       FROM orders o
+       JOIN vehicles v ON v.id = o.vehicle_id
+       JOIN ${ORDER_TOTALS_SQL} t ON t.order_id = o.id
+      WHERE v.client_id = ?`,
+    [client.id]
+  ))!;
+
+  const tiles: { label: string; value: string; hint?: string }[] = [
+    {
+      label: "Visitas",
+      value: String(agg.entregadas),
+      hint:
+        agg.abiertas > 0
+          ? `${agg.abiertas} en curso · ${agg.ordenes} órdenes en total`
+          : `${agg.ordenes} ${agg.ordenes === 1 ? "orden" : "órdenes"} en total`,
+    },
+    {
+      label: "Última visita",
+      value: agg.ultima ? formatDateShort(agg.ultima) : "—",
+      hint: `${vehicles.length} vehículo${vehicles.length === 1 ? "" : "s"} registrado${vehicles.length === 1 ? "" : "s"}`,
+    },
+  ];
+  if (canSeeMoney) {
+    tiles.push(
+      { label: "Gasto histórico", value: formatMoney(agg.facturado), hint: "Facturado en sus entregas" },
+      {
+        label: "Ticket promedio",
+        value: formatMoney(agg.entregadas > 0 ? agg.facturado / agg.entregadas : 0),
+        hint: "Por orden entregada",
+      }
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -78,6 +129,20 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
         }
       />
 
+      <div className={`grid grid-cols-2 ${canSeeMoney ? "lg:grid-cols-4" : ""} gap-3`}>
+        {tiles.map((t) => (
+          <section key={t.label} className={`${card} p-4`}>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              {t.label}
+            </p>
+            <p className="font-heading text-xl lg:text-2xl font-bold text-slate-900 tabular-nums mt-1">
+              {t.value}
+            </p>
+            {t.hint && <p className="text-[11px] text-slate-500 mt-0.5">{t.hint}</p>}
+          </section>
+        ))}
+      </div>
+
       <div className="grid lg:grid-cols-3 gap-5 items-start *:min-w-0">
         <div className="lg:col-span-2 space-y-5">
           {/* Vehículos */}
@@ -94,12 +159,22 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                     <span className="text-slate-500 shrink-0">
                       <VehicleTypeIcon type={v.type} />
                     </span>
-                    <div className="min-w-0 flex-1">
-                      <PlateBadge plate={v.plate} />
-                      <p className="text-xs text-slate-500 mt-0.5 truncate">
+                    <Link
+                      href={`/admin/vehiculos/${v.id}`}
+                      aria-label={`Ver la ficha y el historial de ${v.plate}`}
+                      className="min-w-0 flex-1 group"
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        <PlateBadge plate={v.plate} />
+                        <ChevronRight
+                          className="w-4 h-4 text-slate-300 group-hover:text-sm-red"
+                          aria-hidden="true"
+                        />
+                      </span>
+                      <span className="block text-xs text-slate-500 mt-0.5 truncate">
                         {[v.brand, v.model, v.year, v.color].filter(Boolean).join(" ") || "Sin datos"}
-                      </p>
-                    </div>
+                      </span>
+                    </Link>
                     <Link
                       href={`/admin/ordenes/nueva?vehiculo=${v.id}`}
                       className={btnSecondary}
@@ -200,39 +275,75 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
 
           {/* Historial de órdenes */}
           <section className={`${card} overflow-hidden`}>
-            <h2 className="font-heading font-semibold text-lg text-slate-800 tracking-wide p-5 pb-3">
-              HISTORIAL DE SERVICIOS
-            </h2>
+            <div className="flex items-center justify-between gap-3 p-5 pb-3">
+              <h2 className="font-heading font-semibold text-lg text-slate-800 tracking-wide">
+                HISTORIAL DE SERVICIOS
+              </h2>
+              <Link
+                href={`/admin/ordenes/historial?q=${encodeURIComponent(client.name)}`}
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-sm-red hover:text-sm-red-hover shrink-0"
+              >
+                <History className="w-4 h-4" aria-hidden="true" /> Historial
+              </Link>
+            </div>
             {orders.length === 0 ? (
               <p className="px-5 pb-5 text-sm text-slate-500">Sin órdenes registradas.</p>
             ) : (
               <ul className="divide-y divide-slate-100">
-                {orders.map((o) => (
-                  <li key={o.id}>
-                    <Link
-                      href={`/admin/ordenes/${o.id}`}
-                      className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 transition-colors group"
-                    >
-                      <span className="text-slate-500 shrink-0">
-                        <VehicleTypeIcon type={o.type} />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-slate-700 truncate">
-                          {o.folio} · {o.plate}
-                        </p>
-                        <p className="text-xs text-slate-500 truncate">
-                          {o.description || "Sin descripción"} · {formatDate(o.updated_at)}
-                        </p>
-                      </div>
-                      <StatusBadge status={o.status} />
-                      <ChevronRight
-                        className="w-4 h-4 text-slate-300 group-hover:text-sm-red shrink-0"
-                        aria-hidden="true"
-                      />
-                    </Link>
-                  </li>
-                ))}
+                {orders.map((o) => {
+                  const cerrada = o.status === "entregado" || o.status === "cancelado";
+                  return (
+                    <li key={o.id}>
+                      <Link
+                        href={`/admin/ordenes/${o.id}`}
+                        className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 transition-colors group"
+                      >
+                        <span className="text-slate-500 shrink-0">
+                          <VehicleTypeIcon type={o.type} />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-slate-700 truncate">
+                            {o.folio} · {o.plate}
+                          </p>
+                          <p className="text-xs text-slate-500 truncate">
+                            {o.description || "Sin descripción"}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {cerrada
+                              ? `${o.status === "entregado" ? "Entregada" : "Cancelada"} ${formatDateShort(o.closed_day)}`
+                              : `Actualizada ${formatDate(o.updated_at)}`}
+                          </p>
+                        </div>
+                        {/* Estado y monto apilados: en 375 px los dos en línea
+                            junto al texto dejaban el folio en tres renglones. */}
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          <StatusBadge status={o.status} />
+                          {canSeeMoney && (
+                            <span
+                              className={`text-sm tabular-nums ${
+                                o.status === "cancelado"
+                                  ? "text-slate-400"
+                                  : "font-semibold text-slate-800"
+                              }`}
+                            >
+                              {formatMoney(o.total)}
+                            </span>
+                          )}
+                        </div>
+                        <ChevronRight
+                          className="w-4 h-4 text-slate-300 group-hover:text-sm-red shrink-0"
+                          aria-hidden="true"
+                        />
+                      </Link>
+                    </li>
+                  );
+                })}
               </ul>
+            )}
+            {orders.length === 50 && (
+              <p className="px-5 pb-4 text-[11px] text-slate-500">
+                Se muestran las 50 más recientes. El resto está en el historial.
+              </p>
             )}
           </section>
         </div>

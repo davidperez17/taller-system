@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { headers } from "next/headers";
-import { Plus, Search, ChevronRight, MapPin, Smile } from "lucide-react";
+import { Plus, Search, ChevronRight, MapPin, Smile, History } from "lucide-react";
 import { many, normalizePlate } from "@/lib/db";
 import { STATUS_META, formatDate, type OrderStatus } from "@/lib/status";
 import { waLink, WA_TEMPLATES } from "@/lib/whatsapp";
-import { StatusBadge, PlateBadge, VehicleTypeIcon, PageTitle, card, btnPrimary, inputCls } from "@/components/admin/ui";
+import { StatusBadge, PlateBadge, VehicleTypeIcon, PageTitle, card, btnPrimary, btnSecondary, inputCls } from "@/components/admin/ui";
 import CancelOrderButton from "@/components/admin/CancelOrderButton";
 
 export const dynamic = "force-dynamic";
@@ -87,11 +87,16 @@ export default async function OrdersPage({
     <div className="space-y-5">
       <PageTitle
         title="ÓRDENES DE TRABAJO"
-        subtitle={`${orders.length} orden${orders.length === 1 ? "" : "es"}`}
+        subtitle={`${orders.length} ${orders.length === 1 ? "orden" : "órdenes"}`}
         action={
-          <Link href="/admin/ordenes/nueva" className={btnPrimary}>
-            <Plus className="w-4 h-4" aria-hidden="true" /> Nueva orden
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/admin/ordenes/historial" className={btnSecondary}>
+              <History className="w-4 h-4" aria-hidden="true" /> Historial
+            </Link>
+            <Link href="/admin/ordenes/nueva" className={btnPrimary}>
+              <Plus className="w-4 h-4" aria-hidden="true" /> Nueva orden
+            </Link>
+          </div>
         }
       />
 

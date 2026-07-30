@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, ChevronRight } from "lucide-react";
 import { many, normalizePlate } from "@/lib/db";
 import { PageTitle, card, btnPrimary, btnSecondary, inputCls, PlateBadge, VehicleTypeIcon, StatusBadge } from "@/components/admin/ui";
 
@@ -66,34 +66,45 @@ export default async function VehiclesPage({
         ) : (
           <ul className="divide-y divide-slate-100">
             {vehicles.map((v) => (
-              <li key={v.id} className="flex items-center gap-3 px-4 lg:px-5 py-3.5">
-                <span className="text-slate-500 shrink-0">
-                  <VehicleTypeIcon type={v.type} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <PlateBadge plate={v.plate} />
-                    {v.active_status && <StatusBadge status={v.active_status} />}
+              <li key={v.id} className="flex items-center">
+                {/* El bloque de la izquierda abre la ficha de la placa (su
+                    historial); el dueño se alcanza desde ahí, para no anidar dos
+                    enlaces dentro del mismo área táctil. */}
+                <Link
+                  href={`/admin/vehiculos/${v.id}`}
+                  className="flex items-center gap-3 pl-4 lg:pl-5 pr-2 py-3.5 hover:bg-slate-50 transition-colors group flex-1 min-w-0"
+                >
+                  <span className="text-slate-500 shrink-0">
+                    <VehicleTypeIcon type={v.type} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <PlateBadge plate={v.plate} />
+                      {v.active_status && <StatusBadge status={v.active_status} />}
+                    </div>
+                    {/* Dueño en su propio renglón: en móvil la línea de
+                        características ya se recorta y el nombre desaparecía. */}
+                    <p className="text-xs text-slate-500 mt-0.5 truncate">
+                      {[v.brand, v.model, v.year, v.color].filter(Boolean).join(" ") || "Sin datos"}
+                    </p>
+                    <p className="text-xs text-slate-500 truncate">{v.client}</p>
                   </div>
-                  <p className="text-xs text-slate-500 mt-0.5 truncate">
-                    {[v.brand, v.model, v.year, v.color].filter(Boolean).join(" ") || "Sin datos"} ·{" "}
-                    <Link
-                      href={`/admin/clientes/${v.client_id}`}
-                      className="text-sm-red hover:text-sm-red-hover"
-                    >
-                      {v.client}
+                  <ChevronRight
+                    className="w-4 h-4 text-slate-300 group-hover:text-sm-red shrink-0"
+                    aria-hidden="true"
+                  />
+                </Link>
+                <div className="shrink-0 pr-4 lg:pr-5">
+                  {v.active_order_id ? (
+                    <Link href={`/admin/ordenes/${v.active_order_id}`} className={btnSecondary}>
+                      Ver orden
                     </Link>
-                  </p>
+                  ) : (
+                    <Link href={`/admin/ordenes/nueva?vehiculo=${v.id}`} className={btnSecondary}>
+                      <Plus className="w-4 h-4" aria-hidden="true" /> Orden
+                    </Link>
+                  )}
                 </div>
-                {v.active_order_id ? (
-                  <Link href={`/admin/ordenes/${v.active_order_id}`} className={btnSecondary}>
-                    Ver orden
-                  </Link>
-                ) : (
-                  <Link href={`/admin/ordenes/nueva?vehiculo=${v.id}`} className={btnSecondary}>
-                    <Plus className="w-4 h-4" aria-hidden="true" /> Orden
-                  </Link>
-                )}
               </li>
             ))}
           </ul>

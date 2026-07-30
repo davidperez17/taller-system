@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, ClipboardList, Users, Car, UserCog, ExternalLink,
   Boxes, BarChart3, Bell, MoreHorizontal, X, BellRing, Wallet, Hammer, Receipt,
-  Megaphone, History, FileText, ShieldAlert, Smile,
+  Megaphone, History, FileText, ShieldAlert, Smile, Archive,
 } from "lucide-react";
 import type { SessionUser } from "@/lib/auth";
 import type { ActivityItem } from "@/lib/activity-meta";
@@ -28,6 +28,9 @@ type NavItem = {
 const NAV: NavItem[] = [
   { href: "/admin", label: "Inicio", icon: LayoutDashboard, exact: true },
   { href: "/admin/ordenes", label: "Órdenes", icon: ClipboardList },
+  // Archivo de las cerradas. Va pegado a Órdenes porque es la misma lista un
+  // paso más atrás en el tiempo.
+  { href: "/admin/ordenes/historial", label: "Historial", icon: Archive },
   {
     href: "/admin/presupuestos",
     label: "Presupuestos",
@@ -85,8 +88,17 @@ export default function AdminNav({
       (!n.noMechanic || user.role !== "mecanico")
   );
 
-  const isActive = (item: NavItem) =>
-    item.exact ? pathname === item.href : pathname.startsWith(item.href);
+  // Se ilumina UNA sola entrada: la del href más largo que calza con la ruta.
+  // Con secciones anidadas (/admin/ordenes y /admin/ordenes/historial) un
+  // startsWith suelto prendía las dos a la vez y no se sabía dónde estabas.
+  const matches = (item: NavItem) =>
+    item.exact
+      ? pathname === item.href
+      : pathname === item.href || pathname.startsWith(`${item.href}/`);
+  const current = items
+    .filter(matches)
+    .sort((a, b) => b.href.length - a.href.length)[0];
+  const isActive = (item: NavItem) => current?.href === item.href;
   const alertOf = (item: NavItem) => (item.alertKey ? alerts[item.alertKey] ?? 0 : 0);
 
   const bottomPrimary = items.filter((n) => PRIMARY.includes(n.href));

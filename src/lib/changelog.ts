@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 // marcar cuántas novedades hay sin ver.
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 40,
+    date: "2026-07-29",
+    title: "Historial: el archivo de las órdenes cerradas, la ficha de cada placa y lo que ha gastado cada cliente",
+    description:
+      "La lista de órdenes está hecha para el trabajo del día: abre en «Activas» y solo trae 200 filas, así que lo entregado hace meses quedaba fuera de alcance y para saber qué se le hizo antes a un carro tocaba adivinar el folio. Ahora hay tres lugares nuevos. Uno: «Historial» (en el menú y en un botón arriba de Órdenes) lista las órdenes entregadas y canceladas, con período —desde «Todo» hasta un rango de fechas que tú pones—, búsqueda por placa, cliente o folio, y páginas para seguir hacia atrás sin tope; arriba salen las cerradas del filtro, lo facturado, el ticket promedio y el saldo que quedó sin cobrar, y cada orden entregada muestra si está pagada o cuánto debe, más la carita con la que el cliente calificó. Dos: toca una placa en Vehículos y ahora se abre su ficha, con sus visitas, su gasto histórico, el último kilometraje anotado, todas sus órdenes y la lista de servicios y repuestos que se le han puesto con fecha —esa fecha es la que sirve para pelear una garantía— y sus recordatorios abiertos. Tres: la ficha del cliente ahora dice cuántas visitas trae, cuánto ha gastado y su ticket promedio, con el monto de cada orden en el historial. Dos detalles: la fecha del historial es la del cierre (la entrega en las entregadas, la última actualización en las canceladas), y al mecánico se le siguen ocultando los montos, igual que en caja y en el descuento de la orden.",
+  },
+  {
     id: 39,
     date: "2026-07-29",
     title: "Pedir la calificación a un toque, desde la orden o desde la lista",
