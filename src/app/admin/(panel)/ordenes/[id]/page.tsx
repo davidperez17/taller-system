@@ -170,10 +170,10 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         "Presupuesto listo",
         WA_TEMPLATES.presupuesto({ ...base, total, code: order.tracking_code })
       );
-    } else if (order.status === "entregado" && !feedback) {
-      // Solo si todavía no calificó: pedirlo dos veces molesta.
-      push("Pedir calificación", WA_TEMPLATES.calificacion({ ...base, code: order.tracking_code }));
-    } else if (order.status !== "cancelado") {
+    } else if (order.status !== "cancelado" && order.status !== "entregado") {
+      // La invitación a calificar salió de esta cadena: ahora es un botón fijo
+      // del bloque de acceso (encuestaWaHref), así que en «entregado» no hace
+      // falta el mensaje de estado.
       push("Estado actual", WA_TEMPLATES.estado({ ...base, estado: meta.client }));
     }
     if (saldo > 0.009 && (order.status === "listo" || order.status === "entregado")) {
@@ -188,6 +188,22 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
     ? waLink(
         order.client_phone,
         WA_TEMPLATES.acceso({
+          nombre: order.client_name.split(" ")[0],
+          placa: order.plate,
+          code: order.tracking_code,
+          origin,
+        })
+      )
+    : null;
+
+  // Acceso rápido a la encuesta de salida (el semáforo de calificación vive en
+  // el seguimiento, tras el ancla #calificar). Va suelto y sin condicionar al
+  // estado ni a si ya calificó: el asesor decide cuándo insistir. Ojo: la
+  // tarjeta solo se le muestra al cliente con la orden ya en «Entregado».
+  const encuestaWaHref = order.client_phone
+    ? waLink(
+        order.client_phone,
+        WA_TEMPLATES.calificacion({
           nombre: order.client_name.split(" ")[0],
           placa: order.plate,
           code: order.tracking_code,
@@ -734,7 +750,8 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               ) : (
                 <p className="mt-2 text-sm text-slate-500">
                   El cliente todavía no ha calificado. Ya le llegó la invitación al teléfono; si
-                  quieres, pídesela por WhatsApp con el botón «Pedir calificación».
+                  quieres, pídesela con el botón «Pedir calificación por WhatsApp» del bloque
+                  Acceso del cliente.
                 </p>
               )}
             </section>
@@ -864,11 +881,22 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 <MessageCircle className="w-4 h-4" aria-hidden="true" /> Enviar acceso por WhatsApp
               </a>
             )}
+            {encuestaWaHref && (
+              <a
+                href={encuestaWaHref}
+                target="_blank"
+                rel="noopener"
+                className={`${btnSecondary} w-full ${accesoWaHref ? "mt-2" : "mt-4"}`}
+              >
+                <Smile className="w-4 h-4 text-sm-red" aria-hidden="true" /> Pedir calificación
+                por WhatsApp
+              </a>
+            )}
             <a
               href={`/seguimiento/${order.plate}?code=${order.tracking_code}`}
               target="_blank"
               rel="noopener"
-              className={`${btnSecondary} w-full ${accesoWaHref ? "mt-2" : "mt-4"}`}
+              className={`${btnSecondary} w-full ${accesoWaHref || encuestaWaHref ? "mt-2" : "mt-4"}`}
             >
               <ExternalLink className="w-4 h-4" aria-hidden="true" /> Ver como cliente
             </a>

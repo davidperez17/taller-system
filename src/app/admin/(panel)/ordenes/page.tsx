@@ -1,7 +1,9 @@
 import Link from "next/link";
-import { Plus, Search, ChevronRight, MapPin } from "lucide-react";
+import { headers } from "next/headers";
+import { Plus, Search, ChevronRight, MapPin, Smile } from "lucide-react";
 import { many, normalizePlate } from "@/lib/db";
 import { STATUS_META, formatDate, type OrderStatus } from "@/lib/status";
+import { waLink, WA_TEMPLATES } from "@/lib/whatsapp";
 import { StatusBadge, PlateBadge, VehicleTypeIcon, PageTitle, card, btnPrimary, inputCls } from "@/components/admin/ui";
 import CancelOrderButton from "@/components/admin/CancelOrderButton";
 
@@ -50,9 +52,11 @@ export default async function OrdersPage({
     id: number; folio: string; status: string; description: string; updated_at: string;
     created_at: string; plate: string; type: string; brand: string | null;
     model: string | null; client: string; modality: string;
+    phone: string | null; tracking_code: string;
   }>(
     `SELECT o.id, o.folio, o.status, o.description, o.updated_at, o.created_at,
-              v.plate, v.type, v.brand, v.model, c.name AS client, o.modality
+              v.plate, v.type, v.brand, v.model, c.name AS client, o.modality,
+              c.phone, o.tracking_code
        FROM orders o
        JOIN vehicles v ON v.id = o.vehicle_id
        JOIN clients c ON c.id = v.client_id
@@ -60,6 +64,24 @@ export default async function OrdersPage({
        ORDER BY o.updated_at DESC LIMIT 200`,
     args
   );
+
+  // Acceso rápido a la encuesta desde la lista: en las entregadas, sin abrir la
+  // orden. El mensaje es el mismo de la orden (WA_TEMPLATES.calificacion), que
+  // deja al cliente parado en el semáforo del seguimiento (#calificar).
+  const h = await headers();
+  const origin = `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host") ?? "localhost"}`;
+  const csatWaHref = (o: (typeof orders)[number]) =>
+    o.status === "entregado"
+      ? waLink(
+          o.phone,
+          WA_TEMPLATES.calificacion({
+            nombre: o.client.split(" ")[0],
+            placa: o.plate,
+            code: o.tracking_code,
+            origin,
+          })
+        )
+      : null;
 
   return (
     <div className="space-y-5">
@@ -139,42 +161,57 @@ export default async function OrdersPage({
           </p>
         ) : (
           <ul className="divide-y divide-slate-100">
-            {orders.map((o) => (
-              <li key={o.id} className="flex items-center">
-                <Link
-                  href={`/admin/ordenes/${o.id}`}
-                  className="flex items-center gap-3 pl-4 lg:pl-5 pr-2 py-3.5 hover:bg-slate-50 transition-colors group flex-1 min-w-0"
-                >
-                  <span className="text-slate-500 shrink-0">
-                    <VehicleTypeIcon type={o.type} />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <PlateBadge plate={o.plate} />
-                      <span className="text-sm font-medium text-slate-700 truncate">
-                        {[o.brand, o.model].filter(Boolean).join(" ") || "—"}
-                      </span>
-                      {o.modality === "domicilio" && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide bg-sm-red/10 text-sm-red border border-sm-red/25 rounded-full px-1.5 py-0.5">
-                          <MapPin className="w-2.5 h-2.5" aria-hidden="true" /> Domicilio
+            {orders.map((o) => {
+              const csatHref = csatWaHref(o);
+              return (
+                <li key={o.id} className="flex items-center">
+                  <Link
+                    href={`/admin/ordenes/${o.id}`}
+                    className="flex items-center gap-3 pl-4 lg:pl-5 pr-2 py-3.5 hover:bg-slate-50 transition-colors group flex-1 min-w-0"
+                  >
+                    <span className="text-slate-500 shrink-0">
+                      <VehicleTypeIcon type={o.type} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <PlateBadge plate={o.plate} />
+                        <span className="text-sm font-medium text-slate-700 truncate">
+                          {[o.brand, o.model].filter(Boolean).join(" ") || "—"}
                         </span>
-                      )}
+                        {o.modality === "domicilio" && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide bg-sm-red/10 text-sm-red border border-sm-red/25 rounded-full px-1.5 py-0.5">
+                            <MapPin className="w-2.5 h-2.5" aria-hidden="true" /> Domicilio
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500 mt-0.5 truncate">
+                        {o.folio} · {o.client} · Actualizada {formatDate(o.updated_at)}
+                      </p>
                     </div>
-                    <p className="text-xs text-slate-500 mt-0.5 truncate">
-                      {o.folio} · {o.client} · Actualizada {formatDate(o.updated_at)}
-                    </p>
-                  </div>
-                  <StatusBadge status={o.status} />
-                  <ChevronRight
-                    className="w-4 h-4 text-slate-300 group-hover:text-sm-red shrink-0"
-                    aria-hidden="true"
-                  />
-                </Link>
-                {o.status !== "cancelado" && o.status !== "entregado" && (
-                  <CancelOrderButton orderId={o.id} label={`${o.plate} · ${o.folio}`} />
-                )}
-              </li>
-            ))}
+                    <StatusBadge status={o.status} />
+                    <ChevronRight
+                      className="w-4 h-4 text-slate-300 group-hover:text-sm-red shrink-0"
+                      aria-hidden="true"
+                    />
+                  </Link>
+                  {csatHref && (
+                    <a
+                      href={csatHref}
+                      target="_blank"
+                      rel="noopener"
+                      aria-label={`Pedir calificación por WhatsApp · ${o.plate} ${o.folio}`}
+                      title="Pedir calificación por WhatsApp"
+                      className="shrink-0 p-2 mr-1 text-slate-300 hover:text-emerald-600 transition-colors"
+                    >
+                      <Smile className="w-4 h-4" aria-hidden="true" />
+                    </a>
+                  )}
+                  {o.status !== "cancelado" && o.status !== "entregado" && (
+                    <CancelOrderButton orderId={o.id} label={`${o.plate} · ${o.folio}`} />
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>

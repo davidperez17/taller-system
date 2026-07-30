@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 // marcar cuántas novedades hay sin ver.
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 39,
+    date: "2026-07-29",
+    title: "Pedir la calificación a un toque, desde la orden o desde la lista",
+    description:
+      "El botón «Pedir calificación» solo salía si la orden estaba en «Entregado» y el cliente todavía no había calificado; si ya había calificado, o si querías mandarle la encuesta el día que lo entregaste pero desde otra etapa, tocaba armar el mensaje a mano. Ahora en cada orden hay un botón fijo, «Pedir calificación por WhatsApp», en el bloque «Acceso del cliente», junto al de enviar el acceso: abre WhatsApp con el mensaje ya escrito y el enlace que deja al cliente parado en las caritas, sin importar la etapa ni si ya había calificado. Y en la lista de órdenes, cada orden entregada trae una carita al lado del botón de cancelar: un toque y se abre el mismo mensaje, sin entrar a la orden, para perseguir varias entregas del día de un jalón. Ojo con una cosa: la tarjeta para calificar solo se le muestra al cliente cuando la orden ya está en «Entregado», así que mandar el enlace antes lo lleva a su seguimiento normal.",
+  },
+  {
     id: 38,
     date: "2026-07-28",
     title: "Reportes: el ticket promedio, y cuánto de él es mano de obra o repuestos",
