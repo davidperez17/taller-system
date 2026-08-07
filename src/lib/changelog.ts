@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 // marcar cuántas novedades hay sin ver.
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 41,
+    date: "2026-08-07",
+    title: "Si una foto no se puede subir, ahora te lo dice antes de guardar",
+    description:
+      "Al agregar fotos a una anotación, a una recepción o a un reclamo, las que el sistema no aceptaba se caían en silencio: la anotación se guardaba, decía «guardado», y las fotos simplemente no estaban — el cliente nunca las veía y nadie se enteraba hasta revisar la orden días después. Ahora, apenas eliges las fotos, sale un aviso amarillo con el nombre de cada una que quedó fuera y el porqué: «formato no soportado» (el caso típico son las fotos HEIC del iPhone que no se pudieron convertir), «pesa más de 4 MB», o que juntas superan los 7 MB del envío. Las que sí sirven se suben normal y se ven en las miniaturas; el aviso te dice qué hacer con las otras (tomarlas con la cámara desde el mismo botón, o guardarlas como JPG). El tope de 4 fotos por anotación tampoco es silencioso: si eliges más, te avisa que solo se toman las primeras 4. Ojo con lo del envío junto: pasarse de ahí antes no descartaba una foto, tumbaba el guardado completo y se perdía la anotación entera con todo y texto.",
+  },
+  {
     id: 40,
     date: "2026-07-29",
     title: "Historial: el archivo de las órdenes cerradas, la ficha de cada placa y lo que ha gastado cada cliente",

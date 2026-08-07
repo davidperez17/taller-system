@@ -20,6 +20,7 @@ import {
   CLAIM_TYPES, CLAIM_RESPONSIBLE, CLAIM_STATUS_META,
   type OrderStatus,
 } from "@/lib/status";
+import { MAX_PHOTOS, photoRejectReason } from "@/lib/photos";
 import { CLIENT_PRESETS, STAFF_NOTIFS } from "@/lib/notifications";
 import { logActivity, markNotifsSeen } from "@/lib/activity";
 
@@ -427,26 +428,34 @@ export async function updateOrderStatusAction(formData: FormData) {
   revalidatePath("/admin");
 }
 
-// Fotos: hasta 4, jpeg/png/webp, 4 MB c/u, a Vercel Blob bajo `dir` (requiere
-// BLOB_READ_WRITE_TOKEN; sin token se guarda sin fotos). Genérico para reusarlo
-// en anotaciones (orders/…) y reclamos (claims/…).
+// Fotos: hasta MAX_PHOTOS, jpeg/png/webp, 4 MB c/u, a Vercel Blob bajo `dir`
+// (requiere BLOB_READ_WRITE_TOKEN; sin token se guarda sin fotos). Genérico
+// para reusarlo en anotaciones (orders/…) y reclamos (claims/…). Las mismas
+// reglas corren antes en PhotoInput, que avisa al asesor de lo que quedó fuera;
+// lo de aquí es la última barrera y deja rastro en el log si algo se cae.
 async function uploadPhotos(dir: string, formData: FormData): Promise<string[]> {
   const photoUrls: string[] = [];
   const photos = formData
     .getAll("photos")
     .filter((f): f is File => f instanceof File && f.size > 0)
-    .slice(0, 4);
-  if (photos.length > 0 && process.env.BLOB_READ_WRITE_TOKEN) {
-    const { put } = await import("@vercel/blob");
-    for (const photo of photos) {
-      if (!["image/jpeg", "image/png", "image/webp"].includes(photo.type)) continue;
-      if (photo.size > 4 * 1024 * 1024) continue;
-      const blob = await put(`${dir}/${photo.name || "foto.jpg"}`, photo, {
-        access: "public",
-        addRandomSuffix: true,
-      });
-      photoUrls.push(blob.url);
+    .slice(0, MAX_PHOTOS);
+  if (photos.length === 0) return photoUrls;
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    console.error(`[fotos] ${photos.length} descartadas en ${dir}: falta BLOB_READ_WRITE_TOKEN`);
+    return photoUrls;
+  }
+  const { put } = await import("@vercel/blob");
+  for (const photo of photos) {
+    const reason = photoRejectReason(photo);
+    if (reason) {
+      console.warn(`[fotos] descartada ${photo.name} en ${dir}: ${reason}`);
+      continue;
     }
+    const blob = await put(`${dir}/${photo.name || "foto.jpg"}`, photo, {
+      access: "public",
+      addRandomSuffix: true,
+    });
+    photoUrls.push(blob.url);
   }
   return photoUrls;
 }

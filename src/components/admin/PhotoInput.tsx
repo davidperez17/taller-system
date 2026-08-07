@@ -1,9 +1,13 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Camera, X } from "lucide-react";
+import { Camera, X, AlertTriangle } from "lucide-react";
+import {
+  MAX_PHOTOS,
+  MAX_PHOTOS_TOTAL_BYTES,
+  photoRejectReason,
+} from "@/lib/photos";
 
-const MAX_PHOTOS = 4;
 const MAX_EDGE = 1600; // px — reescala en el cliente para ahorrar datos móviles
 
 async function downscale(file: File): Promise<File> {
@@ -21,7 +25,7 @@ async function downscale(file: File): Promise<File> {
     if (!blob) return file;
     return new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" });
   } catch {
-    return file; // formato no soportado por canvas: se sube tal cual
+    return file; // formato no soportado por canvas (HEIC): se revisa abajo
   }
 }
 
@@ -32,19 +36,44 @@ export default function PhotoInput() {
   const inputRef = useRef<HTMLInputElement>(null);
   const pickerRef = useRef<HTMLInputElement>(null);
   const [previews, setPreviews] = useState<{ url: string; name: string }[]>([]);
+  const [rejected, setRejected] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
 
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []).slice(0, MAX_PHOTOS);
-    if (files.length === 0) return;
+    const picked = Array.from(e.target.files ?? []);
+    if (picked.length === 0) return;
     setBusy(true);
     try {
-      const processed = await Promise.all(files.map(downscale));
+      const processed = await Promise.all(picked.slice(0, MAX_PHOTOS).map(downscale));
+
+      // Se filtra con las mismas reglas del servidor y se dice qué quedó fuera.
+      // El caso típico: HEIC de iPhone que el canvas no pudo convertir.
+      const accepted: File[] = [];
+      const notes: string[] = [];
+      let totalBytes = 0;
+      for (const file of processed) {
+        const reason = photoRejectReason(file);
+        if (reason) {
+          notes.push(`${file.name} (${reason})`);
+          continue;
+        }
+        if (totalBytes + file.size > MAX_PHOTOS_TOTAL_BYTES) {
+          notes.push(`${file.name} (el envío junto supera 7 MB)`);
+          continue;
+        }
+        totalBytes += file.size;
+        accepted.push(file);
+      }
+      if (picked.length > MAX_PHOTOS) {
+        notes.push(`solo se toman las primeras ${MAX_PHOTOS} de ${picked.length}`);
+      }
+
       const dt = new DataTransfer();
-      processed.slice(0, MAX_PHOTOS).forEach((f) => dt.items.add(f));
+      accepted.forEach((f) => dt.items.add(f));
       if (inputRef.current) inputRef.current.files = dt.files;
       previews.forEach((p) => URL.revokeObjectURL(p.url));
-      setPreviews(processed.map((f) => ({ url: URL.createObjectURL(f), name: f.name })));
+      setPreviews(accepted.map((f) => ({ url: URL.createObjectURL(f), name: f.name })));
+      setRejected(notes);
     } finally {
       setBusy(false);
       e.target.value = "";
@@ -55,6 +84,7 @@ export default function PhotoInput() {
     if (inputRef.current) inputRef.current.value = "";
     previews.forEach((p) => URL.revokeObjectURL(p.url));
     setPreviews([]);
+    setRejected([]);
   }
 
   return (
@@ -80,7 +110,7 @@ export default function PhotoInput() {
           <Camera className="w-4 h-4" aria-hidden="true" />
           {busy ? "Procesando…" : previews.length > 0 ? "Cambiar fotos" : "Agregar fotos"}
         </button>
-        {previews.length > 0 && (
+        {(previews.length > 0 || rejected.length > 0) && (
           <button
             type="button"
             onClick={clear}
@@ -91,6 +121,27 @@ export default function PhotoInput() {
         )}
         <span className="text-xs text-slate-500">Máx. {MAX_PHOTOS} · se comprimen antes de subir</span>
       </div>
+      {rejected.length > 0 && (
+        <div
+          role="status"
+          className="mt-2 flex gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
+        >
+          <AlertTriangle className="w-4 h-4 shrink-0 mt-px" aria-hidden="true" />
+          <div>
+            <p className="font-medium">
+              {previews.length > 0
+                ? "Estas fotos no se van a subir:"
+                : "Ninguna foto se va a subir:"}
+            </p>
+            <ul className="mt-0.5 space-y-0.5">
+              {rejected.map((note) => (
+                <li key={note}>· {note}</li>
+              ))}
+            </ul>
+            <p className="mt-1">Tómalas con la cámara desde aquí o guárdalas como JPG.</p>
+          </div>
+        </div>
+      )}
       {previews.length > 0 && (
         <div className="mt-2 flex gap-2 flex-wrap">
           {previews.map((p) => (
