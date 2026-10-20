@@ -46,7 +46,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
     approval_status: "pendiente" | "aprobado" | "rechazado";
     approval_at: string | null; approval_total: number | null;
     modality: string; service_location: string | null;
-    discount_type: DiscountType | null; discount_value: number;
+    discount_type: DiscountType | null; discount_value: number; surcharge_pct: number;
   }>(
     `SELECT o.*, v.plate, v.type, v.brand, v.model, v.year, v.color,
               c.id AS client_id, c.name AS client_name, c.phone AS client_phone
@@ -71,14 +71,16 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
        WHERE i.order_id = ? ORDER BY i.id`,
     [order.id]
   );
-  const { subtotal, discount, total } = totalsOf(
+  const { subtotal, discount, surcharge, total } = totalsOf(
     items,
     order.discount_type,
-    order.discount_value
+    order.discount_value,
+    order.surcharge_pct
   );
   const costTotal = items.reduce((s, i) => s + i.qty * i.unit_cost, 0);
-  const profit = total - costTotal;
-  const margin = total > 0 ? profit / total : 0;
+  // El recargo por tarjeta cubre la comisión del banco: no es margen del trabajo.
+  const profit = total - surcharge - costTotal;
+  const margin = total - surcharge > 0 ? profit / (total - surcharge) : 0;
   const hasCost = costTotal > 0.009;
 
   const events = await many<{
@@ -415,6 +417,8 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               discount={discount}
               discountType={order.discount_type}
               discountValue={order.discount_value}
+              surcharge={surcharge}
+              surchargePct={order.surcharge_pct}
               total={total}
               profit={profit}
               canDiscount={me?.role !== "mecanico"}

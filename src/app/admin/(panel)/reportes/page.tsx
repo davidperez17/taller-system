@@ -94,6 +94,19 @@ export default async function ReportsPage({
     [desde, hasta]
   );
 
+  // Recargo por tarjeta de débito de las órdenes entregadas. Va en su propio
+  // renglón: Facturado (ORDER_ITEM_NET_SQL) no lo incluye porque no es venta de
+  // servicios ni de repuestos, sino lo que cubre la comisión del banco — que se
+  // registra en Gastos (categoría "Comisiones bancarias").
+  const surchargeRow = (await one<{ total: number; n: number }>(
+    `SELECT COALESCE(SUM(ot.surcharge), 0)::float8 AS total,
+            COUNT(*) FILTER (WHERE ot.surcharge > 0)::int AS n
+       FROM orders o JOIN ${ORDER_TOTALS_SQL} ot ON ot.order_id = o.id
+      WHERE o.status = 'entregado' AND substr(o.delivered_at, 1, 10) BETWEEN ? AND ?`,
+    [desde, hasta]
+  ))!;
+  const surchargeTotal = surchargeRow.total;
+
   // Cobrado y Ganancia neta miden universos distintos y viven en tarjetas
   // vecinas: cobrado es CAJA (pagos recibidos, la orden esté entregada o no),
   // mientras la neta solo cuenta el margen de lo ENTREGADO. Cuando entra mucho
@@ -234,7 +247,7 @@ export default async function ReportsPage({
     byModality[k].n += r.n;
   }
   const hasDomicilio = byModality.domicilio.n > 0;
-  const net = gross - expensesTotal - payrollRange - claimsTotal;
+  const net = gross + surchargeTotal - expensesTotal - payrollRange - claimsTotal;
   const deliveredTotal = deliveredRows.reduce((s, r) => s + r.n, 0);
   const avgTicket = deliveredTotal > 0 ? facturado / deliveredTotal : 0;
   // Ticket por línea de negocio: cada uno se divide entre las órdenes que
@@ -345,6 +358,9 @@ export default async function ReportsPage({
     { label: "Facturado (órdenes entregadas)", value: facturado, sign: "" },
     { label: "Costo de repuestos y servicios", value: -itemsCost, sign: "−" },
     { label: "Margen bruto", value: gross, sign: "=", strong: true },
+    ...(surchargeTotal > 0.009
+      ? [{ label: "Recargo tarjeta de débito", value: surchargeTotal, sign: "+" }]
+      : []),
     { label: "Gastos del taller", value: -expensesTotal, sign: "−" },
     { label: "Planilla estimada del período", value: -payrollRange, sign: "−" },
     { label: "Reclamos (pérdidas)", value: -claimsTotal, sign: "−" },

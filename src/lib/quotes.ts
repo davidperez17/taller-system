@@ -42,6 +42,7 @@ export type QuoteRow = {
   decision_total: number | null;
   discount_type: DiscountType | null;
   discount_value: number;
+  surcharge_pct: number;
   order_id: number | null;
   created_by: number | null;
   created_at: string;
@@ -102,6 +103,7 @@ export async function getQuoteWithItems(
   items: QuoteItemRow[];
   subtotal: number;
   discount: number;
+  surcharge: number;
   total: number;
 } | null> {
   const quote = await one<QuoteDetail>(
@@ -125,12 +127,13 @@ export async function getQuoteWithItems(
        FROM quote_items WHERE quote_id = ? ORDER BY id`,
     [id]
   );
-  const { subtotal, discount, total } = totalsOf(
+  const { subtotal, discount, surcharge, total } = totalsOf(
     items,
     quote.discount_type,
-    quote.discount_value
+    quote.discount_value,
+    quote.surcharge_pct
   );
-  return { quote, items, subtotal, discount, total };
+  return { quote, items, subtotal, discount, surcharge, total };
 }
 
 // ---------- Vista pública ----------
@@ -166,6 +169,9 @@ export type PublicQuote = {
   discount: number;
   discountType: DiscountType | null;
   discountValue: number;
+  // Recargo por tarjeta de débito: también es del cliente, es parte de lo que paga.
+  surcharge: number;
+  surchargePct: number;
   total: number;
   // Solo si está aprobado y la orden ya existe: para enlazar al seguimiento.
   tracking?: { plate: string; code: string };
@@ -224,9 +230,10 @@ export async function getPublicQuote(
     decidedAt: q.decided_at,
     decisionTotal: q.decision_total,
     items,
-    ...totalsOf(items, q.discount_type, q.discount_value),
+    ...totalsOf(items, q.discount_type, q.discount_value, q.surcharge_pct),
     discountType: q.discount_type,
     discountValue: q.discount_value,
+    surchargePct: q.surcharge_pct,
     tracking:
       q.status === "aprobado" && q.order_tracking_code
         ? { plate: q.plate, code: q.order_tracking_code }
@@ -504,10 +511,11 @@ export async function materializeOrderFromQuote(
           // dos columnas la orden recalcularía el total SIN descuento mientras
           // approval_total sí lo lleva — y el aviso de "el total ya no coincide
           // con el aprobado" saltaría en TODA orden convertida, para siempre.
+          // El recargo por tarjeta (v19) viaja por la misma razón.
           `INSERT INTO orders (folio, tracking_code, vehicle_id, status, description,
               created_by, modality, approval_status, approval_at, approval_total,
-              discount_type, discount_value)
-           VALUES (?, ?, ?, 'recibido', ?, ?, 'taller', 'aprobado', ${NOW_SQL}, ?, ?, ?) RETURNING id`,
+              discount_type, discount_value, surcharge_pct)
+           VALUES (?, ?, ?, 'recibido', ?, ?, 'taller', 'aprobado', ${NOW_SQL}, ?, ?, ?, ?) RETURNING id`,
           [
             folio,
             trackingCode,
@@ -517,6 +525,7 @@ export async function materializeOrderFromQuote(
             quote.decision_total ?? 0,
             quote.discount_type,
             quote.discount_value,
+            quote.surcharge_pct,
           ]
         );
         id = Number(info.lastInsertRowid);

@@ -7,6 +7,7 @@ import {
 import { getPublicQuote, type PublicQuote } from "@/lib/quotes";
 import { hitLimit, clientIp } from "@/lib/rate-limit";
 import { formatMoney, formatDay, formatDateShort } from "@/lib/status";
+import { surchargeLabel } from "@/lib/totals";
 import QuoteApprovalClient from "@/components/public/QuoteApprovalClient";
 
 export const dynamic = "force-dynamic";
@@ -261,24 +262,30 @@ function QuoteView({ quote, code }: { quote: PublicQuote; code: string }) {
                 </li>
               ))}
             </ul>
-            {/* Con descuento hay que mostrar el subtotal: si no, la suma de los
-                importes de arriba no cuadra con el total y se lee como error. */}
+            {/* Con descuento o recargo hay que mostrar el subtotal: si no, la suma
+                de los importes de arriba no cuadra con el total y se lee como error. */}
             <div className="mt-3 pt-3 border-t border-sm-border space-y-1.5">
+              {(quote.discount > 0.009 || quote.surcharge > 0.009) && (
+                <div className="flex items-center justify-between text-sm text-sm-muted">
+                  <span>Subtotal</span>
+                  <span className="tabular-nums">{formatMoney(quote.subtotal)}</span>
+                </div>
+              )}
               {quote.discount > 0.009 && (
-                <>
-                  <div className="flex items-center justify-between text-sm text-sm-muted">
-                    <span>Subtotal</span>
-                    <span className="tabular-nums">{formatMoney(quote.subtotal)}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm font-medium text-sm-ok">
-                    <span>
-                      {quote.discountType === "porcentaje"
-                        ? `Descuento (${quote.discountValue}%)`
-                        : "Descuento"}
-                    </span>
-                    <span className="tabular-nums">- {formatMoney(quote.discount)}</span>
-                  </div>
-                </>
+                <div className="flex items-center justify-between text-sm font-medium text-sm-ok">
+                  <span>
+                    {quote.discountType === "porcentaje"
+                      ? `Descuento (${quote.discountValue}%)`
+                      : "Descuento"}
+                  </span>
+                  <span className="tabular-nums">- {formatMoney(quote.discount)}</span>
+                </div>
+              )}
+              {quote.surcharge > 0.009 && (
+                <div className="flex items-center justify-between text-sm text-sm-muted">
+                  <span>{surchargeLabel(quote.surchargePct)}</span>
+                  <span className="tabular-nums">+ {formatMoney(quote.surcharge)}</span>
+                </div>
               )}
               <div className="flex items-center justify-between">
                 <span className="font-semibold text-sm-graphite">Total</span>

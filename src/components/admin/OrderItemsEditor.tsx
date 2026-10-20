@@ -6,11 +6,12 @@ import {
   updateOrderItemAction, deleteOrderItemAction, updateQuoteItemAction, deleteQuoteItemAction,
 } from "@/app/admin/actions";
 import { formatMoney } from "@/lib/status";
-import { type DiscountType } from "@/lib/totals";
+import { surchargeLabel, type DiscountType } from "@/lib/totals";
 import { btnPrimary, btnSecondary, inputCls, labelCls } from "@/components/admin/ui";
 import SubmitButton from "@/components/admin/SubmitButton";
 import ConfirmSubmitButton from "@/components/admin/ConfirmSubmitButton";
 import DiscountEditor from "@/components/admin/DiscountEditor";
+import SurchargeToggle from "@/components/admin/SurchargeToggle";
 
 export type EditableItem = {
   id: number;
@@ -40,6 +41,8 @@ export default function OrderItemsEditor({
   discount,
   discountType,
   discountValue,
+  surcharge = 0,
+  surchargePct = 0,
   total,
   profit,
   canDiscount = false,
@@ -55,10 +58,14 @@ export default function OrderItemsEditor({
   discount: number;
   discountType: DiscountType | null;
   discountValue: number;
-  // Ya descontado; profit = total − costo de los conceptos.
+  // Recargo por tarjeta de débito, ya incluido en total.
+  surcharge?: number;
+  surchargePct?: number;
+  // Ya descontado y con recargo; profit = total − recargo − costo de los
+  // conceptos (el recargo cubre la comisión del banco, no es margen del trabajo).
   total: number;
   profit: number;
-  // Admin y asesor pueden descontar; el mecánico no.
+  // Admin y asesor pueden descontar y aplicar el recargo; el mecánico no.
   canDiscount?: boolean;
   maxDiscountAmount?: number;
   mode?: EditorMode;
@@ -70,7 +77,9 @@ export default function OrderItemsEditor({
 
   const profitCls = (n: number) => (n < -0.009 ? "text-red-600" : "text-accent-700");
   const colSpan = isAdmin ? 8 : 6;
-  const showBreak = discount > 0.009;
+  const hasDiscount = discount > 0.009;
+  const hasSurcharge = surcharge > 0.009;
+  const showBreak = hasDiscount || hasSurcharge;
   const discountLabel =
     discountType === "porcentaje" ? `Descuento (${discountValue}%)` : "Descuento";
 
@@ -83,7 +92,10 @@ export default function OrderItemsEditor({
   //
   // El importe sí se queda bruto: es lo que ve el cliente y tiene que sumar el
   // subtotal que aparece justo debajo.
-  const netFactor = subtotal > 0.009 ? total / subtotal : 1;
+  //
+  // El recargo por tarjeta no se reparte entre conceptos (mismo criterio que
+  // ORDER_ITEM_NET_SQL): por eso el factor sale de total − recargo.
+  const netFactor = subtotal > 0.009 ? (total - surcharge) / subtotal : 1;
   const lineProfit = (it: EditableItem) =>
     it.qty * it.unit_price * netFactor - it.qty * it.unit_cost;
 
@@ -149,10 +161,18 @@ export default function OrderItemsEditor({
               <span>Subtotal</span>
               <span className="tabular-nums">{formatMoney(subtotal)}</span>
             </div>
-            <div className="flex items-center justify-between text-sm font-medium text-accent-700">
-              <span>{discountLabel}</span>
-              <span className="tabular-nums">- {formatMoney(discount)}</span>
-            </div>
+            {hasDiscount && (
+              <div className="flex items-center justify-between text-sm font-medium text-accent-700">
+                <span>{discountLabel}</span>
+                <span className="tabular-nums">- {formatMoney(discount)}</span>
+              </div>
+            )}
+            {hasSurcharge && (
+              <div className="flex items-center justify-between text-sm font-medium text-slate-600">
+                <span>{surchargeLabel(surchargePct)}</span>
+                <span className="tabular-nums">+ {formatMoney(surcharge)}</span>
+              </div>
+            )}
           </>
         )}
         <div className="flex items-center justify-between">
@@ -246,12 +266,20 @@ export default function OrderItemsEditor({
           {showBreak && (
             <FootRow first isAdmin={isAdmin} label="Subtotal" amount={formatMoney(subtotal)} />
           )}
-          {showBreak && (
+          {hasDiscount && (
             <FootRow
               isAdmin={isAdmin}
               label={discountLabel}
               amount={`- ${formatMoney(discount)}`}
               tone="font-medium text-accent-700"
+            />
+          )}
+          {hasSurcharge && (
+            <FootRow
+              isAdmin={isAdmin}
+              label={surchargeLabel(surchargePct)}
+              amount={`+ ${formatMoney(surcharge)}`}
+              tone="font-medium text-slate-600"
             />
           )}
           <FootRow
@@ -265,13 +293,21 @@ export default function OrderItemsEditor({
         </tfoot>
       </table>
 
-      {showBreak && isAdmin && (
+      {hasDiscount && isAdmin && (
         <p className="mt-2 text-xs text-slate-500">
           La ganancia de cada concepto ya lleva su parte del descuento, así que la columna suma
           la ganancia del total.
         </p>
       )}
+      {hasSurcharge && isAdmin && (
+        <p className="mt-2 text-xs text-slate-500">
+          El recargo no cuenta como ganancia: cubre la comisión del banco por el pago con débito.
+        </p>
+      )}
 
+      {canDiscount && !readOnly && (
+        <SurchargeToggle id={orderId} mode={mode} pct={surchargePct} />
+      )}
       {canDiscount && !readOnly && (
         <DiscountEditor
           id={orderId}

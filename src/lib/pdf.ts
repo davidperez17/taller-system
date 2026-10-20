@@ -5,7 +5,7 @@ import {
   type OrderStatus, type QuoteStatus,
 } from "./status";
 import { EXPIRED_SQL } from "./quotes";
-import { totalsOf, type DiscountType } from "./totals";
+import { surchargeLabel, totalsOf, type DiscountType } from "./totals";
 import brand from "./brand.json";
 
 // Build standalone: trae las métricas de fuente embebidas (el build normal las
@@ -42,9 +42,11 @@ export type OrderDocData = {
   reception: string | null;
   subtotal: number;
   discount: number;
+  surcharge: number;
   total: number;
   discount_type: DiscountType | null;
   discount_value: number;
+  surcharge_pct: number;
   // Solo para kind "presupuesto" (pre-orden): vigencia y estado real del quote.
   valid_until?: string | null;
   quote_status?: QuoteStatus;
@@ -53,11 +55,11 @@ export type OrderDocData = {
 
 export async function loadOrderDocData(orderId: number): Promise<OrderDocData | null> {
   const order = await one<
-    Omit<OrderDocData, "items" | "events" | "paid" | "reception" | "subtotal" | "discount" | "total">
+    Omit<OrderDocData, "items" | "events" | "paid" | "reception" | "subtotal" | "discount" | "surcharge" | "total">
   >(
     `SELECT o.id, o.folio, o.tracking_code, o.status, o.description, o.diagnosis,
             o.km, o.fuel_level, o.estimated_delivery, o.created_at, o.delivered_at,
-            o.approval_status, o.approval_at, o.discount_type, o.discount_value,
+            o.approval_status, o.approval_at, o.discount_type, o.discount_value, o.surcharge_pct,
             v.plate, v.type, v.brand, v.model, v.year, v.color,
             c.name AS client_name, c.phone AS client_phone,
             u.name AS mechanic
@@ -95,7 +97,7 @@ export async function loadOrderDocData(orderId: number): Promise<OrderDocData | 
   return {
     ...order,
     items,
-    ...totalsOf(items, order.discount_type, order.discount_value),
+    ...totalsOf(items, order.discount_type, order.discount_value, order.surcharge_pct),
     events: events.map((e) => ({
       title: e.title,
       detail: e.detail,
@@ -117,12 +119,12 @@ export async function loadQuoteDocData(quoteId: number): Promise<OrderDocData | 
     vehicle_year: string | null; vehicle_color: string | null; description: string;
     valid_until: string | null; decided_at: string | null; created_at: string;
     client_name: string | null; client_phone: string | null; expired: boolean;
-    discount_type: DiscountType | null; discount_value: number;
+    discount_type: DiscountType | null; discount_value: number; surcharge_pct: number;
   }>(
     `SELECT q.id, q.folio, q.public_code, q.status, q.plate, q.vehicle_type,
             q.vehicle_brand, q.vehicle_model, q.vehicle_year, q.vehicle_color,
             q.description, q.valid_until, q.decided_at, q.created_at,
-            q.discount_type, q.discount_value,
+            q.discount_type, q.discount_value, q.surcharge_pct,
             COALESCE(c.name, q.client_name) AS client_name,
             COALESCE(c.phone, q.client_phone) AS client_phone,
             ${EXPIRED_SQL} AS expired
@@ -162,9 +164,10 @@ export async function loadQuoteDocData(quoteId: number): Promise<OrderDocData | 
     client_phone: q.client_phone,
     mechanic: null,
     items,
-    ...totalsOf(items, q.discount_type, q.discount_value),
+    ...totalsOf(items, q.discount_type, q.discount_value, q.surcharge_pct),
     discount_type: q.discount_type,
     discount_value: q.discount_value,
+    surcharge_pct: q.surcharge_pct,
     events: [],
     paid: 0,
     reception: null,
@@ -420,10 +423,13 @@ export async function buildOrderPdf(
       doc.y = yy + (opts?.big ? 17 : 14);
       doc.x = M;
     };
-    // Con descuento el pie se apila: sin el subtotal, la suma de los importes de
-    // arriba no cuadraría con el total y se leería como un error del taller.
-    if (data.discount > 0.009) {
+    // Con descuento o recargo el pie se apila: sin el subtotal, la suma de los
+    // importes de arriba no cuadraría con el total y se leería como un error del
+    // taller.
+    if (data.discount > 0.009 || data.surcharge > 0.009) {
       totalRow("Subtotal", formatMoney(data.subtotal));
+    }
+    if (data.discount > 0.009) {
       totalRow(
         data.discount_type === "porcentaje"
           ? `Descuento (${data.discount_value}%)`
@@ -431,6 +437,9 @@ export async function buildOrderPdf(
         `- ${formatMoney(data.discount)}`,
         { color: GREEN }
       );
+    }
+    if (data.surcharge > 0.009) {
+      totalRow(surchargeLabel(data.surcharge_pct), `+ ${formatMoney(data.surcharge)}`);
     }
     totalRow("Total", formatMoney(total), { big: true });
     if (kind === "informe") {

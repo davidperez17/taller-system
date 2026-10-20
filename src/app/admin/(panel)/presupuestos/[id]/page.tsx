@@ -33,12 +33,12 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
   const { id } = await params;
   const data = await getQuoteWithItems(Number(id));
   if (!data) notFound();
-  const { quote, items, subtotal, discount, total } = data;
+  const { quote, items, subtotal, discount, surcharge, total } = data;
 
   const isAdmin = user.role === "admin";
   const pending = quote.status === "pendiente";
   const costTotal = items.reduce((s, i) => s + i.qty * i.unit_cost, 0);
-  const profit = total - costTotal;
+  const profit = total - surcharge - costTotal;
 
   // La misma orden activa por placa ya en curso merece un aviso (la aprobación
   // crearía una segunda orden para el mismo vehículo, comportamiento válido
@@ -264,6 +264,8 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
               discount={discount}
               discountType={quote.discount_type}
               discountValue={quote.discount_value}
+              surcharge={surcharge}
+              surchargePct={quote.surcharge_pct}
               total={total}
               profit={profit}
               // El mecánico ya está redirigido arriba, así que quien llega aquí

@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 // marcar cuántas novedades hay sin ver.
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 42,
+    date: "2026-10-20",
+    title: "Recargo del 5% cuando el cliente paga con tarjeta de débito",
+    description:
+      "En el presupuesto (y también en la orden) hay un botón nuevo junto al descuento: «Paga con tarjeta de débito (+5%)». Un toque y el total suma el 5% de recargo, que el cliente ve desglosado como «Recargo tarjeta de débito (5%)» en el enlace que le mandas por WhatsApp, en el PDF y en su seguimiento — así sabe desde antes cuánto va a pagar con la tarjeta. El 5% se calcula sobre el total ya con descuento, y si el cliente cambia de idea se quita con el mismo botón. Al aprobar el presupuesto el recargo pasa solo a la orden; si decide pagar con débito después, lo puedes poner directo en la orden. En Reportes el recargo aparece en su propio renglón, aparte de lo facturado en servicios y repuestos, y no infla la ganancia de cada orden: es lo que cubre la comisión del banco, que puedes anotar en Gastos con la nueva categoría «Comisiones bancarias (POS)».",
+  },
+  {
     id: 41,
     date: "2026-08-07",
     title: "Si una foto no se puede subir, ahora te lo dice antes de guardar",

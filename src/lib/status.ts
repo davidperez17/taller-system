@@ -119,6 +119,7 @@ export const EXPENSE_CATEGORIES: Record<string, string> = {
   herramientas: "Herramientas y equipo",
   insumos: "Insumos y consumibles",
   transporte: "Transporte",
+  comisiones: "Comisiones bancarias (POS)",
   otros: "Otros",
 };
 

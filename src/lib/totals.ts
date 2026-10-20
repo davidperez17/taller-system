@@ -1,9 +1,14 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Totales con descuento. UN SOLO lugar para la aritmética del dinero.
+// Totales con descuento y recargo. UN SOLO lugar para la aritmética del dinero.
 //
 // El descuento se aplica sobre el TOTAL, nunca por línea: se guarda como
 // (discount_type, discount_value) en quotes y en orders, y "sin descuento" es
 // SIEMPRE (NULL, 0) — ver la nota de la migración v16 en schema.ts.
+//
+// El recargo por pagar con tarjeta de débito va DESPUÉS del descuento:
+//   subtotal − descuento = base;  recargo = base × surcharge_pct / 100;
+//   total = base + recargo.
+// surcharge_pct es 0 (sin recargo) o la tasa congelada al aplicarlo (v19).
 //
 // Este archivo tiene dos caras del MISMO cálculo porque el proyecto suma tanto
 // en TS (reduce sobre las filas ya traídas) como en SQL (agregados de reportes,
@@ -32,7 +37,12 @@ export function isDiscountType(s: string): s is DiscountType {
 // Q33.333, y sin este redondeo la resta en pantalla no daría el total mostrado.
 export const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
-export type Totals = { subtotal: number; discount: number; total: number };
+export type Totals = { subtotal: number; discount: number; surcharge: number; total: number };
+
+// Tasa del recargo por pagar con tarjeta de débito. Se congela en la fila
+// (surcharge_pct) al aplicarlo: si el banco cambia la comisión y esto se ajusta,
+// los presupuestos y órdenes viejos conservan la tasa que vio el cliente.
+export const DEBIT_SURCHARGE_PCT = 5;
 
 export type DiscountFields = {
   discount_type: DiscountType | null;
@@ -40,14 +50,15 @@ export type DiscountFields = {
 };
 
 /**
- * Subtotal → {subtotal, discount, total}, con el descuento ya topado y
- * redondeado. Tolerante a basura (NaN, negativos, tipo desconocido) porque lo
- * llaman componentes que reciben la fila cruda de la BD.
+ * Subtotal → {subtotal, discount, surcharge, total}, con el descuento ya topado
+ * y todo redondeado. Tolerante a basura (NaN, negativos, tipo desconocido)
+ * porque lo llaman componentes que reciben la fila cruda de la BD.
  */
 export function applyDiscount(
   subtotal: number,
   type: string | null | undefined,
-  value: number | null | undefined
+  value: number | null | undefined,
+  surchargePct: number | null | undefined = 0
 ): Totals {
   const sub = round2(Number.isFinite(subtotal) ? subtotal : 0);
   const raw = Number(value);
@@ -58,7 +69,11 @@ export function applyDiscount(
     else if (type === "monto") discount = Math.min(v, sub);
   }
   discount = round2(discount);
-  return { subtotal: sub, discount, total: round2(sub - discount) };
+  const base = round2(sub - discount);
+  const rawPct = Number(surchargePct);
+  const pct = Number.isFinite(rawPct) && rawPct > 0 ? Math.min(rawPct, 100) : 0;
+  const surcharge = round2((base * pct) / 100);
+  return { subtotal: sub, discount, surcharge, total: round2(base + surcharge) };
 }
 
 export const sumItems = (items: { qty: number; unit_price: number }[]): number =>
@@ -68,10 +83,14 @@ export const sumItems = (items: { qty: number; unit_price: number }[]): number =
 export function totalsOf(
   items: { qty: number; unit_price: number }[],
   type: string | null | undefined,
-  value: number | null | undefined
+  value: number | null | undefined,
+  surchargePct: number | null | undefined = 0
 ): Totals {
-  return applyDiscount(sumItems(items), type, value);
+  return applyDiscount(sumItems(items), type, value, surchargePct);
 }
+
+/** Etiqueta del renglón del recargo, igual en panel, PDF y páginas públicas. */
+export const surchargeLabel = (pct: number) => `Recargo tarjeta de débito (${pct}%)`;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Cara SQL: fragmentos que se interpolan en las queries, mismo patrón que
@@ -96,6 +115,13 @@ export const discountSql = (t: string, sub: string) =>
       ELSE 0
     END)::numeric, 2)::float8`;
 
+/**
+ * Monto del recargo. `base` = subtotal ya descontado. Mismo redondeo que
+ * applyDiscount: primero se cierra la base a centavos y luego el recargo.
+ */
+export const surchargeSql = (t: string, base: string) =>
+  `ROUND(((${base}) * LEAST(GREATEST(COALESCE(${t}.surcharge_pct, 0), 0), 100) / 100)::numeric, 2)::float8`;
+
 // ── Presupuestos ────────────────────────────────────────────────────────────
 // Alias `qi` a propósito: los call-sites ya usan `i` para otras cosas.
 
@@ -103,19 +129,30 @@ export const quoteSubtotalSql = (q: string) =>
   `(SELECT COALESCE(SUM(qi.qty * qi.unit_price), 0)::float8
       FROM quote_items qi WHERE qi.quote_id = ${q}.id)`;
 
-export const quoteTotalSql = (q: string) =>
+const quoteBaseSql = (q: string) =>
   `ROUND((${quoteSubtotalSql(q)} - ${discountSql(q, quoteSubtotalSql(q))})::numeric, 2)::float8`;
+
+export const quoteTotalSql = (q: string) =>
+  `ROUND((${quoteBaseSql(q)} + ${surchargeSql(q, quoteBaseSql(q))})::numeric, 2)::float8`;
 
 // ── Órdenes ─────────────────────────────────────────────────────────────────
 
-/** Una fila por orden: subtotal, costo, descuento y total ya descontado. */
+// Subtotal ya descontado de una orden (alias o2/s de ORDER_TOTALS_SQL).
+const ORDER_BASE_SQL = `ROUND((COALESCE(s.subtotal, 0)
+                - ${discountSql("o2", "COALESCE(s.subtotal, 0)")})::numeric, 2)::float8`;
+
+/**
+ * Una fila por orden: subtotal, costo, descuento, recargo por tarjeta y total
+ * (ya descontado y con el recargo). `total` es lo que se le cobra al cliente.
+ */
 export const ORDER_TOTALS_SQL = `(
   SELECT o2.id AS order_id,
          ROUND(COALESCE(s.subtotal, 0)::numeric, 2)::float8 AS subtotal,
          COALESCE(s.cost, 0)::float8 AS cost,
          ${discountSql("o2", "COALESCE(s.subtotal, 0)")} AS discount,
-         ROUND((COALESCE(s.subtotal, 0)
-                - ${discountSql("o2", "COALESCE(s.subtotal, 0)")})::numeric, 2)::float8 AS total
+         ${surchargeSql("o2", ORDER_BASE_SQL)} AS surcharge,
+         ROUND((${ORDER_BASE_SQL}
+                + ${surchargeSql("o2", ORDER_BASE_SQL)})::numeric, 2)::float8 AS total
     FROM orders o2
     LEFT JOIN (SELECT order_id,
                       SUM(qty * unit_price)::float8 AS subtotal,
@@ -128,7 +165,11 @@ export const ORDER_TOTALS_SQL = `(
  * Es lo que permite que los reportes agrupados por tipo/mecánico/modalidad bajen
  * sus ingresos sin inventar una categoría "descuento" que no cuadraría con nada.
  *
- * Invariante: SUM(net) de una orden == total de esa orden. Puede diferir en
+ * El recargo por tarjeta NO se prorratea: no es venta de servicios ni de
+ * repuestos, sino lo que cubre la comisión del banco, y Reportes lo muestra en
+ * su propio renglón (SUM(ORDER_TOTALS_SQL.surcharge)).
+ *
+ * Invariante: SUM(net) de una orden == total − recargo. Puede diferir en
  * fracciones de centavo por el prorrateo en float, lo cual es aceptable para
  * agregados; los sitios que muestran el total de UNA orden usan
  * ORDER_TOTALS_SQL.total, nunca la suma de net.
@@ -139,7 +180,7 @@ export const ORDER_ITEM_NET_SQL = `(
          (oi.qty * oi.unit_price)::float8 AS gross,
          (oi.qty * oi.unit_cost)::float8  AS cost,
          (CASE WHEN ot.subtotal > 0
-               THEN (oi.qty * oi.unit_price) * (ot.total / ot.subtotal)
+               THEN (oi.qty * oi.unit_price) * ((ot.total - ot.surcharge) / ot.subtotal)
                ELSE 0 END)::float8 AS net
     FROM order_items oi
     JOIN ${ORDER_TOTALS_SQL} ot ON ot.order_id = oi.order_id

@@ -57,6 +57,8 @@ export type TrackingResult = {
   discount?: number;
   discountType?: DiscountType | null;
   discountValue?: number;
+  surcharge?: number;
+  surchargePct?: number;
   total?: number;
   paid?: number;
   history?: { folio: string; status: OrderStatus; description: string; created_at: string }[];
@@ -106,6 +108,7 @@ export async function getTracking(rawPlate: string, code?: string | null): Promi
     approval_total: number | null;
     discount_type: DiscountType | null;
     discount_value: number;
+    surcharge_pct: number;
   };
 
   // Orden activa = la más reciente no entregada/cancelada; si no hay, la última.
@@ -204,9 +207,10 @@ export async function getTracking(rawPlate: string, code?: string | null): Promi
     events,
     detailed: true,
     items,
-    ...totalsOf(items, order.discount_type, order.discount_value),
+    ...totalsOf(items, order.discount_type, order.discount_value, order.surcharge_pct),
     discountType: order.discount_type,
     discountValue: order.discount_value,
+    surchargePct: order.surcharge_pct,
     paid:
       (
         await one<{ paid: number }>(

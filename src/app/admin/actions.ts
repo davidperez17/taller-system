@@ -13,7 +13,7 @@ import { sendPushToPlate, sendPushToStaff } from "@/lib/push";
 import { hitLimit, clientIp } from "@/lib/rate-limit";
 import { str, strOrNull, num } from "@/lib/validate";
 import {
-  ORDER_TOTALS_SQL, isDiscountType, round2, type DiscountType,
+  ORDER_TOTALS_SQL, isDiscountType, round2, type DiscountType, DEBIT_SURCHARGE_PCT,
 } from "@/lib/totals";
 import {
   STATUS_META, RECEPTION_EVENT_TITLE, EXPENSE_CATEGORIES, VEHICLE_TYPES, formatMoney,
@@ -1712,9 +1712,58 @@ export async function setOrderDiscountAction(formData: FormData) {
                FROM payments WHERE order_id = ?) p
       WHERE o.id = ?
         AND o.status <> 'cancelado'
-        AND s.subtotal - (${discExpr}) >= p.paid - 0.009
+        AND (s.subtotal - (${discExpr})) * (1 + o.surcharge_pct / 100) >= p.paid - 0.009
       RETURNING o.id`,
     [type, value, orderId, orderId, orderId, ...(type ? [value] : [])]
+  );
+  revalidatePath(`/admin/ordenes/${orderId}`);
+  revalidatePath("/admin/caja");
+  revalidatePath("/admin");
+}
+
+// Recargo por tarjeta de débito: un interruptor, no un monto libre. El form
+// manda surcharge=1/0 y la tasa la pone el server (DEBIT_SURCHARGE_PCT), así
+// nadie puede mandar un 50% a mano. Se congela en la fila: ver migración v19.
+function readSurcharge(formData: FormData): number {
+  return String(formData.get("surcharge") || "") === "1" ? DEBIT_SURCHARGE_PCT : 0;
+}
+
+// Mismo guard que setQuoteDiscountAction: solo presupuestos pendientes, inline
+// en el WHERE para no cambiar el total que el cliente está por aprobar.
+export async function setQuoteSurchargeAction(formData: FormData) {
+  const user = await requireUser();
+  if (user.role === "mecanico") return;
+  const quoteId = Number(formData.get("quote_id"));
+  if (!quoteId) return;
+
+  await run(
+    `UPDATE quotes SET surcharge_pct = ?, updated_at = ${NOW_SQL}
+      WHERE id = ? AND status = 'pendiente'`,
+    [readSurcharge(formData), quoteId]
+  );
+  revalidatePath(`/admin/presupuestos/${quoteId}`);
+  revalidatePath("/admin/presupuestos");
+}
+
+// En la orden, por si el cliente decide pagar con débito después de aprobar.
+// Quitarlo baja el total: mismo invariante que setOrderDiscountAction, el total
+// no puede quedar bajo lo ya cobrado.
+export async function setOrderSurchargeAction(formData: FormData) {
+  const user = await requireUser();
+  if (user.role === "mecanico") return;
+  const orderId = Number(formData.get("order_id"));
+  if (!orderId) return;
+
+  await run(
+    `UPDATE orders o SET surcharge_pct = ?, updated_at = ${NOW_SQL}
+       FROM ${ORDER_TOTALS_SQL} t,
+            (SELECT COALESCE(SUM(amount), 0)::float8 AS paid
+               FROM payments WHERE order_id = ?) p
+      WHERE o.id = ? AND t.order_id = o.id
+        AND o.status <> 'cancelado'
+        AND (t.subtotal - t.discount) * (1 + ?::float8 / 100) >= p.paid - 0.009
+      RETURNING o.id`,
+    [readSurcharge(formData), orderId, orderId, readSurcharge(formData)]
   );
   revalidatePath(`/admin/ordenes/${orderId}`);
   revalidatePath("/admin/caja");
@@ -1908,18 +1957,18 @@ export async function duplicateQuoteAction(formData: FormData) {
     client_phone: string | null; plate: string; vehicle_type: string;
     vehicle_brand: string | null; vehicle_model: string | null; vehicle_year: string | null;
     vehicle_color: string | null; description: string; notes: string | null; folio: string;
-    discount_type: DiscountType | null; discount_value: number;
+    discount_type: DiscountType | null; discount_value: number; surcharge_pct: number;
   }>("SELECT * FROM quotes WHERE id = ?", [quoteId]);
   if (!src) return;
 
   const { folio, value: newId } = await withFolioRetry("quotes", async (folio) => {
     const info = await run(
-      // El descuento se copia: re-cotizar conserva la política comercial que ya
-      // se acordó con el cliente.
+      // El descuento y el recargo se copian: re-cotizar conserva la política
+      // comercial y la forma de pago que ya se acordaron con el cliente.
       `INSERT INTO quotes (folio, public_code, client_id, vehicle_id, client_name, client_phone,
           plate, vehicle_type, vehicle_brand, vehicle_model, vehicle_year, vehicle_color,
-          description, notes, created_by, discount_type, discount_value)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+          description, notes, created_by, discount_type, discount_value, surcharge_pct)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
       [
         folio,
         newTrackingCode(),
@@ -1938,6 +1987,7 @@ export async function duplicateQuoteAction(formData: FormData) {
         user.id,
         src.discount_type,
         src.discount_value,
+        src.surcharge_pct,
       ]
     );
     return Number(info.lastInsertRowid);

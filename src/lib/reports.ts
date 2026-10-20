@@ -3,7 +3,7 @@ import {
   formatMoney, formatDate, formatDateShort, formatDay, ROLES, EXPENSE_CATEGORIES,
   CLAIM_TYPES, CLAIM_RESPONSIBLE, STATUS_META, type OrderStatus,
 } from "./status";
-import { ORDER_ITEM_NET_SQL } from "./totals";
+import { ORDER_ITEM_NET_SQL, ORDER_TOTALS_SQL } from "./totals";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Reportes: resolución del período y detalle de cada KPI.
@@ -612,9 +612,17 @@ export async function loadMetricDetail(
     "SELECT COALESCE(SUM(amount), 0)::float8 AS total FROM claims WHERE claimed_on BETWEEN ? AND ?",
     [desde, hasta]
   ))!;
+  // Recargo por tarjeta de débito: renglón propio, fuera de Facturado (ver
+  // ORDER_ITEM_NET_SQL). Misma query que la tarjeta de Reportes.
+  const surcharge = (await one<{ total: number }>(
+    `SELECT COALESCE(SUM(ot.surcharge), 0)::float8 AS total
+       FROM orders o JOIN ${ORDER_TOTALS_SQL} ot ON ot.order_id = o.id
+      WHERE o.status = 'entregado' AND substr(o.delivered_at, 1, 10) BETWEEN ? AND ?`,
+    [desde, hasta]
+  ))!;
 
   const gross = inv.total - inv.cost;
-  const net = gross - exp.total - payroll - claims.total;
+  const net = gross + surcharge.total - exp.total - payroll - claims.total;
   const link = (m: string) => `/admin/reportes/${m}?${range.query}`;
 
   return {
@@ -640,6 +648,17 @@ export async function loadMetricDetail(
         amount: -inv.cost,
         href: link("margen"),
       },
+      ...(surcharge.total > 0.009
+        ? [
+            {
+              key: "recargo",
+              title: "Recargo tarjeta de débito",
+              subtitle: "Lo que pagaron de más los clientes con débito; cubre la comisión del banco",
+              amount: surcharge.total,
+              href: link("cobrado"),
+            },
+          ]
+        : []),
       {
         key: "gastos",
         title: "Gastos del taller",
@@ -662,9 +681,9 @@ export async function loadMetricDetail(
         href: link("reclamos"),
       },
     ],
-    countLabel: "5 componentes",
+    countLabel: surcharge.total > 0.009 ? "6 componentes" : "5 componentes",
     truncated: 0,
     emptyText: "Sin movimientos en este período.",
-    note: "Ganancia neta = facturado − costo de ítems − gastos − planilla − reclamos.",
+    note: "Ganancia neta = facturado − costo de ítems + recargo por tarjeta − gastos − planilla − reclamos. La comisión del banco por cobrar con tarjeta va en Gastos.",
   };
 }

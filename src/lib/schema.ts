@@ -420,4 +420,18 @@ export const MIGRATIONS: string[][] = [
     `CREATE INDEX IF NOT EXISTS idx_feedback_created ON order_feedback(created_at DESC)`,
     `CREATE INDEX IF NOT EXISTS idx_feedback_rating ON order_feedback(rating)`,
   ],
+  // v19 — recargo por pagar con tarjeta de débito, sobre el total ya descontado
+  // (la aritmética vive en lib/totals.ts). Se guarda la TASA y no un booleano:
+  // 0 = sin recargo, >0 = la tasa congelada al aplicarlo (DEBIT_SURCHARGE_PCT),
+  // así un cambio futuro de la comisión no reescribe totales ya aprobados.
+  //
+  // Viaja del presupuesto a la orden igual que el descuento (v16), para que
+  // approval_total y el total recalculado de la orden coincidan.
+  //
+  // Sin CHECK (mismo criterio que v13/v16/v17/v18): ADD CONSTRAINT no es
+  // idempotente. La whitelist vive en readSurcharge, en actions.ts.
+  [
+    `ALTER TABLE quotes ADD COLUMN IF NOT EXISTS surcharge_pct DOUBLE PRECISION NOT NULL DEFAULT 0`,
+    `ALTER TABLE orders ADD COLUMN IF NOT EXISTS surcharge_pct DOUBLE PRECISION NOT NULL DEFAULT 0`,
+  ],
 ];

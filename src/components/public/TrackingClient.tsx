@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { STATUS_FLOW, STATUS_META, type OrderStatus, canClientDecide, formatMoney, formatDate, formatDateShort } from "@/lib/status";
 import type { TrackingResult } from "@/lib/tracking";
+import { surchargeLabel } from "@/lib/totals";
 import type { PublicAnnouncement } from "@/lib/announcements";
 import { subscribeToPush, saveVehicle, getSavedVehicles, registerSW } from "./pwa";
 import ApprovalDecision, { type Decision } from "./ApprovalDecision";
@@ -568,16 +569,18 @@ export default function TrackingClient({
                   ))}
                 </tbody>
                 <tfoot>
+                  {((data.discount ?? 0) > 0.009 || (data.surcharge ?? 0) > 0.009) && (
+                    <tr className="border-t border-sm-border">
+                      <td colSpan={2} className="pt-3 pb-1 text-sm text-sm-muted">
+                        Subtotal
+                      </td>
+                      <td className="pt-3 pb-1 text-right text-sm text-sm-muted tabular-nums">
+                        {formatMoney(data.subtotal ?? 0)}
+                      </td>
+                    </tr>
+                  )}
                   {(data.discount ?? 0) > 0.009 && (
                     <>
-                      <tr className="border-t border-sm-border">
-                        <td colSpan={2} className="pt-3 pb-1 text-sm text-sm-muted">
-                          Subtotal
-                        </td>
-                        <td className="pt-3 pb-1 text-right text-sm text-sm-muted tabular-nums">
-                          {formatMoney(data.subtotal ?? 0)}
-                        </td>
-                      </tr>
                       <tr>
                         <td colSpan={2} className="py-1 text-sm font-medium text-sm-ok">
                           {data.discountType === "porcentaje"
@@ -590,9 +593,21 @@ export default function TrackingClient({
                       </tr>
                     </>
                   )}
+                  {(data.surcharge ?? 0) > 0.009 && (
+                    <tr>
+                      <td colSpan={2} className="py-1 text-sm text-sm-muted">
+                        {surchargeLabel(data.surchargePct ?? 0)}
+                      </td>
+                      <td className="py-1 text-right text-sm text-sm-muted tabular-nums">
+                        + {formatMoney(data.surcharge ?? 0)}
+                      </td>
+                    </tr>
+                  )}
                   <tr
                     className={
-                      (data.discount ?? 0) > 0.009 ? undefined : "border-t border-sm-border"
+                      (data.discount ?? 0) > 0.009 || (data.surcharge ?? 0) > 0.009
+                        ? undefined
+                        : "border-t border-sm-border"
                     }
                   >
                     <td colSpan={2} className="py-3 font-semibold text-sm-graphite">
