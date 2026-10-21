@@ -83,11 +83,21 @@ export default async function DashboardPage() {
      WHERE done = 0 AND substr(due_date, 1, 10) <= to_char(now(), 'YYYY-MM-DD')`
   ))!;
 
+  // Cada KPI abre la lista de donde sale su número. Facturado va a Reportes
+  // solo para admin (mismo gate que la nav); el resto cae en el historial de
+  // entregadas del mes, que es el mismo universo de órdenes.
+  const deliveredMonthHref = "/admin/ordenes/historial?estado=entregado&r=mes";
   const kpis = [
-    { label: "En el taller", value: active.n, icon: Car, tone: "bg-sm-bg text-sm-red" },
-    { label: "Listos para entrega", value: ready.n, icon: CheckCircle2, tone: "bg-accent-50 text-accent-700" },
-    { label: "Entregados este mes", value: deliveredMonth.n, icon: ClipboardList, tone: "bg-violet-50 text-violet-700" },
-    { label: "Facturado este mes", value: formatMoney(revenueMonth.total), icon: Banknote, tone: "bg-amber-50 text-amber-700" },
+    { label: "En el taller", value: active.n, icon: Car, tone: "bg-sm-bg text-sm-red", href: "/admin/ordenes?estado=activas" },
+    { label: "Listos para entrega", value: ready.n, icon: CheckCircle2, tone: "bg-accent-50 text-accent-700", href: "/admin/ordenes?estado=listo" },
+    { label: "Entregados este mes", value: deliveredMonth.n, icon: ClipboardList, tone: "bg-violet-50 text-violet-700", href: deliveredMonthHref },
+    {
+      label: "Facturado este mes",
+      value: formatMoney(revenueMonth.total),
+      icon: Banknote,
+      tone: "bg-amber-50 text-amber-700",
+      href: user?.role === "admin" ? "/admin/reportes?r=mes" : deliveredMonthHref,
+    },
   ];
 
   return (
@@ -141,7 +151,11 @@ export default async function DashboardPage() {
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {kpis.map((k) => (
-          <div key={k.label} className={`${card} p-4`}>
+          <Link
+            key={k.label}
+            href={k.href}
+            className={`${card} p-4 transition-colors hover:bg-slate-50 active:bg-slate-100`}
+          >
             <div className={`rounded-xl p-2 w-fit ${k.tone}`} aria-hidden="true">
               <k.icon className="w-5 h-5" />
             </div>
@@ -149,7 +163,7 @@ export default async function DashboardPage() {
               {k.value}
             </p>
             <p className="text-xs text-slate-500 mt-0.5">{k.label}</p>
-          </div>
+          </Link>
         ))}
       </div>
 

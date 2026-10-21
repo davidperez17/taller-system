@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 // marcar cuántas novedades hay sin ver.
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 44,
+    date: "2026-10-21",
+    title: "Las tarjetas del Inicio ahora te llevan a su lista",
+    description:
+      "En Inicio, toca cualquiera de las cuatro tarjetas de arriba para ver las órdenes de donde sale el número: «En el taller» abre las órdenes activas, «Listos para entrega» las que ya están listas, y «Entregados este mes» el historial de entregadas del mes. «Facturado este mes» abre Reportes del mes (si no tienes acceso a Reportes, te lleva al historial de entregadas del mes).",
+  },
+  {
     id: 43,
     date: "2026-10-21",
     title: "El recargo por tarjeta de débito ahora se puede ajustar",
