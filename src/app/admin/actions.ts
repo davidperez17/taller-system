@@ -13,7 +13,7 @@ import { sendPushToPlate, sendPushToStaff } from "@/lib/push";
 import { hitLimit, clientIp } from "@/lib/rate-limit";
 import { str, strOrNull, num } from "@/lib/validate";
 import {
-  ORDER_TOTALS_SQL, isDiscountType, round2, type DiscountType, DEBIT_SURCHARGE_PCT,
+  ORDER_TOTALS_SQL, isDiscountType, round2, type DiscountType, MAX_SURCHARGE_PCT,
 } from "@/lib/totals";
 import {
   STATUS_META, RECEPTION_EVENT_TITLE, EXPENSE_CATEGORIES, VEHICLE_TYPES, formatMoney,
@@ -1721,11 +1721,12 @@ export async function setOrderDiscountAction(formData: FormData) {
   revalidatePath("/admin");
 }
 
-// Recargo por tarjeta de débito: un interruptor, no un monto libre. El form
-// manda surcharge=1/0 y la tasa la pone el server (DEBIT_SURCHARGE_PCT), así
-// nadie puede mandar un 50% a mano. Se congela en la fila: ver migración v19.
+// Recargo por tarjeta de débito: el form manda surcharge_pct (0 = quitar). La
+// tasa se topa en MAX_SURCHARGE_PCT para que un dedazo no infle el total que ve
+// el cliente. Se congela en la fila: ver migración v19.
 function readSurcharge(formData: FormData): number {
-  return String(formData.get("surcharge") || "") === "1" ? DEBIT_SURCHARGE_PCT : 0;
+  const pct = num(formData, "surcharge_pct", { min: 0, max: MAX_SURCHARGE_PCT });
+  return pct > 0 ? round2(pct) : 0;
 }
 
 // Mismo guard que setQuoteDiscountAction: solo presupuestos pendientes, inline
@@ -1746,13 +1747,14 @@ export async function setQuoteSurchargeAction(formData: FormData) {
 }
 
 // En la orden, por si el cliente decide pagar con débito después de aprobar.
-// Quitarlo baja el total: mismo invariante que setOrderDiscountAction, el total
+// Quitarlo (o bajar la tasa) baja el total: mismo invariante que setOrderDiscountAction, el total
 // no puede quedar bajo lo ya cobrado.
 export async function setOrderSurchargeAction(formData: FormData) {
   const user = await requireUser();
   if (user.role === "mecanico") return;
   const orderId = Number(formData.get("order_id"));
   if (!orderId) return;
+  const pct = readSurcharge(formData);
 
   await run(
     `UPDATE orders o SET surcharge_pct = ?, updated_at = ${NOW_SQL}
@@ -1763,7 +1765,7 @@ export async function setOrderSurchargeAction(formData: FormData) {
         AND o.status <> 'cancelado'
         AND (t.subtotal - t.discount) * (1 + ?::float8 / 100) >= p.paid - 0.009
       RETURNING o.id`,
-    [readSurcharge(formData), orderId, orderId, readSurcharge(formData)]
+    [pct, orderId, orderId, pct]
   );
   revalidatePath(`/admin/ordenes/${orderId}`);
   revalidatePath("/admin/caja");

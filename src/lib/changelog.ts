@@ -11,6 +11,13 @@ export type ChangelogEntry = {
 // marcar cuántas novedades hay sin ver.
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: 43,
+    date: "2026-10-21",
+    title: "El recargo por tarjeta de débito ahora se puede ajustar",
+    description:
+      "Junto al botón «Paga con tarjeta de débito (+5%)» hay un enlace nuevo, «Cambiar %», para poner otra tasa en ese presupuesto u orden (hasta 20%), por si el banco cobra distinto o quieres cubrir otra comisión. El botón de un toque sigue aplicando el 5%. La tasa queda guardada en cada presupuesto y orden: el cliente ve exactamente el porcentaje que aplicaste, en el enlace, el PDF y su seguimiento.",
+  },
+  {
     id: 42,
     date: "2026-10-20",
     title: "Recargo del 5% cuando el cliente paga con tarjeta de débito",

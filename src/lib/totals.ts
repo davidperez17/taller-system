@@ -39,10 +39,16 @@ export const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 10
 
 export type Totals = { subtotal: number; discount: number; surcharge: number; total: number };
 
-// Tasa del recargo por pagar con tarjeta de débito. Se congela en la fila
-// (surcharge_pct) al aplicarlo: si el banco cambia la comisión y esto se ajusta,
-// los presupuestos y órdenes viejos conservan la tasa que vio el cliente.
+// Tasa SUGERIDA del recargo por pagar con tarjeta de débito: la que pone el
+// botón de un toque. El asesor puede cambiarla por presupuesto u orden (hasta
+// MAX_SURCHARGE_PCT). Se congela en la fila (surcharge_pct) al aplicarla: si el
+// banco cambia la comisión, los presupuestos y órdenes viejos conservan la tasa
+// que vio el cliente.
 export const DEBIT_SURCHARGE_PCT = 5;
+
+// Tope del recargo editable. Ninguna comisión de POS se le acerca; frena el
+// dedazo (50 en vez de 5) que inflaría el total que ve el cliente.
+export const MAX_SURCHARGE_PCT = 20;
 
 export type DiscountFields = {
   discount_type: DiscountType | null;

@@ -422,7 +422,7 @@ export const MIGRATIONS: string[][] = [
   ],
   // v19 — recargo por pagar con tarjeta de débito, sobre el total ya descontado
   // (la aritmética vive en lib/totals.ts). Se guarda la TASA y no un booleano:
-  // 0 = sin recargo, >0 = la tasa congelada al aplicarlo (DEBIT_SURCHARGE_PCT),
+  // 0 = sin recargo, >0 = la tasa congelada al aplicarlo (5% sugerido, editable),
   // así un cambio futuro de la comisión no reescribe totales ya aprobados.
   //
   // Viaja del presupuesto a la orden igual que el descuento (v16), para que
