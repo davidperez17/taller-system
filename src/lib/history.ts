@@ -1,4 +1,4 @@
-import { gtNow, isoDay } from "./reports";
+import { gtNow, isoDay, GT_DAY_SQL } from "./reports";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Período del historial de órdenes cerradas.
@@ -67,9 +67,10 @@ export function resolveHistoryRange(sp: {
 
 // Día de cierre de una orden: la entrega si la hay, y si no la última
 // actualización —las canceladas no tienen delivered_at, y las entregadas de
-// antes de que existiera la columna tampoco. `o` es el alias de orders.
+// antes de que existiera la columna tampoco. `o` es el alias de orders. En día
+// de Guatemala, igual que los rangos de gtNow() con los que se compara.
 export const CLOSED_DAY_SQL = (o = "o") =>
-  `substr(COALESCE(${o}.delivered_at, ${o}.updated_at), 1, 10)`;
+  GT_DAY_SQL(`COALESCE(${o}.delivered_at, ${o}.updated_at)`);
 
 /** Suma de pagos por orden, para el saldo. Se une por LEFT JOIN. */
 export const ORDER_PAID_SQL = `(

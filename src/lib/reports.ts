@@ -23,8 +23,17 @@ export function isoDay(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
-// Los pagos guardan created_at en UTC; el día de caja se corre 6 h para atrás.
-const PAYMENT_DAY_SQL = "to_char(p.created_at::timestamp - interval '6 hours', 'YYYY-MM-DD')";
+// Las fechas se guardan en UTC ('YYYY-MM-DD HH:MM:SS', NOW_SQL): el día de
+// Guatemala se corre 6 h para atrás. Sin esto, lo entregado después de las 18:00
+// caía en el día (o el mes) siguiente y no cuadraba con los rangos de gtNow().
+export const GT_DAY_SQL = (col: string) =>
+  `to_char(${col}::timestamp - interval '6 hours', 'YYYY-MM-DD')`;
+
+// Día de entrega en hora de Guatemala. `o` = alias de orders ("" sin alias).
+export const DELIVERED_DAY_SQL = (o = "o") => GT_DAY_SQL(o ? `${o}.delivered_at` : "delivered_at");
+
+// Día de caja de un pago.
+const PAYMENT_DAY_SQL = GT_DAY_SQL("p.created_at");
 
 export type RangePreset = { label: string; desde: string; hasta: string };
 
@@ -209,7 +218,7 @@ export async function loadMetricDetail(
               COALESCE(SUM(i.cost), 0)::float8 AS cost,
               COUNT(DISTINCT o.id)::int AS n
          FROM orders o JOIN ${ORDER_ITEM_NET_SQL} i ON i.order_id = o.id
-        WHERE o.status = 'entregado' AND substr(o.delivered_at, 1, 10) BETWEEN ? AND ?`,
+        WHERE o.status = 'entregado' AND ${DELIVERED_DAY_SQL("o")} BETWEEN ? AND ?`,
       [desde, hasta]
     ))!;
     const rows = await many<{
@@ -223,7 +232,7 @@ export async function loadMetricDetail(
          JOIN vehicles v ON v.id = o.vehicle_id
          LEFT JOIN clients c ON c.id = v.client_id
          JOIN ${ORDER_ITEM_NET_SQL} i ON i.order_id = o.id
-        WHERE o.status = 'entregado' AND substr(o.delivered_at, 1, 10) BETWEEN ? AND ?
+        WHERE o.status = 'entregado' AND ${DELIVERED_DAY_SQL("o")} BETWEEN ? AND ?
         GROUP BY o.id, o.folio, v.plate, c.name, o.delivered_at, o.modality
         ORDER BY o.delivered_at DESC, o.id DESC
         LIMIT ${LIMIT}`,
@@ -286,9 +295,9 @@ export async function loadMetricDetail(
     const agg = (await one<{ total: number; n: number }>(
       `SELECT COALESCE(SUM(i.net), 0)::float8 AS total,
               (SELECT COUNT(*)::int FROM orders
-                WHERE status = 'entregado' AND substr(delivered_at, 1, 10) BETWEEN ? AND ?) AS n
+                WHERE status = 'entregado' AND ${DELIVERED_DAY_SQL("")} BETWEEN ? AND ?) AS n
          FROM orders o JOIN ${ORDER_ITEM_NET_SQL} i ON i.order_id = o.id
-        WHERE o.status = 'entregado' AND substr(o.delivered_at, 1, 10) BETWEEN ? AND ?`,
+        WHERE o.status = 'entregado' AND ${DELIVERED_DAY_SQL("o")} BETWEEN ? AND ?`,
       [desde, hasta, desde, hasta]
     ))!;
     // Por tipo el divisor son las órdenes que LLEVARON ese tipo: dividir entre
@@ -299,7 +308,7 @@ export async function loadMetricDetail(
               COALESCE(SUM(i.net), 0)::float8 AS total,
               COUNT(DISTINCT o.id)::int AS n
          FROM orders o JOIN ${ORDER_ITEM_NET_SQL} i ON i.order_id = o.id
-        WHERE o.status = 'entregado' AND substr(o.delivered_at, 1, 10) BETWEEN ? AND ?
+        WHERE o.status = 'entregado' AND ${DELIVERED_DAY_SQL("o")} BETWEEN ? AND ?
         GROUP BY i.kind`,
       [desde, hasta]
     );
@@ -319,7 +328,7 @@ export async function loadMetricDetail(
          JOIN vehicles v ON v.id = o.vehicle_id
          LEFT JOIN clients c ON c.id = v.client_id
          LEFT JOIN ${ORDER_ITEM_NET_SQL} i ON i.order_id = o.id
-        WHERE o.status = 'entregado' AND substr(o.delivered_at, 1, 10) BETWEEN ? AND ?
+        WHERE o.status = 'entregado' AND ${DELIVERED_DAY_SQL("o")} BETWEEN ? AND ?
         GROUP BY o.id, o.folio, v.plate, c.name, o.delivered_at
         ORDER BY total DESC, o.delivered_at DESC, o.id DESC
         LIMIT ${LIMIT}`,
@@ -597,7 +606,7 @@ export async function loadMetricDetail(
     `SELECT COALESCE(SUM(i.net), 0)::float8 AS total,
             COALESCE(SUM(i.cost), 0)::float8 AS cost
        FROM orders o JOIN ${ORDER_ITEM_NET_SQL} i ON i.order_id = o.id
-      WHERE o.status = 'entregado' AND substr(o.delivered_at, 1, 10) BETWEEN ? AND ?`,
+      WHERE o.status = 'entregado' AND ${DELIVERED_DAY_SQL("o")} BETWEEN ? AND ?`,
     [desde, hasta]
   ))!;
   const exp = (await one<{ total: number }>(
@@ -617,7 +626,7 @@ export async function loadMetricDetail(
   const surcharge = (await one<{ total: number }>(
     `SELECT COALESCE(SUM(ot.surcharge), 0)::float8 AS total
        FROM orders o JOIN ${ORDER_TOTALS_SQL} ot ON ot.order_id = o.id
-      WHERE o.status = 'entregado' AND substr(o.delivered_at, 1, 10) BETWEEN ? AND ?`,
+      WHERE o.status = 'entregado' AND ${DELIVERED_DAY_SQL("o")} BETWEEN ? AND ?`,
     [desde, hasta]
   ))!;
 

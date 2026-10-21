@@ -7,7 +7,9 @@ import {
 import { many, one } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { formatMoney, STATUS_META, STATUS_FLOW, type OrderStatus } from "@/lib/status";
-import { resolveRange, loadWorkInProgress, type ReportMetric } from "@/lib/reports";
+import {
+  resolveRange, loadWorkInProgress, DELIVERED_DAY_SQL, type ReportMetric,
+} from "@/lib/reports";
 import { ORDER_ITEM_NET_SQL, ORDER_TOTALS_SQL } from "@/lib/totals";
 import ReportRangeFilter from "@/components/admin/ReportRangeFilter";
 import { PageTitle, card } from "@/components/admin/ui";
@@ -58,19 +60,19 @@ export default async function ReportsPage({
   // El COUNT es por mes y tipo, pero se puede sumar entre meses sin inflarse:
   // una orden se entrega una sola vez, así que vive en un único 'ym'.
   const kindRows = await many<{ ym: string; kind: string; total: number; profit: number; n: number }>(
-    `SELECT substr(o.delivered_at, 1, 7) AS ym, i.kind,
+    `SELECT substr(${DELIVERED_DAY_SQL("o")}, 1, 7) AS ym, i.kind,
             COALESCE(SUM(i.net), 0)::float8 AS total,
             COALESCE(SUM(i.net - i.cost), 0)::float8 AS profit,
             COUNT(DISTINCT o.id)::int AS n
        FROM orders o JOIN ${ORDER_ITEM_NET_SQL} i ON i.order_id = o.id
-      WHERE o.status = 'entregado' AND substr(o.delivered_at, 1, 10) BETWEEN ? AND ?
+      WHERE o.status = 'entregado' AND ${DELIVERED_DAY_SQL("o")} BETWEEN ? AND ?
       GROUP BY ym, i.kind`,
     [desde, hasta]
   );
   const deliveredRows = await many<{ ym: string; n: number }>(
-    `SELECT substr(delivered_at, 1, 7) AS ym, COUNT(*)::int AS n
+    `SELECT substr(${DELIVERED_DAY_SQL("")}, 1, 7) AS ym, COUNT(*)::int AS n
        FROM orders
-      WHERE status = 'entregado' AND substr(delivered_at, 1, 10) BETWEEN ? AND ?
+      WHERE status = 'entregado' AND ${DELIVERED_DAY_SQL("")} BETWEEN ? AND ?
       GROUP BY ym`,
     [desde, hasta]
   );
@@ -89,7 +91,7 @@ export default async function ReportsPage({
             COALESCE(SUM(i.net - i.cost), 0)::float8 AS profit,
             COUNT(DISTINCT o.id)::int AS n
        FROM orders o LEFT JOIN ${ORDER_ITEM_NET_SQL} i ON i.order_id = o.id
-      WHERE o.status = 'entregado' AND substr(o.delivered_at, 1, 10) BETWEEN ? AND ?
+      WHERE o.status = 'entregado' AND ${DELIVERED_DAY_SQL("o")} BETWEEN ? AND ?
       GROUP BY o.modality`,
     [desde, hasta]
   );
@@ -102,7 +104,7 @@ export default async function ReportsPage({
     `SELECT COALESCE(SUM(ot.surcharge), 0)::float8 AS total,
             COUNT(*) FILTER (WHERE ot.surcharge > 0)::int AS n
        FROM orders o JOIN ${ORDER_TOTALS_SQL} ot ON ot.order_id = o.id
-      WHERE o.status = 'entregado' AND substr(o.delivered_at, 1, 10) BETWEEN ? AND ?`,
+      WHERE o.status = 'entregado' AND ${DELIVERED_DAY_SQL("o")} BETWEEN ? AND ?`,
     [desde, hasta]
   ))!;
   const surchargeTotal = surchargeRow.total;
@@ -154,7 +156,7 @@ export default async function ReportsPage({
             COALESCE(SUM(i.net - i.cost), 0)::float8 AS profit
        FROM users u
        JOIN orders o ON o.assigned_to = u.id AND o.status = 'entregado'
-        AND substr(o.delivered_at, 1, 10) BETWEEN ? AND ?
+        AND ${DELIVERED_DAY_SQL("o")} BETWEEN ? AND ?
        LEFT JOIN ${ORDER_ITEM_NET_SQL} i ON i.order_id = o.id
       GROUP BY u.id, u.name, u.monthly_cost
       ORDER BY revenue DESC
@@ -166,7 +168,7 @@ export default async function ReportsPage({
             COALESCE(AVG(EXTRACT(EPOCH FROM (delivered_at::timestamp - created_at::timestamp)) / 86400.0), 0)::float8 AS avg_days
        FROM orders
       WHERE status = 'entregado' AND assigned_to IS NOT NULL
-        AND substr(delivered_at, 1, 10) BETWEEN ? AND ?
+        AND ${DELIVERED_DAY_SQL("")} BETWEEN ? AND ?
       GROUP BY assigned_to`,
     [desde, hasta]
   );

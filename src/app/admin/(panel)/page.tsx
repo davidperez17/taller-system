@@ -9,6 +9,7 @@ import { getActivityHistory } from "@/lib/activity";
 import { timeAgo } from "@/lib/activity-meta";
 import { STATUS_META, STATUS_FLOW, formatMoney, formatDate, type OrderStatus } from "@/lib/status";
 import { ORDER_TOTALS_SQL } from "@/lib/totals";
+import { gtNow, isoDay, DELIVERED_DAY_SQL } from "@/lib/reports";
 import {
   StatusBadge, PlateBadge, VehicleTypeIcon, PageTitle, card, btnPrimary, btnSecondary,
 } from "@/components/admin/ui";
@@ -32,15 +33,20 @@ export default async function DashboardPage() {
   const ready = (await one<{ n: number }>(
     "SELECT COUNT(*)::int AS n FROM orders WHERE status = 'listo'"
   ))!;
+  // Mes de Guatemala, igual que el preset «Este mes» del historial y de
+  // Reportes, que es adonde llevan estas dos tarjetas.
+  const gtMonth = isoDay(gtNow()).slice(0, 7);
   const deliveredMonth = (await one<{ n: number }>(
     `SELECT COUNT(*)::int AS n FROM orders WHERE status = 'entregado'
-       AND substr(delivered_at, 1, 7) = to_char(now(), 'YYYY-MM')`
+       AND substr(${DELIVERED_DAY_SQL("")}, 1, 7) = ?`,
+    [gtMonth]
   ))!;
   const revenueMonth = (await one<{ total: number }>(
     `SELECT COALESCE(SUM(t.total), 0)::float8 AS total
        FROM ${ORDER_TOTALS_SQL} t JOIN orders o ON o.id = t.order_id
        WHERE o.status = 'entregado'
-       AND substr(o.delivered_at, 1, 7) = to_char(now(), 'YYYY-MM')`
+       AND substr(${DELIVERED_DAY_SQL("o")}, 1, 7) = ?`,
+    [gtMonth]
   ))!;
 
   // created_at es TEXT 'YYYY-MM-DD HH:MM:SS' en UTC: la comparación lexicográfica

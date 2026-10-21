@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Smile, MessageSquareText, Star, ThumbsUp, AlertTriangle, X } from "lucide-react";
 import { many, one } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
-import { resolveRange } from "@/lib/reports";
+import { resolveRange, DELIVERED_DAY_SQL } from "@/lib/reports";
 import {
   CSAT_LEVELS,
   CSAT_ORDER,
@@ -61,7 +61,7 @@ export default async function SatisfaccionPage({
   const resp = (await one<{ entregadas: number; calificadas: number }>(
     `SELECT COUNT(*)::int AS entregadas, COUNT(f.id)::int AS calificadas
        FROM orders o LEFT JOIN order_feedback f ON f.order_id = o.id
-      WHERE o.status = 'entregado' AND substr(o.delivered_at, 1, 10) BETWEEN ? AND ?`,
+      WHERE o.status = 'entregado' AND ${DELIVERED_DAY_SQL("o")} BETWEEN ? AND ?`,
     [desde, hasta]
   ))!;
 
